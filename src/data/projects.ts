@@ -4,7 +4,7 @@ const projectEntries: Project[] = [
   {
     slug: "verde",
     title: "Verde",
-    shortDescription: "Verde is an AI-powered plant identification and mapping app that uses YOLO image recognition to scan and identify plants, with a focus on Philippine native and endemic species. It combines geotagged discoveries, a plant encyclopedia, a research and article hub, offline functionality, and community participation to support biodiversity education and conservation. Its rewards system lets users earn points intended to be redeemable through options such as GCash.",
+    shortDescription: "An AI-powered plant identification and mapping app using YOLO image recognition, focused on Philippine native and endemic species.",
     categories: ["mobile-applications", "ui-ux-design", "creative-design"],
     year: 2026,
     featured: true,
@@ -15,15 +15,17 @@ const projectEntries: Project[] = [
   ...[
     {
       slug: "respolink", title: "RespoLink", thumbnail: "/images/project (9).png",
+      short: "A disaster response and resource management system connecting communities, responders, and relief organizations in real time.",
       description: "RespoLink is a disaster response and resource management system that connects communities, responders, and relief organizations through timely alerts, critical updates, and accurate evacuation information. It supports resource tracking, relief inventory, volunteer coordination, and recovery efforts to help teams respond more efficiently during emergencies. Its development framework and database have not yet been confirmed.",
     },
     {
       slug: "agrichain-mobile", title: "AgriChain Mobile", thumbnail: "/images/project (10).png",
+      short: "A mobile app connecting farmers with agricultural authorities to coordinate logistics, supply chains, and disaster response.",
       description: "AgriChain Mobile connects farmers with agricultural authorities to coordinate logistics, manage the farm-to-market supply chain, and monitor crop prices, production, and demand. It also brings disaster-related information into agricultural coordination, helping farmers report conditions and authorities identify needs, organize deliveries, and respond to disruptions. Its mobile development framework and backend stack have not yet been confirmed.",
     },
-  ].map(({ slug, title, thumbnail, description }): Project => ({
+  ].map(({ slug, title, thumbnail, short, description }): Project => ({
     slug, title,
-    shortDescription: description,
+    shortDescription: short,
     categories: ["mobile-applications", "ui-ux-design", "creative-design"],
     year: 2026, featured: true,
     technologies: ["Mobile UI", "Interface Design", "Visual Design"],
