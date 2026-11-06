@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { TextReveal } from "@/components/animations/text-reveal";
 import { PlaygroundGallery } from "@/components/playground/playground-gallery";
+import { PlaygroundStack } from "@/components/playground/playground-stack";
 import { playgroundItems } from "@/data/playground";
 
 export const metadata: Metadata = {
@@ -25,6 +26,10 @@ export default function PlaygroundPage() {
           Photography, graphic design, technical experiments, and UI/UX
           explorations that don&apos;t fit neatly into a case study.
         </p>
+      </section>
+
+      <section className="container-page section-y border-t border-border/60">
+        <PlaygroundStack items={playgroundItems} />
       </section>
 
       <section className="container-page section-y border-t border-border/60">

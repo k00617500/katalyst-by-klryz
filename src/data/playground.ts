@@ -12,8 +12,17 @@ export interface PlaygroundItem {
   description?: string;
 }
 
-// TODO: Replace with real photography, design, and experiment uploads.
-export const playgroundItems: PlaygroundItem[] = [];
+const photoIndices = [
+  ...Array.from({ length: 20 }, (_, i) => ({ index: i + 1, ext: "jpg" })),
+  { index: 21, ext: "png" },
+];
+
+export const playgroundItems: PlaygroundItem[] = photoIndices.map(({ index, ext }) => ({
+  id: `playground-${index}`,
+  title: `Street Photography ${String(index).padStart(2, "0")}`,
+  category: "photography",
+  image: `/images/playground/plygrnd (${index}).${ext}`,
+}));
 
 export const playgroundCategoryLabels: Record<PlaygroundCategory, string> = {
   photography: "Photography",
