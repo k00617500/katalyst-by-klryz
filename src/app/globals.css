@@ -265,6 +265,7 @@
 
 .carousel-progress { animation: carousel-progress 6s linear forwards; }
 .showcase-carousel { --showcase-card-width: min(84vw, 1200px); --showcase-gap: clamp(16px, 2vw, 32px); }
+.showcase-carousel--compact { --showcase-card-width: min(60vw, 640px); }
 .showcase-track { display: flex; gap: var(--showcase-gap); width: var(--showcase-card-width); margin-left: calc((100% - var(--showcase-card-width)) / 2); will-change: transform; }
 .showcase-card { width: var(--showcase-card-width); }
 .showcase-control { display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: var(--secondary); color: var(--foreground); transition: background .2s; }

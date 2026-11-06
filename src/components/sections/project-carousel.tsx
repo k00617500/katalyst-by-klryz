@@ -14,7 +14,7 @@ const introSlide = { slug: "intro", title: "Hello, I'm Meryll Klaryze", thumbnai
 const projectSlides = projects.map((project) => ({ ...project, href: `/projects/${project.slug}` }));
 type Mode = "scroll" | "paused" | "autoplay";
 
-export function ProjectCarousel({ showIntro = true, ariaLabel = "Project showcase" }: { showIntro?: boolean; ariaLabel?: string }) {
+export function ProjectCarousel({ showIntro = true, ariaLabel = "Project showcase", compact = false }: { showIntro?: boolean; ariaLabel?: string; compact?: boolean }) {
   const slides = showIntro ? [introSlide, ...projectSlides] : projectSlides;
   // Matching end cards let the track cross either boundary before resetting invisibly.
   const loopSlides = [slides[slides.length - 1], ...slides, slides[0]];
@@ -76,7 +76,7 @@ export function ProjectCarousel({ showIntro = true, ariaLabel = "Project showcas
   }, { scope: sectionRef });
 
   return (
-    <section ref={sectionRef} aria-label={ariaLabel} aria-roledescription="carousel" className="showcase-carousel border-t border-border/60 py-12 md:py-16"
+    <section ref={sectionRef} aria-label={ariaLabel} aria-roledescription="carousel" className={`showcase-carousel border-t border-border/60 py-12 md:py-16 ${compact ? "showcase-carousel--compact" : ""}`}
       onKeyDown={(event) => {
         if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
           event.preventDefault();
