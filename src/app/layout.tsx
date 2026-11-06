@@ -95,7 +95,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <link href="https://fonts.cdnfonts.com/css/instagram-sans-2" rel="stylesheet" />
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <ThemeProvider attribute="class" storageKey="katalyst-theme" defaultTheme="light" enableSystem={false}>
+        <ThemeProvider attribute="class" storageKey="katalyst-theme" defaultTheme="dark" enableSystem={false}>
           <TooltipProvider delayDuration={150}>
             <Preloader />
             <ScrollProgress />
