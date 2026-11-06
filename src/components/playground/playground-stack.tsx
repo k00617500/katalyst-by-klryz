@@ -208,7 +208,6 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
             </div>
 
             <div className="mt-4 flex items-center gap-4 font-mono text-xs text-white/70 uppercase">
-              <span>{active.title}</span>
               <span>
                 {activeIndex + 1} / {items.length}
               </span>
