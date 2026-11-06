@@ -83,6 +83,7 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
   let remix = 0;
   let time = 0;
   let previous = 0;
+  let scrollShift = 0;
 
   function render(timestamp: number) {
     const delta = previous ? Math.min((timestamp - previous) / 1000, 0.05) : 0;
@@ -90,7 +91,8 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
     if (!paused && !reduced) time += delta;
     const ease = reduced || paused ? 1 : 1 - Math.exp(-delta * 5);
     sculpture.rotation.y = THREE.MathUtils.lerp(sculpture.rotation.y, turn + pointer.x * 0.12, ease);
-    sculpture.rotation.x = THREE.MathUtils.lerp(sculpture.rotation.x, tilt - pointer.y * 0.08, ease);
+    sculpture.rotation.x = THREE.MathUtils.lerp(sculpture.rotation.x, tilt - pointer.y * 0.08 + scrollShift * 0.5, ease);
+    sculpture.position.y = THREE.MathUtils.lerp(sculpture.position.y, reduced ? 0 : scrollShift * -1.3, ease);
     objects.forEach((object, index) => {
       object.position.y = bases[index].y + Math.sin(time * 0.75 + index * 1.4) * (reduced ? 0 : 0.12);
       object.rotation.z = THREE.MathUtils.lerp(object.rotation.z, Math.sin(time * 0.3 + index) * 0.18 + remix * (index % 2 ? -0.7 : 0.7), ease);
@@ -115,7 +117,9 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
   }
   function move(event: PointerEvent) {
     const bounds = host.getBoundingClientRect();
-    pointer.set((event.clientX - bounds.left) / bounds.width * 2 - 1, -((event.clientY - bounds.top) / bounds.height) * 2 + 1);
+    const x = (event.clientX - bounds.left) / bounds.width * 2 - 1;
+    const y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1;
+    pointer.set(THREE.MathUtils.clamp(x, -1.6, 1.6), THREE.MathUtils.clamp(y, -1.6, 1.6));
     if (dragging) {
       turn += (event.clientX - lastX) * 0.008;
       tilt = THREE.MathUtils.clamp(tilt + (event.clientY - lastY) * 0.005, -0.7, 0.7);
@@ -131,23 +135,30 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
     canvas.setPointerCapture(event.pointerId);
   }
   function up() { dragging = false; }
-  function leave() { pointer.set(0, 0); }
+  function scroll() {
+    const bounds = host.getBoundingClientRect();
+    const vh = window.innerHeight || 1;
+    const progress = THREE.MathUtils.clamp((vh - bounds.top) / (vh + bounds.height), 0, 1);
+    scrollShift = progress - 0.5;
+    if (paused || reduced) render(performance.now());
+  }
   function motionChange() { reduced = motionQuery.matches; syncLoop(); }
   function contextLost(event: Event) { event.preventDefault(); renderer.setAnimationLoop(null); onContextLost(); }
   const resizeObserver = new ResizeObserver(resize);
   resizeObserver.observe(host);
   const intersection = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; syncLoop(); });
   intersection.observe(host);
-  canvas.addEventListener("pointermove", move);
+  window.addEventListener("pointermove", move);
   canvas.addEventListener("pointerdown", down);
   canvas.addEventListener("pointerup", up);
   canvas.addEventListener("pointercancel", up);
   canvas.addEventListener("lostpointercapture", up);
-  canvas.addEventListener("pointerleave", leave);
   canvas.addEventListener("webglcontextlost", contextLost);
+  window.addEventListener("scroll", scroll, { passive: true });
   motionQuery.addEventListener("change", motionChange);
   document.addEventListener("visibilitychange", syncLoop);
   resize();
+  scroll();
   syncLoop();
 
   return {
@@ -158,12 +169,12 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
       resizeObserver.disconnect(); intersection.disconnect();
       motionQuery.removeEventListener("change", motionChange);
       document.removeEventListener("visibilitychange", syncLoop);
-      canvas.removeEventListener("pointermove", move);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("scroll", scroll);
       canvas.removeEventListener("pointerdown", down);
       canvas.removeEventListener("pointerup", up);
       canvas.removeEventListener("pointercancel", up);
       canvas.removeEventListener("lostpointercapture", up);
-      canvas.removeEventListener("pointerleave", leave);
       canvas.removeEventListener("webglcontextlost", contextLost);
       scene.traverse(object => {
         if (object instanceof THREE.Mesh) object.geometry.dispose();

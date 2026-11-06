@@ -16,7 +16,7 @@ export function CursorStamps() {
     let index = 0;
     let audio: AudioContext | null = null;
     const blocked = (event: MouseEvent) => event.target instanceof Element &&
-      !!event.target.closest("a, button, input, textarea, select, [contenteditable], [role=button], [role=slider], header, img, svg, p, h1, h2, h3, h4, span, li, label");
+      !!event.target.closest("a, button, input, textarea, select, [contenteditable], [role=button], [role=slider], header, img, svg, p, h1, h2, h3, h4, span, li, label, canvas, .hero-playground");
     const stop = () => { last = null; };
     const down = (event: MouseEvent) => {
       if (!media.matches || event.button !== 0 || blocked(event) || !window.getSelection()?.isCollapsed) return;
