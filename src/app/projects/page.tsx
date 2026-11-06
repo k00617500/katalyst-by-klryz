@@ -29,7 +29,7 @@ export default function ProjectsPage() {
         marqueeItems={marqueeCategories}
       />
 
-      <ProjectCarousel showIntro={false} ariaLabel="Project gallery" />
+      <ProjectCarousel showIntro={false} ariaLabel="Project gallery" compact />
 
       <section className="container-page section-y border-t border-border/60">
         <ProjectsGrid projects={projects} />
