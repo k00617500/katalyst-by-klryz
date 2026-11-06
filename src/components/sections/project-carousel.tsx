@@ -10,15 +10,14 @@ import { projects } from "@/data/projects";
 
 registerGsap();
 
-const slides = [
-  { slug: "intro", title: "Hello, I'm Meryll Klaryze", thumbnail: "/images/project (1).png", href: "" },
-  ...projects.map((project) => ({ ...project, href: `/projects/${project.slug}` })),
-];
-// Matching end cards let the track cross either boundary before resetting invisibly.
-const loopSlides = [slides[slides.length - 1], ...slides, slides[0]];
+const introSlide = { slug: "intro", title: "Hello, I'm Meryll Klaryze", thumbnail: "/images/project (1).png", href: "" };
+const projectSlides = projects.map((project) => ({ ...project, href: `/projects/${project.slug}` }));
 type Mode = "scroll" | "paused" | "autoplay";
 
-export function ProjectCarousel() {
+export function ProjectCarousel({ showIntro = true, ariaLabel = "Project showcase" }: { showIntro?: boolean; ariaLabel?: string }) {
+  const slides = showIntro ? [introSlide, ...projectSlides] : projectSlides;
+  // Matching end cards let the track cross either boundary before resetting invisibly.
+  const loopSlides = [slides[slides.length - 1], ...slides, slides[0]];
   const sectionRef = useRef<HTMLElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const modeRef = useRef<Mode>("autoplay");
@@ -77,7 +76,7 @@ export function ProjectCarousel() {
   }, { scope: sectionRef });
 
   return (
-    <section ref={sectionRef} aria-label="Project showcase" aria-roledescription="carousel" className="showcase-carousel border-t border-border/60 py-12 md:py-16"
+    <section ref={sectionRef} aria-label={ariaLabel} aria-roledescription="carousel" className="showcase-carousel border-t border-border/60 py-12 md:py-16"
       onKeyDown={(event) => {
         if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
           event.preventDefault();
