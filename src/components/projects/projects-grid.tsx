@@ -42,7 +42,7 @@ export function ProjectsGrid({ projects }: { projects: Project[] }) {
           ))}
         </div> : <div className="divide-y divide-border border-y border-border">
           {filtered.map((project) => <article key={project.slug} className="group grid gap-6 py-8 md:grid-cols-[200px_1fr] md:gap-10">
-            <Link href={`/projects/${project.slug}`} className="relative block aspect-video overflow-hidden rounded-md border border-border"><Image src={project.thumbnail} alt={project.title} fill sizes="(min-width: 768px) 200px, 90vw" className="object-contain transition-transform duration-500 group-hover:scale-[1.03]" /></Link>
+            <Link href={`/projects/${project.slug}`} className="relative block aspect-video overflow-hidden rounded-md border border-border bg-muted"><Image src={project.thumbnail} alt={project.title} fill sizes="(min-width: 768px) 200px, 90vw" className="object-contain grayscale transition-[filter,transform] duration-500 ease-out group-hover:scale-[1.03] group-hover:grayscale-0 group-focus-visible:grayscale-0 motion-reduce:transition-none" /></Link>
             <div>
               <p className="font-mono text-xs text-muted-foreground">{project.year} · {project.categories.map((category) => categories.find((item) => item.value === category)?.label).join(" / ")}</p>
               <h2 className="mt-3 text-2xl font-medium tracking-tight md:text-3xl"><Link href={`/projects/${project.slug}`} className="transition-colors hover:text-brand-ink">{project.title}</Link></h2>
