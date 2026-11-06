@@ -1,227 +1,119 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Dialog as DialogPrimitive } from "radix-ui";
-import { ChevronLeft, ChevronRight, Pause, Play, X } from "lucide-react";
+import { motion, useAnimationFrame, useMotionValue, useReducedMotion, useTransform, type MotionValue } from "motion/react";
+import { Dialog } from "radix-ui";
+import { ArrowLeft, ArrowRight, Expand, X } from "lucide-react";
 import type { PlaygroundItem } from "@/data/playground";
 
-const VISIBLE = 7;
-const STEP_MS = 2200;
-const SPACING_X = 38;
-const SPACING_Y = 32;
-const ROTATE = -8;
-const CENTER_X = ((VISIBLE - 1) * SPACING_X) / 2;
-const CENTER_Y = ((VISIBLE - 1) * SPACING_Y) / 2;
+const PHOTO_DURATION_MS = 1800;
+const wrap = (value: number, length: number) => ((value % length) + length) % length;
 
-function slotStyle(i: number) {
-  return {
-    x: `calc(-50% + ${i * SPACING_X - CENTER_X}px)`,
-    y: `calc(-50% + ${-i * SPACING_Y + CENTER_Y}px)`,
-    rotate: ROTATE,
-    scale: Math.max(0.6, 1 - i * 0.06),
-    opacity: i === 0 ? 1 : Math.max(0.15, 1 - i * 0.16),
-    filter: `grayscale(${Math.min(85, i * 15)}%) blur(${i > 4 ? 1.5 : i > 2 ? 0.5 : 0}px)`,
-    zIndex: VISIBLE - i,
-  };
+function GalleryPhoto({ item, itemIndex, count, phase, selected, onHover, onOpen }: {
+  item: PlaygroundItem;
+  itemIndex: number;
+  count: number;
+  phase: MotionValue<number>;
+  selected: boolean;
+  onHover: (hovered: boolean) => void;
+  onOpen: () => void;
+}) {
+  const offset = useTransform(phase, (value) => wrap(itemIndex - value + count / 2, count) - count / 2);
+  const spread = useTransform(offset, (value) => {
+    const distance = Math.abs(value);
+    return Math.sign(value) * (distance <= 1 ? distance * 1.35 : 1.35 + (distance - 1) * 0.29);
+  });
+  const x = useTransform(spread, (value) => `calc(-50% + ${value} * var(--photo-step))`);
+  const y = useTransform(spread, (value) => `calc(-50% - ${value} * var(--photo-rise))`);
+  const scale = useTransform(offset, (value) => 1.08 - Math.min(1, Math.abs(value)) * 0.22);
+  const zIndex = useTransform(offset, (value) => count - Math.round(Math.abs(value)));
+  return (
+    <motion.button type="button" className="playground-photo"
+      aria-label={`Preview ${item.title}`} aria-current={selected ? "true" : undefined}
+      tabIndex={selected ? 0 : -1}
+      onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)}
+      onClick={onOpen}
+      style={{ x, y, scale, zIndex, rotateY: -32, rotateZ: 5 }}>
+      <Image src={item.image} alt={item.title} fill loading="eager" sizes="(max-width: 640px) 34vw, 220px" className="object-cover" />
+      <span className="playground-photo-label">{String(itemIndex + 1).padStart(2, "0")} <Expand className="size-3" /></span>
+    </motion.button>
+  );
 }
 
-const slideVariants = {
-  enter: (direction: number) => ({
-    x: direction > 0 ? 140 : -140,
-    rotate: direction > 0 ? 10 : -10,
-    opacity: 0,
-    scale: 0.92,
-  }),
-  center: { x: 0, rotate: 0, opacity: 1, scale: 1 },
-  exit: (direction: number) => ({
-    x: direction > 0 ? -140 : 140,
-    rotate: direction > 0 ? -10 : 10,
-    opacity: 0,
-    scale: 0.92,
-  }),
-};
-
 export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
-  const [order, setOrder] = useState(() => items.map((_, i) => i));
+  const [index, setIndex] = useState(0);
   const [hovered, setHovered] = useState(false);
-  const [paused, setPaused] = useState(false);
   const [open, setOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [direction, setDirection] = useState(1);
-  const [lightboxHovered, setLightboxHovered] = useState(false);
+  const phase = useMotionValue(0);
+  const indexRef = useRef(0);
   const reduced = useReducedMotion();
-  const running = !hovered && !paused && !open && items.length > 1;
-  const lightboxRunning = open && !lightboxHovered && items.length > 1;
+  const running = !hovered && !open && !reduced && items.length > 1;
 
-  useEffect(() => {
+  useAnimationFrame((_, delta) => {
     if (!running) return;
-    const timer = window.setInterval(() => {
-      setOrder((previous) => [...previous.slice(1), previous[0]]);
-    }, STEP_MS);
-    return () => window.clearInterval(timer);
-  }, [running]);
+    // Recycle only beyond the viewport; every card keeps moving through the seam.
+    const next = wrap(phase.get() + Math.min(delta, 64) / PHOTO_DURATION_MS, items.length);
+    phase.set(next);
+    const nextIndex = wrap(Math.round(next), items.length);
+    if (nextIndex !== indexRef.current) {
+      indexRef.current = nextIndex;
+      setIndex(nextIndex);
+    }
+  });
 
-  useEffect(() => {
-    if (!lightboxRunning) return;
-    const timer = window.setInterval(() => {
-      setDirection(1);
-      setActiveIndex((previous) => (previous + 1) % items.length);
-    }, STEP_MS);
-    return () => window.clearInterval(timer);
-  }, [lightboxRunning, items.length]);
-
-  if (items.length === 0) return null;
-
-  const front = items[order[0]];
-  const visibleSlots = order.slice(0, Math.min(VISIBLE, items.length));
-  const active = items[activeIndex];
-
-  const openAt = (itemIndex: number) => {
-    setDirection(1);
-    setActiveIndex(itemIndex);
-    setOpen(true);
+  if (!items.length) return null;
+  const active = items[index];
+  const select = (next: number) => {
+    const selected = wrap(next, items.length);
+    phase.set(selected);
+    indexRef.current = selected;
+    setIndex(selected);
   };
-
-  const navigate = (delta: number) => {
-    setDirection(delta);
-    setActiveIndex((previous) => (previous + delta + items.length) % items.length);
+  const navigate = (delta: number) => select(index + delta);
+  const handleKeys = (event: React.KeyboardEvent) => {
+    if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+      event.preventDefault();
+      event.stopPropagation();
+      navigate(event.key === "ArrowLeft" ? -1 : 1);
+    }
   };
 
   return (
-    <div>
-      <div
-        className="relative mx-auto h-[320px] w-full max-w-[420px] sm:h-[380px] sm:max-w-[480px] md:h-[440px] md:max-w-[540px]"
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        role="group"
-        aria-roledescription="rotating photo stack"
-        aria-label="Playground photography"
-      >
-        {visibleSlots.map((itemIndex, slot) => {
-          const item = items[itemIndex];
-          const style = slotStyle(slot);
-          return (
-            <motion.button
-              key={item.id}
-              type="button"
-              onClick={() => openAt(itemIndex)}
-              aria-label={`Open ${item.title}`}
-              className="absolute top-1/2 left-1/2 aspect-[3/4] w-36 cursor-pointer overflow-hidden rounded-2xl border border-border bg-muted shadow-xl sm:w-44 md:w-52"
-              initial={false}
-              animate={{
-                x: style.x,
-                y: style.y,
-                rotate: style.rotate,
-                scale: style.scale,
-                opacity: style.opacity,
-                filter: style.filter,
-              }}
-              transition={reduced ? { duration: 0 } : { duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-              style={{ zIndex: style.zIndex }}
-            >
-              <Image
-                src={item.image}
-                alt={item.title}
-                fill
-                sizes="(min-width: 768px) 208px, 144px"
-                className="object-cover"
-                priority={slot === 0}
-              />
-            </motion.button>
-          );
-        })}
+    <section className="playground-experience" aria-label="Photography playground" aria-roledescription="carousel" onKeyDown={handleKeys}>
+      <h2 className="sr-only">Explore the Playground collection</h2>
+      <div className="playground-rail">
+        {items.map((item, itemIndex) => (
+          <GalleryPhoto key={item.id} item={item} itemIndex={itemIndex} count={items.length} phase={phase}
+            selected={index === itemIndex} onHover={setHovered}
+            onOpen={() => { select(itemIndex); setOpen(true); }} />
+        ))}
       </div>
-
-      <div className="mx-auto mt-6 flex w-fit max-w-full items-center justify-center gap-3 px-4">
-        <p className="min-w-0 max-w-[14rem] truncate font-mono text-xs text-muted-foreground uppercase">
-          {front.title}
-        </p>
-        <button
-          type="button"
-          aria-label={paused ? "Play playground stack" : "Pause playground stack"}
-          aria-pressed={paused}
-          onClick={() => setPaused((value) => !value)}
-          className="showcase-control size-10"
-        >
-          {paused || hovered ? <Play className="size-4" fill="currentColor" /> : <Pause className="size-4" fill="currentColor" />}
-        </button>
+      <div className="playground-bottom">
+        <div><p className="font-mono text-xs uppercase" aria-live={running ? "off" : "polite"}>{active.title}</p><p className="mt-2 text-xs text-muted-foreground">Click any photograph to preview</p></div>
+        <div className="flex items-center gap-2">
+          <span className="mr-3 font-mono text-xs tabular-nums">{String(index + 1).padStart(2, "0")} / {items.length}</span>
+          <button type="button" className="showcase-control size-10" aria-label="Previous photograph" onClick={() => navigate(-1)}><ArrowLeft className="size-4" /></button>
+          <button type="button" className="showcase-control size-10" aria-label="Next photograph" onClick={() => navigate(1)}><ArrowRight className="size-4" /></button>
+          <button type="button" className="showcase-control ml-2 size-10" aria-label="Open selected photograph preview" onClick={() => setOpen(true)}><Expand className="size-4" /></button>
+        </div>
       </div>
-      <p className="sr-only" aria-live={running ? "off" : "polite"}>
-        {front.title}
-      </p>
-
-      <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
-        <DialogPrimitive.Portal>
-          <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
-          <DialogPrimitive.Content
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 outline-none"
-            onKeyDown={(event) => {
-              if (event.key === "ArrowLeft") navigate(-1);
-              if (event.key === "ArrowRight") navigate(1);
-            }}
-          >
-            <DialogPrimitive.Title className="sr-only">{active.title}</DialogPrimitive.Title>
-            <div
-              className="relative flex w-full max-w-4xl flex-1 items-center justify-center overflow-hidden"
-              onMouseEnter={() => setLightboxHovered(true)}
-              onMouseLeave={() => setLightboxHovered(false)}
-            >
-              <AnimatePresence initial={false} custom={direction} mode="popLayout">
-                <motion.div
-                  key={active.id}
-                  custom={direction}
-                  variants={slideVariants}
-                  initial={reduced ? "center" : "enter"}
-                  animate="center"
-                  exit={reduced ? "center" : "exit"}
-                  transition={{ duration: reduced ? 0 : 0.5, ease: [0.22, 1, 0.36, 1] }}
-                  className="relative aspect-[3/4] max-h-[70vh] w-auto overflow-hidden rounded-2xl border border-white/10 shadow-2xl"
-                >
-                  <Image
-                    src={active.image}
-                    alt={active.title}
-                    fill
-                    sizes="90vw"
-                    className="object-contain"
-                  />
-                </motion.div>
-              </AnimatePresence>
-
-              <button
-                type="button"
-                aria-label="Previous photo"
-                onClick={() => navigate(-1)}
-                className="absolute left-2 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20 sm:left-4"
-              >
-                <ChevronLeft className="size-5" />
-              </button>
-              <button
-                type="button"
-                aria-label="Next photo"
-                onClick={() => navigate(1)}
-                className="absolute right-2 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20 sm:right-4"
-              >
-                <ChevronRight className="size-5" />
-              </button>
+      <Dialog.Root open={open} onOpenChange={(value) => { setOpen(value); if (!value) setHovered(false); }}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/95" />
+          <Dialog.Content className="fixed inset-0 z-[101] flex flex-col items-center justify-center px-14 py-20 outline-none sm:px-24" onKeyDown={handleKeys}>
+            <Dialog.Title className="sr-only">{active.title}</Dialog.Title>
+            <Dialog.Description className="sr-only">Full photograph preview. Use the arrow keys to browse the collection.</Dialog.Description>
+            <div className="relative h-full max-h-[78vh] w-full max-w-6xl">
+              <Image key={active.id} src={active.image} alt={active.title} fill sizes="(max-width: 640px) 85vw, 90vw" className="object-contain" />
             </div>
-
-            <div className="mt-4 flex items-center gap-4 font-mono text-xs text-white/70 uppercase">
-              <span>
-                {activeIndex + 1} / {items.length}
-              </span>
-            </div>
-
-            <DialogPrimitive.Close
-              aria-label="Close"
-              className="absolute top-4 right-4 flex size-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
-            >
-              <X className="size-5" />
-            </DialogPrimitive.Close>
-          </DialogPrimitive.Content>
-        </DialogPrimitive.Portal>
-      </DialogPrimitive.Root>
-    </div>
+            <div className="absolute bottom-7 flex max-w-[90vw] items-center gap-5 font-mono text-xs text-white/80"><span className="truncate">{active.title}</span><span className="shrink-0">{index + 1} / {items.length}</span></div>
+            <button type="button" aria-label="Previous photo" className="absolute top-1/2 left-3 rounded-full bg-white/10 p-3 text-white hover:bg-white/20 sm:left-6" onClick={() => navigate(-1)}><ArrowLeft className="size-5" /></button>
+            <button type="button" aria-label="Next photo" className="absolute top-1/2 right-3 rounded-full bg-white/10 p-3 text-white hover:bg-white/20 sm:right-6" onClick={() => navigate(1)}><ArrowRight className="size-5" /></button>
+            <Dialog.Close aria-label="Close preview" className="absolute top-5 right-5 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"><X className="size-5" /></Dialog.Close>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+    </section>
   );
 }

@@ -15,6 +15,7 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { SoundToggle } from "@/components/providers/sound-provider";
 import { Logo } from "@/components/layout/logo";
 import { cn } from "@/lib/utils";
 
@@ -27,7 +28,7 @@ export function Navbar() {
       <div className="container-page flex h-16 items-center justify-between md:h-20">
         <Logo />
 
-        <nav className="hidden items-center gap-8 lg:flex">
+        <nav className="hidden items-center gap-4 text-sm lg:flex xl:gap-7">
           {navigation.slice(1, -1).map((item) => (
             <Link
               key={item.href}
@@ -43,6 +44,7 @@ export function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
+          <SoundToggle />
           <ThemeToggle />
           <Button asChild size="sm" variant="outline" className="rounded-full">
             <Link href="/resume/PolaronMKA_Resume.pdf" target="_blank">
@@ -58,6 +60,7 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-2 lg:hidden">
+          <SoundToggle />
           <ThemeToggle />
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>

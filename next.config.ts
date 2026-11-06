@@ -4,6 +4,8 @@ import createMDX from "@next/mdx";
 const nextConfig: NextConfig = {
   pageExtensions: ["ts", "tsx", "mdx"],
   images: {
+    // The Playground includes a 66 MB original PNG.
+    maximumResponseBody: 100_000_000,
     remotePatterns: [
       { protocol: "https", hostname: "vemxhbrbdkojmuhatymo.supabase.co" },
     ],

@@ -264,10 +264,26 @@
 @keyframes theme-icon-turn { from { opacity: 0; transform: rotate(-100deg) scale(.6); } to { opacity: 1; transform: rotate(0) scale(1); } }
 
 .carousel-progress { animation: carousel-progress 6s linear forwards; }
-.showcase-carousel { --showcase-card-width: min(84vw, 1200px); --showcase-gap: clamp(16px, 2vw, 32px); }
-.showcase-carousel--compact { --showcase-card-width: min(60vw, 640px); }
+.showcase-carousel { --showcase-card-width: min(72vw, 760px, 105vh); --showcase-gap: clamp(16px, 2.5vw, 40px); }
+.showcase-carousel--compact { --showcase-card-width: min(68vw, 680px, 95vh); }
 .showcase-track { display: flex; gap: var(--showcase-gap); width: var(--showcase-card-width); margin-left: calc((100% - var(--showcase-card-width)) / 2); will-change: transform; }
 .showcase-card { width: var(--showcase-card-width); }
+.playground-experience { --photo-step: clamp(125px, 17vw, 270px); --photo-rise: clamp(65px, 9vw, 125px); position: relative; height: max(520px, 72svh); max-height: 820px; overflow: hidden; isolation: isolate; border-top: 1px solid var(--border); background: color-mix(in srgb, var(--background), var(--foreground) 3%); }
+.playground-rail { position: absolute; inset: 0; perspective: 1500px; }
+.playground-photo { position: absolute; top: 48%; left: 50%; width: clamp(120px, 15vw, 220px); aspect-ratio: 1; cursor: zoom-in; background: var(--muted); box-shadow: -7px 9px 18px #0002; transform-style: preserve-3d; border: 1px solid #ffffff40; }
+.playground-photo:focus-visible { outline: 3px solid var(--brand); outline-offset: 5px; }
+.playground-photo-label { position: absolute; inset: auto 0 0; display: flex; justify-content: space-between; padding: 24px 12px 10px; color: white; background: linear-gradient(transparent, #0008); font-family: var(--font-geist-mono); font-size: 10px; opacity: 0; transition: opacity .2s; }
+.playground-photo:hover .playground-photo-label, .playground-photo:focus-visible .playground-photo-label { opacity: 1; }
+.playground-bottom { position: absolute; bottom: 30px; left: clamp(24px, 4vw, 64px); right: clamp(24px, 4vw, 64px); z-index: 60; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.playground-bottom > div:first-child { min-width: 0; max-width: min(380px, 100%); }
+.playground-bottom > div:first-child p:first-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.playground-bottom > div:first-child { padding: 10px 14px; border-radius: 12px; background: color-mix(in srgb, var(--background), transparent 8%); backdrop-filter: blur(12px); }
+@media (max-width: 640px) {
+  .playground-experience { height: 66svh; min-height: 460px; --photo-step: 130px; --photo-rise: 70px; }
+  .playground-photo { top: 44%; }
+  .playground-bottom { flex-direction: column; align-items: flex-start; bottom: 24px; }
+  .showcase-carousel, .showcase-carousel--compact { --showcase-card-width: 84vw; }
+}
 .showcase-control { display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: var(--secondary); color: var(--foreground); transition: background .2s; }
 .showcase-control:hover { background: var(--muted); }
 .showcase-control:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }

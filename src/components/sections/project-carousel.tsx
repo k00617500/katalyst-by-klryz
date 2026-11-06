@@ -109,7 +109,7 @@ export function ProjectCarousel({ showIntro = true, ariaLabel = "Project showcas
                 <motion.div className="absolute inset-0" initial={false}
                   animate={{ x: reduced ? 0 : Math.max(-1, Math.min(1, slidePosition - position)) * 24 }}
                   transition={{ duration: instant || reduced ? 0 : 1, ease: [0.22, 1, 0.36, 1] }}>
-                  <Image src={slide.thumbnail} alt={slide.title} fill sizes="(min-width: 1440px) 1200px, 86vw" className="object-contain" />
+                  <Image src={slide.thumbnail} alt={slide.title} fill sizes={compact ? "(min-width: 1000px) 680px, 84vw" : "(min-width: 1060px) 760px, 84vw"} className="object-contain" />
                 </motion.div>
               );
               return (

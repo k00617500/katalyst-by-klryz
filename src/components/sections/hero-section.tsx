@@ -157,13 +157,6 @@ export function HeroSection() {
             </MagneticButton>
           </div>
           <div data-hero-cta>
-            <MagneticButton>
-              <Button asChild size="lg" variant="outline" className="rounded-full px-7">
-                <Link href="/contact">Let&apos;s Connect</Link>
-              </Button>
-            </MagneticButton>
-          </div>
-          <div data-hero-cta>
             <Button asChild size="lg" variant="ghost" className="rounded-full px-5">
               <Link href={profile.resumeUrl} target="_blank">
                 Download Résumé

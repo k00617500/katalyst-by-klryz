@@ -30,7 +30,6 @@ export const skillGroups: SkillGroup[] = [
   {
     category: "Systems & Technology",
     skills: [
-      "Database Management",
       "Business Application Development",
       "Systems Analysis",
       "Software Documentation",

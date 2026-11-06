@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { SoundProvider } from "@/components/providers/sound-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
@@ -95,7 +96,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <link href="https://fonts.cdnfonts.com/css/instagram-sans-2" rel="stylesheet" />
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <ThemeProvider attribute="class" storageKey="katalyst-theme" defaultTheme="light" enableSystem={false}>
+        <ThemeProvider attribute="class" storageKey="katalyst-theme" defaultTheme="dark" enableSystem={false}>
+          <SoundProvider>
           <TooltipProvider delayDuration={150}>
             <Preloader />
             <ScrollProgress />
@@ -106,6 +108,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <CursorStamps />
             <SiteParallax />
           </TooltipProvider>
+          </SoundProvider>
         </ThemeProvider>
         <Analytics />
         <SpeedInsights />
