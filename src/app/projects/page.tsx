@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ArrowUpRight } from "lucide-react";
 import { GlowPageHeader } from "@/components/sections/glow-page-header";
+import { ProjectCarousel } from "@/components/sections/project-carousel";
 import { ProjectsGrid } from "@/components/projects/projects-grid";
 import { projects } from "@/data/projects";
 
@@ -27,6 +28,8 @@ export default function ProjectsPage() {
         description="A record of what I've designed, built, and shipped — from government-backed project management systems to startup platforms."
         marqueeItems={marqueeCategories}
       />
+
+      <ProjectCarousel showIntro={false} ariaLabel="Project gallery" />
 
       <section className="container-page section-y border-t border-border/60">
         <ProjectsGrid projects={projects} />
