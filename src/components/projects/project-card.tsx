@@ -18,13 +18,13 @@ export function ProjectCard({ project }: { project: Project }) {
       href={`/projects/${project.slug}`}
       className="group block overflow-hidden rounded-2xl border border-border bg-card transition-colors hover:border-brand"
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+      <div className="relative aspect-video overflow-hidden bg-muted">
         <Image
           src={project.thumbnail}
           alt={project.title}
           fill
           sizes="(min-width: 1024px) 33vw, 100vw"
-          className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+          className="object-contain grayscale transition-[filter,transform] duration-500 ease-out group-hover:scale-[1.02] group-hover:grayscale-0 group-focus-visible:grayscale-0 motion-reduce:transition-none"
         />
       </div>
       <div className="space-y-3 p-6">
@@ -32,11 +32,8 @@ export function ProjectCard({ project }: { project: Project }) {
           <span>{categoryLabels[project.categories[0]]}</span>
           <span>{project.year}</span>
         </div>
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="text-xl font-medium tracking-tight">{project.title}</h3>
-          <ArrowUpRight className="size-5 shrink-0 text-muted-foreground transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1 group-hover:text-brand" />
-        </div>
-        <p className="text-sm text-muted-foreground">{project.shortDescription}</p>
+        <h3 className="text-xl font-medium tracking-tight">{project.title}</h3>
+        <p className="font-space text-sm text-muted-foreground">{project.shortDescription}</p>
         <div className="flex flex-wrap gap-2 pt-1">
           {project.technologies.slice(0, 4).map((tech) => (
             <span
@@ -47,6 +44,10 @@ export function ProjectCard({ project }: { project: Project }) {
             </span>
           ))}
         </div>
+        <span className="inline-flex items-center gap-1.5 pt-2 text-sm font-medium text-brand-ink">
+          Explore
+          <ArrowUpRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1" />
+        </span>
       </div>
     </Link>
   );

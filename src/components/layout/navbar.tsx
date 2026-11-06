@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, ArrowUpRight } from "lucide-react";
 import { navigation } from "@/data/navigation";
-import { profile } from "@/data/profile";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -16,6 +15,7 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { Logo } from "@/components/layout/logo";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
@@ -25,12 +25,7 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-md">
       <div className="container-page flex h-16 items-center justify-between md:h-20">
-        <Link
-          href="/"
-          className="font-mono text-sm font-medium tracking-tight uppercase"
-        >
-          {profile.siteName}
-        </Link>
+        <Logo />
 
         <nav className="hidden items-center gap-8 lg:flex">
           {navigation.slice(1, -1).map((item) => (
@@ -72,8 +67,8 @@ export function Navbar() {
             </SheetTrigger>
             <SheetContent side="right" className="w-full sm:max-w-sm">
               <SheetHeader>
-                <SheetTitle className="font-mono text-sm uppercase">
-                  {profile.siteName}
+                <SheetTitle asChild>
+                  <Logo />
                 </SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col gap-1 px-4">

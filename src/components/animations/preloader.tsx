@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { profile } from "@/data/profile";
 
 export function Preloader() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- respects reduced-motion immediately
       setLoading(false);
       return;
     }
@@ -26,12 +26,12 @@ export function Preloader() {
           transition={{ duration: 0.5, ease: "easeInOut" }}
         >
           <motion.span
-            className="font-mono text-sm tracking-[0.3em] text-muted-foreground uppercase"
+            className="px-6 text-center font-mono text-sm tracking-[0.3em] text-muted-foreground uppercase"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            {profile.siteName}
+            THE KATALYST BY MERYLL KLARYZE
           </motion.span>
         </motion.div>
       )}

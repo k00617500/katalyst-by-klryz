@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "vemxhbrbdkojmuhatymo.supabase.co" },
     ],
+    dangerouslyAllowSVG: true,
+    contentDispositionType: "attachment",
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   turbopack: {
     rules: {
@@ -15,6 +18,12 @@ const nextConfig: NextConfig = {
         as: "*.css",
       },
     },
+  },
+  async redirects() {
+    return [
+      { source: "/blog", destination: "/journal", permanent: true },
+      { source: "/blog/:slug", destination: "/journal/:slug", permanent: true },
+    ];
   },
 };
 

@@ -1,14 +1,21 @@
-import { Github, Linkedin, Mail, Instagram, Twitter, Facebook } from "lucide-react";
+import { Mail } from "lucide-react";
+import {
+  FaGithub,
+  FaLinkedin,
+  FaInstagram,
+  FaXTwitter,
+  FaFacebook,
+} from "react-icons/fa6";
 import { socialLinks } from "@/data/social-links";
 import { cn } from "@/lib/utils";
 
 const iconMap = {
-  github: Github,
-  linkedin: Linkedin,
+  github: FaGithub,
+  linkedin: FaLinkedin,
   mail: Mail,
-  instagram: Instagram,
-  twitter: Twitter,
-  facebook: Facebook,
+  instagram: FaInstagram,
+  twitter: FaXTwitter,
+  facebook: FaFacebook,
 };
 
 export function SocialIconLinks({ className }: { className?: string }) {

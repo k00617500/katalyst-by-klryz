@@ -10,6 +10,7 @@ export interface Achievement {
   organization?: string;
   category: AchievementCategory;
   year?: number;
+  dateLabel?: string;
   description?: string;
   certificateImage?: string;
 }

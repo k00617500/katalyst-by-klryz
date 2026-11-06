@@ -13,7 +13,8 @@ export const profile = {
   philosophy:
     "I approach every project as both an engineer and a designer — starting from the real problem a person or organization has, then building the smallest, clearest system that solves it well.",
   email: "meryll.polaron@gmail.com",
-  location: "Antique, Philippines",
+  phone: "0976 366 9351",
+  locations: ["Sibalom, Antique, Philippines", "Jaro, Iloilo City, Philippines"],
   roles: [
     "Business Application Developer",
     "UI/UX Designer",

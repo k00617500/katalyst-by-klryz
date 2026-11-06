@@ -2,6 +2,7 @@ import Link from "next/link";
 import { navigation } from "@/data/navigation";
 import { profile } from "@/data/profile";
 import { SocialIconLinks } from "@/components/layout/social-icon-links";
+import { Logo } from "@/components/layout/logo";
 
 export function Footer() {
   const year = new Date().getFullYear();
@@ -10,13 +11,12 @@ export function Footer() {
     <footer className="border-t border-border/60">
       <div className="container-page grid gap-12 py-16 md:grid-cols-[1.5fr_1fr_1fr] md:py-20">
         <div className="space-y-4">
-          <span className="font-mono text-sm font-medium tracking-tight uppercase">
-            {profile.siteName}
-          </span>
+          <Logo />
           <p className="max-w-sm text-sm text-muted-foreground">
             {profile.shortBio}
           </p>
           <SocialIconLinks />
+          <a href="https://foreal-solutions.vercel.app/" target="_blank" rel="noopener noreferrer" className="inline-block text-sm text-brand-ink hover:underline">Foreal Solutions ↗</a>
         </div>
 
         <div className="space-y-3">
@@ -46,7 +46,9 @@ export function Footer() {
               {profile.email}
             </a>
           </p>
-          <p className="text-sm text-muted-foreground">{profile.location}</p>
+          {profile.locations.map((location) => (
+            <p key={location} className="text-sm text-muted-foreground">{location}</p>
+          ))}
         </div>
       </div>
 
@@ -54,7 +56,7 @@ export function Footer() {
         <span>
           © {year} {profile.name}. All rights reserved.
         </span>
-        <span className="font-mono">Designed &amp; built by {profile.shortName}</span>
+        <span className="font-mono">Designed &amp; built by Meryll Klaryze Polaron</span>
       </div>
     </footer>
   );
