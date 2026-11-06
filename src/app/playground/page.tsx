@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { TextReveal } from "@/components/animations/text-reveal";
-import { PlaygroundGallery } from "@/components/playground/playground-gallery";
 import { PlaygroundStack } from "@/components/playground/playground-stack";
 import { playgroundItems } from "@/data/playground";
 
@@ -30,10 +29,6 @@ export default function PlaygroundPage() {
 
       <section className="container-page section-y border-t border-border/60">
         <PlaygroundStack items={playgroundItems} />
-      </section>
-
-      <section className="container-page section-y border-t border-border/60">
-        <PlaygroundGallery items={playgroundItems} />
       </section>
     </>
   );

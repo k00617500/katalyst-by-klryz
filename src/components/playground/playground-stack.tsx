@@ -7,16 +7,21 @@ import { Pause, Play } from "lucide-react";
 import type { PlaygroundItem } from "@/data/playground";
 
 const VISIBLE = 7;
-const STEP_MS = 2400;
+const STEP_MS = 2200;
+const SPACING_X = 38;
+const SPACING_Y = 32;
+const ROTATE = -8;
+const CENTER_X = ((VISIBLE - 1) * SPACING_X) / 2;
+const CENTER_Y = ((VISIBLE - 1) * SPACING_Y) / 2;
 
 function slotStyle(i: number) {
   return {
-    x: i * 46,
-    y: i * -38,
-    rotate: -8,
-    scale: Math.max(0.62, 1 - i * 0.055),
-    opacity: i === 0 ? 1 : Math.max(0.16, 1 - i * 0.15),
-    filter: `grayscale(${Math.min(85, i * 14)}%) blur(${i > 4 ? 1.5 : i > 2 ? 0.5 : 0}px)`,
+    x: `calc(-50% + ${i * SPACING_X - CENTER_X}px)`,
+    y: `calc(-50% + ${-i * SPACING_Y + CENTER_Y}px)`,
+    rotate: ROTATE,
+    scale: Math.max(0.6, 1 - i * 0.06),
+    opacity: i === 0 ? 1 : Math.max(0.15, 1 - i * 0.16),
+    filter: `grayscale(${Math.min(85, i * 15)}%) blur(${i > 4 ? 1.5 : i > 2 ? 0.5 : 0}px)`,
     zIndex: VISIBLE - i,
   };
 }
@@ -26,7 +31,7 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
   const [hovered, setHovered] = useState(false);
   const [paused, setPaused] = useState(false);
   const reduced = useReducedMotion();
-  const running = !hovered && !paused && !reduced && items.length > 1;
+  const running = !hovered && !paused && items.length > 1;
 
   useEffect(() => {
     if (!running) return;
@@ -44,7 +49,7 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
   return (
     <div>
       <div
-        className="relative mx-auto h-[360px] w-full max-w-xl pl-4 sm:h-[440px] md:h-[500px]"
+        className="relative mx-auto h-[320px] w-full max-w-[420px] sm:h-[380px] sm:max-w-[480px] md:h-[440px] md:max-w-[540px]"
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         role="group"
@@ -57,7 +62,7 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
           return (
             <motion.div
               key={item.id}
-              className="absolute bottom-10 left-1/2 aspect-[3/4] w-40 -translate-x-1/2 overflow-hidden rounded-2xl border border-border bg-muted shadow-xl sm:w-48 md:w-56"
+              className="absolute top-1/2 left-1/2 aspect-[3/4] w-36 overflow-hidden rounded-2xl border border-border bg-muted shadow-xl sm:w-44 md:w-52"
               initial={false}
               animate={{
                 x: style.x,
@@ -74,7 +79,7 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
                 src={item.image}
                 alt={item.title}
                 fill
-                sizes="(min-width: 768px) 224px, 160px"
+                sizes="(min-width: 768px) 208px, 144px"
                 className="object-cover"
                 priority={slot === 0}
               />
