@@ -2,11 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { gsap, useGSAP, registerGsap } from "@/components/providers/gsap-provider";
-import { SectionHeading } from "@/components/ui/section-heading";
 import { ScrambleText } from "@/components/animations/scramble-text";
 import { archetypes } from "@/data/archetypes";
 
 registerGsap();
+
+const DEFAULT_TEXT = "why 'the katalyst?'";
+
+const ROW_1 = ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"];
+const ROW_2 = ["a", "s", "d", "f", "g", "h", "j", "k", "l"];
+const ROW_3 = ["z", "x", "c", "v", "b", "n", "m"];
 
 function pickArchetype(excludeIndex: number | null) {
   if (archetypes.length <= 1) return 0;
@@ -19,17 +24,16 @@ function pickArchetype(excludeIndex: number | null) {
 
 export function ArchetypeKeyboardSection() {
   const sectionRef = useRef<HTMLDivElement>(null);
-  const enterRef = useRef<HTMLButtonElement>(null);
   const pressedKeys = useRef<Set<string>>(new Set());
 
   const [index, setIndex] = useState<number | null>(null);
   const [trigger, setTrigger] = useState(0);
-  const [revealing, setRevealing] = useState(false);
 
-  const pressKeyVisual = useCallback((el: HTMLElement | null, pressed: boolean) => {
+  const pressEnterVisual = useCallback((el: HTMLElement | null, pressed: boolean) => {
     if (!el) return;
-    gsap.to(el.querySelectorAll(".keycap-face"), {
-      y: pressed ? 6 : 0,
+    gsap.to(el, {
+      y: pressed ? 3 : 0,
+      scale: pressed ? 0.96 : 1,
       duration: pressed ? 0.08 : 0.22,
       ease: pressed ? "power2.out" : "elastic.out(1, 0.5)",
     });
@@ -38,7 +42,6 @@ export function ArchetypeKeyboardSection() {
   const generate = useCallback(() => {
     setIndex((prev) => pickArchetype(prev));
     setTrigger((t) => t + 1);
-    setRevealing(true);
   }, []);
 
   useGSAP(
@@ -46,28 +49,37 @@ export function ArchetypeKeyboardSection() {
       const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       if (prefersReduced) return;
 
-      gsap.to("[data-key-glow] .keycap-face", {
-        boxShadow: "0 0 20px 4px color-mix(in oklch, var(--brand), transparent 35%)",
-        duration: 1.4,
+      gsap.to("[data-enter-key]", {
+        boxShadow: "0 6px 0 0 var(--brand-ink), 0 0 20px 4px color-mix(in oklch, var(--brand), transparent 40%)",
+        duration: 1.3,
         ease: "sine.inOut",
         yoyo: true,
         repeat: -1,
-        stagger: 0.3,
       });
 
-      gsap.from("[data-key]", {
+      gsap.from("[data-vkey]", {
         opacity: 0,
-        y: 24,
-        scale: 0.85,
-        duration: 0.6,
-        ease: "back.out(2)",
-        stagger: 0.07,
+        y: 14,
+        duration: 0.5,
+        ease: "power2.out",
+        stagger: { each: 0.012, from: "start" },
         scrollTrigger: {
           trigger: sectionRef.current,
           start: "top 80%",
           toggleActions: "play none none reverse",
         },
       });
+
+      const keys = gsap.utils.toArray<HTMLElement>("[data-vkey]:not([data-enter-key])");
+      const shimmer = gsap.timeline({ repeat: -1, delay: 1 });
+      const tick = () => {
+        const key = keys[Math.floor(Math.random() * keys.length)];
+        if (!key) return;
+        shimmer.to(key, { opacity: 0.45, duration: 0.12, ease: "power1.out" })
+          .to(key, { opacity: 1, duration: 0.35, ease: "power1.inOut" })
+          .call(() => {}, [], "+=" + (0.15 + Math.random() * 0.5));
+      };
+      for (let i = 0; i < 40; i++) tick();
     },
     { scope: sectionRef },
   );
@@ -79,24 +91,21 @@ export function ArchetypeKeyboardSection() {
       if (!sectionRef.current) return;
       const rect = sectionRef.current.getBoundingClientRect();
       const inView = rect.top < window.innerHeight * 0.85 && rect.bottom > window.innerHeight * 0.15;
-      if (!inView) return;
+      if (!inView || event.key !== "Enter") return;
 
-      const key = event.key === " " ? "Space" : event.key;
-      const keyEl = sectionRef.current.querySelector<HTMLElement>(`[data-physical-key="${key}"]`);
-      if (keyEl && !pressedKeys.current.has(key)) {
-        pressedKeys.current.add(key);
-        pressKeyVisual(keyEl, true);
+      event.preventDefault();
+      if (!pressedKeys.current.has("Enter")) {
+        pressedKeys.current.add("Enter");
+        const enterEl = sectionRef.current.querySelector<HTMLElement>("[data-enter-key]");
+        pressEnterVisual(enterEl, true);
       }
-      if (event.key === "Enter") {
-        event.preventDefault();
-        generate();
-      }
+      generate();
     }
     function onKeyUp(event: KeyboardEvent) {
-      const key = event.key === " " ? "Space" : event.key;
-      pressedKeys.current.delete(key);
-      const keyEl = sectionRef.current?.querySelector<HTMLElement>(`[data-physical-key="${key}"]`);
-      pressKeyVisual(keyEl ?? null, false);
+      if (event.key !== "Enter") return;
+      pressedKeys.current.delete("Enter");
+      const enterEl = sectionRef.current?.querySelector<HTMLElement>("[data-enter-key]");
+      pressEnterVisual(enterEl ?? null, false);
     }
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
@@ -104,129 +113,75 @@ export function ArchetypeKeyboardSection() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [generate, pressKeyVisual]);
+  }, [generate, pressEnterVisual]);
 
   const archetype = index !== null ? archetypes[index] : null;
+  const displayText = archetype
+    ? `${archetype.name} — ${archetype.description}`.toLowerCase()
+    : DEFAULT_TEXT;
 
   return (
     <section
       ref={sectionRef}
       className="archetype-section container-page section-y relative overflow-hidden border-t border-border/60"
     >
-      <div className="relative grid gap-12 lg:grid-cols-[1fr_1fr] lg:gap-16">
-        <div>
-          <SectionHeading
-            eyebrow="Interactive"
-            title="Why &apos;The Katalyst?&apos;"
-            className="mb-6 max-w-none"
-          />
-          <p className="font-space text-balance text-base leading-relaxed text-foreground/80 md:text-lg">
-            Every catalyst needs a trigger. Press{" "}
-            <span className="font-heading font-semibold text-foreground">Enter</span> — on
-            screen or on your own keyboard — and let it generate the role I play in the work I
-            take on.
-          </p>
+      <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+        <span className="font-mono text-xs tracking-[0.2em] text-brand-ink uppercase">
+          Interactive
+        </span>
 
-          <div className="mt-10">
-            <div className="keyboard-cluster" role="group" aria-label="Press Enter to generate an archetype">
-              <div
-                data-key
-                data-key-glow
-                data-physical-key="w"
-                aria-hidden="true"
-                className="keycap keycap-w"
-                onPointerDown={(e) => pressKeyVisual(e.currentTarget, true)}
-                onPointerUp={(e) => pressKeyVisual(e.currentTarget, false)}
-                onPointerLeave={(e) => pressKeyVisual(e.currentTarget, false)}
-              >
-                <span className="keycap-face keycap-face-accent">w</span>
-              </div>
-              <div
-                data-key
-                data-key-glow
-                data-physical-key="h"
-                aria-hidden="true"
-                className="keycap keycap-h"
-                onPointerDown={(e) => pressKeyVisual(e.currentTarget, true)}
-                onPointerUp={(e) => pressKeyVisual(e.currentTarget, false)}
-                onPointerLeave={(e) => pressKeyVisual(e.currentTarget, false)}
-              >
-                <span className="keycap-face keycap-face-accent">h</span>
-              </div>
-              <div
-                data-key
-                data-physical-key="y"
-                aria-hidden="true"
-                className="keycap keycap-y"
-                onPointerDown={(e) => pressKeyVisual(e.currentTarget, true)}
-                onPointerUp={(e) => pressKeyVisual(e.currentTarget, false)}
-                onPointerLeave={(e) => pressKeyVisual(e.currentTarget, false)}
-              >
-                <span className="keycap-face">y</span>
-              </div>
-              <div
-                data-key
-                data-physical-key="?"
-                aria-hidden="true"
-                className="keycap keycap-q"
-                onPointerDown={(e) => pressKeyVisual(e.currentTarget, true)}
-                onPointerUp={(e) => pressKeyVisual(e.currentTarget, false)}
-                onPointerLeave={(e) => pressKeyVisual(e.currentTarget, false)}
-              >
-                <span className="keycap-face">?</span>
-              </div>
-              <button
-                ref={enterRef}
-                type="button"
-                data-key
-                data-physical-key="Enter"
-                className="keycap-enter"
-                aria-label="Generate a Katalyst archetype"
-                onPointerDown={(e) => pressKeyVisual(e.currentTarget, true)}
-                onPointerUp={(e) => pressKeyVisual(e.currentTarget, false)}
-                onPointerLeave={(e) => pressKeyVisual(e.currentTarget, false)}
-                onClick={generate}
-              >
-                <span className="keycap-face keycap-enter-top" />
-                <span className="keycap-face keycap-enter-bottom">Enter</span>
-              </button>
-            </div>
-          </div>
+        <div className="archetype-display mt-6 min-h-[5.5rem]" aria-live="polite">
+          <ScrambleText
+            key={index ?? "default"}
+            text={displayText}
+            trigger={trigger || 1}
+            speed={1.8}
+            as="p"
+            className="font-heading text-balance text-xl leading-relaxed text-muted-foreground md:text-2xl"
+          />
         </div>
 
-        <div className="archetype-readout" aria-live="polite">
-          <div className="archetype-readout-chrome">
-            <span className="archetype-dot" />
-            <span className="archetype-dot" />
-            <span className="archetype-dot" />
-            <span className="ml-3 font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
-              archetype.exe
-            </span>
+        <div
+          className="vkeyboard mt-10"
+          role="group"
+          aria-label="Press the Enter key to generate an archetype"
+        >
+          <div className="vkeyboard-row">
+            {ROW_1.map((k) => (
+              <span key={k} data-vkey className="vkey">
+                {k}
+              </span>
+            ))}
           </div>
-          <div className="archetype-readout-body">
-            {!archetype ? (
-              <p className="font-mono text-sm text-muted-foreground">
-                <span className="archetype-cursor">_</span> waiting for input…
-              </p>
-            ) : (
-              <>
-                <ScrambleText
-                  key={index}
-                  text={archetype.name}
-                  trigger={trigger}
-                  speed={1.6}
-                  as="h3"
-                  className="font-heading text-2xl font-semibold tracking-tight text-foreground md:text-3xl"
-                  onDone={() => setRevealing(false)}
-                />
-                <p
-                  className="font-space mt-4 text-balance text-sm leading-relaxed text-foreground/75 transition-opacity duration-500 md:text-base"
-                  style={{ opacity: revealing ? 0.3 : 1 }}
-                >
-                  {archetype.description}
-                </p>
-              </>
-            )}
+          <div className="vkeyboard-row">
+            {ROW_2.map((k) => (
+              <span key={k} data-vkey className="vkey">
+                {k}
+              </span>
+            ))}
+            <button
+              type="button"
+              data-vkey
+              data-enter-key
+              className="vkey vkey-enter"
+              aria-label="Generate a Katalyst archetype"
+              onClick={generate}
+              onPointerDown={(e) => pressEnterVisual(e.currentTarget, true)}
+              onPointerUp={(e) => pressEnterVisual(e.currentTarget, false)}
+              onPointerLeave={(e) => pressEnterVisual(e.currentTarget, false)}
+            >
+              enter
+            </button>
+          </div>
+          <div className="vkeyboard-row">
+            {ROW_3.map((k) => (
+              <span key={k} data-vkey className="vkey">
+                {k}
+              </span>
+            ))}
+          </div>
+          <div className="vkeyboard-row">
+            <span data-vkey className="vkey vkey-space" aria-hidden="true" />
           </div>
         </div>
       </div>
