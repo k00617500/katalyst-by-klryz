@@ -6,6 +6,8 @@ export interface ToolkitSong {
   uri: string;
   /** Semitone offsets from the song's root note — an original motif, not a transcription of the real recording. */
   motif: number[];
+  /** Deterministic pseudo-tempo (BPM) used to pace the tile flashes on devices that can't capture tab audio. */
+  bpm: number;
 }
 
 // A short, original melodic phrase per song. Deterministically picked from a small palette by the track's own
@@ -40,9 +42,17 @@ function motifFor(id: string): number[] {
   return MOTIF_PALETTE[hashId(id) % MOTIF_PALETTE.length];
 }
 
+// A believable pop-song tempo range, picked deterministically per track id.
+const BPM_MIN = 92;
+const BPM_MAX = 136;
+
+function bpmFor(id: string): number {
+  return BPM_MIN + (hashId(id) % (BPM_MAX - BPM_MIN + 1));
+}
+
 // Titles, artists and cover art scraped from Spotify's public "Viral Hits Philippines" playlist
 // (open.spotify.com/playlist/37i9dQZF1DXe3Jzj3uus9u) — every track its anonymous web view exposes.
-const RAW_SONGS: Array<Omit<ToolkitSong, "uri" | "motif">> = [
+const RAW_SONGS: Array<Omit<ToolkitSong, "uri" | "motif" | "bpm">> = [
   { id: "7D2ZnXa4KgOg68ojItelCe", title: "Closer", artist: "GEHLEE", cover: "https://i.scdn.co/image/ab67616d00004851d50449aac071e64a5590be3e" },
   { id: "79QUyi043DxZVoVy50Ny61", title: "Kung Ayaw", artist: "Jan Roberts", cover: "https://i.scdn.co/image/ab67616d000048519a7392eca56fd7437889f55e" },
   { id: "5uU9RcqmUxm8z8coudZ8eN", title: "Angel Of My Dreams", artist: "JADE", cover: "https://i.scdn.co/image/ab67616d00004851e5f98f2ca43a2abadf80ac51" },
@@ -105,11 +115,12 @@ const RAW_SONGS: Array<Omit<ToolkitSong, "uri" | "motif">> = [
 
 // Note: Spotify's anonymous web view only exposes the first 58 of this playlist's 100 tracks without a logged-in
 // session — that's a Spotify limit, not something a client-side script can lift. These 58 are every track it offers.
-export function createToolkitSong(song: (typeof RAW_SONGS)[number]): ToolkitSong {
+export function createToolkitSong(song: Omit<ToolkitSong, "uri" | "motif" | "bpm">): ToolkitSong {
   return {
     ...song,
     uri: `spotify:track:${song.id}`,
     motif: motifFor(song.id),
+    bpm: bpmFor(song.id),
   };
 }
 

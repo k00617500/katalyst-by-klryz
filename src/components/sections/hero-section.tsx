@@ -38,16 +38,10 @@ export function HeroSection() {
       });
 
       tl.fromTo(
-        "[data-hero-badge]",
-        { opacity: 0, scale: 0.8, rotate: -8 },
-        { opacity: 1, scale: 1, rotate: -6, duration: 0.7 },
+        "[data-hero-eyebrow]",
+        { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, duration: 0.6 },
       )
-        .fromTo(
-          "[data-hero-eyebrow]",
-          { opacity: 0, y: 16 },
-          { opacity: 1, y: 0, duration: 0.6 },
-          "-=0.4",
-        )
         .fromTo(
           "[data-hero-line]",
           { opacity: 0, y: "110%" },
@@ -104,21 +98,12 @@ export function HeroSection() {
       />
 
       <div className="container-page relative flex flex-1 flex-col justify-center gap-5 py-8 md:gap-6 md:py-10">
-        <div className="flex items-start justify-between gap-6">
-          <span
-            data-hero-eyebrow
-            className="font-mono text-xs leading-relaxed tracking-[0.2em] text-accent-cyan uppercase"
-          >
-            {profile.headline}
-          </span>
-
-          <div
-            data-hero-badge
-            className="brand-surface hidden shrink-0 -rotate-6 items-center justify-center rounded-md px-5 py-2 font-mono text-sm font-semibold text-brand-foreground sm:flex"
-          >
-            {new Date().getFullYear()}
-          </div>
-        </div>
+        <span
+          data-hero-eyebrow
+          className="font-mono text-xs leading-relaxed tracking-[0.2em] text-accent-cyan uppercase"
+        >
+          {profile.headline}
+        </span>
 
         <div className="grid items-center gap-6 lg:grid-cols-[1.1fr_1fr] lg:gap-4">
         <div className="relative z-10 flex min-w-0 flex-col gap-5 md:gap-6">

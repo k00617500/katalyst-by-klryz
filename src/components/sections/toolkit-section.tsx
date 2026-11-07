@@ -51,11 +51,13 @@ declare global {
 }
 
 const C4 = 261.63;
-const NOTE_FLASH_MS = 160;
+const NOTE_FLASH_MS = 130;
 const TRACK_END_WINDOW_MS = 1200;
-const PLAYBACK_START_TIMEOUT_MS = 4500;
-// Spotify previews report progress roughly once a second in the foreground.
-const STALL_WATCHDOG_MS = 1600;
+// A couple of extra seconds of buffer so a slow-starting preview gets a fair chance before we retry it.
+const PLAYBACK_START_TIMEOUT_MS = 6500;
+// Spotify previews report progress roughly once a second in the foreground. A few added seconds of
+// slack here avoids flipping to "paused" during brief background-tab throttling.
+const STALL_WATCHDOG_MS = 3600;
 let spotifyApi: SpotifyIframeApi | undefined;
 
 function SpotifyPlaylistPicker({ api, onSelect }: { api?: SpotifyIframeApi; onSelect: (id: string) => void }) {
@@ -347,6 +349,16 @@ export function ToolkitSection() {
 
   const song = songs[currentSongIndex];
 
+  // Tempo-paced fallback so the tiles flash in sync with the song on EVERY device — desktop Safari, iOS,
+  // Android, Firefox, anywhere getDisplayMedia tab-audio capture isn't available. Real captured-audio onsets
+  // (beatSync === "ready") take over and this timer steps aside once that richer sync is active.
+  useEffect(() => {
+    if (!isPlaying || beatSync === "ready") return;
+    const intervalMs = Math.round(60000 / song.bpm);
+    const id = setInterval(flashBeat, intervalMs);
+    return () => clearInterval(id);
+  }, [isPlaying, beatSync, song.bpm, flashBeat]);
+
   const hitTile = useCallback((index: number, click: boolean) => {
     if (playingRef.current || playRequestedRef.current) return;
     playNote(noteFrequency(index, song), click);
@@ -437,7 +449,7 @@ export function ToolkitSection() {
   }, [query, songs]);
 
   return (
-    <section className="container-page section-y border-t border-border/60">
+    <section id="toolkit" className="toolkit-section container-page section-y scroll-mt-24 border-t border-border/60">
       <div className="flex flex-col items-start gap-10 lg:flex-row lg:items-center lg:justify-between">
         <ScrollReveal>
           <SectionHeading
@@ -561,11 +573,8 @@ export function ToolkitSection() {
               )}
               {(beatSync === "retry" || (beatSync === "idle" && isPlaying)) && (
                 <button type="button" onClick={startTabAudio} className="text-xs text-muted-foreground underline underline-offset-2">
-                  Share this tab’s audio for beat sync
+                  Share this tab’s audio for sharper beat sync
                 </button>
-              )}
-              {beatSync === "unsupported" && (
-                <p className="text-xs text-muted-foreground">Beat sync needs tab audio sharing in desktop Chrome or Edge.</p>
               )}
             </div>
           </div>
@@ -637,7 +646,7 @@ export function ToolkitSection() {
       <ScrollReveal
         y={0}
         className={cn(
-          "toolkit-grid mt-14 flex flex-wrap overflow-hidden rounded-lg border-t border-l border-border",
+          "toolkit-grid mt-8 flex flex-wrap overflow-hidden rounded-lg border-t border-l border-border",
           isPlaying && "is-playing",
         )}
       >
@@ -648,13 +657,13 @@ export function ToolkitSection() {
             <div
               key={item.name}
               ref={(tile) => { tileRefs.current[index] = tile; }}
-              className="toolkit-tile group relative flex min-w-0 flex-col items-center justify-center gap-3 border-r border-b border-border bg-background px-2 py-7"
+              className="toolkit-tile group relative flex min-w-0 flex-col items-center justify-center gap-2 border-r border-b border-border bg-background px-2"
               style={{ "--tool-color": isAdaptive ? "var(--foreground)" : item.color } as CSSProperties}
               onMouseEnter={() => hitTile(index, false)}
               onClick={() => hitTile(index, true)}
             >
               <Icon
-                className="size-8 text-muted-foreground/60 grayscale md:size-9"
+                className="size-7 text-muted-foreground/60 grayscale"
               />
               <span className="font-space text-xs text-muted-foreground">
                 {item.name}

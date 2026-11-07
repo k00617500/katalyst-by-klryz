@@ -17,6 +17,7 @@ import {
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { SoundToggle } from "@/components/providers/sound-provider";
 import { Logo } from "@/components/layout/logo";
+import { FollowersWidget } from "@/components/layout/followers-widget";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
@@ -44,6 +45,7 @@ export function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
+          <FollowersWidget />
           <SoundToggle />
           <ThemeToggle />
           <Button asChild size="sm" variant="outline" className="rounded-full">
@@ -60,6 +62,7 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-2 lg:hidden">
+          <FollowersWidget compact />
           <SoundToggle />
           <ThemeToggle />
           <Sheet open={open} onOpenChange={setOpen}>

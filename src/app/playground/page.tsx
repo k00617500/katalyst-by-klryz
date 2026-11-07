@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { PlaygroundStack } from "@/components/playground/playground-stack";
 import { getPlaygroundItems } from "@/lib/playground";
 import { TextReveal } from "@/components/animations/text-reveal";
+import { PinballExperience } from "@/components/pinball/pinball-experience-loader";
 
 export const metadata: Metadata = {
   title: "Playground",
@@ -21,6 +22,9 @@ export default async function PlaygroundPage() {
         <p className="mt-6 max-w-xl font-space text-balance text-base leading-relaxed text-muted-foreground md:text-lg">
           Photography, graphic design, technical experiments, and UI/UX explorations that don&apos;t fit neatly into a case study.
         </p>
+      </section>
+      <section id="pinball" className="container-page scroll-mt-24 pb-16">
+        <PinballExperience />
       </section>
       <PlaygroundStack items={playgroundItems} />
     </>
