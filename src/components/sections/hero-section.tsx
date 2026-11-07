@@ -158,9 +158,9 @@ export function HeroSection() {
           </div>
           <div data-hero-cta>
             <Button asChild size="lg" variant="ghost" className="rounded-full px-5">
-              <Link href={profile.resumeUrl} target="_blank">
+              <a href={profile.resumeUrl} target="_blank" rel="noopener noreferrer">
                 Download Résumé
-              </Link>
+              </a>
             </Button>
           </div>
         </div>

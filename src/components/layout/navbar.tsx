@@ -47,9 +47,9 @@ export function Navbar() {
           <SoundToggle />
           <ThemeToggle />
           <Button asChild size="sm" variant="outline" className="rounded-full">
-            <Link href="/resume/PolaronMKA_Resume.pdf" target="_blank">
+            <a href="/resume/PolaronMKA_Resume.pdf" target="_blank" rel="noopener noreferrer">
               Resume
-            </Link>
+            </a>
           </Button>
           <Button asChild size="sm" className="rounded-full">
             <Link href="/contact">
@@ -93,9 +93,9 @@ export function Navbar() {
               </nav>
               <div className="mt-6 px-4">
                 <Button asChild className="w-full rounded-full">
-                  <Link href="/resume/PolaronMKA_Resume.pdf" target="_blank">
+                  <a href="/resume/PolaronMKA_Resume.pdf" target="_blank" rel="noopener noreferrer">
                     Download Resume
-                  </Link>
+                  </a>
                 </Button>
               </div>
             </SheetContent>

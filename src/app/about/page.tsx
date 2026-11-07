@@ -147,9 +147,9 @@ export default function AboutPage() {
       <section className="container-page section-y border-t border-border/60">
         <ScrollReveal className="flex flex-wrap items-center gap-6">
           <Button asChild size="lg" className="rounded-full px-8">
-            <Link href={profile.resumeUrl} target="_blank">
+            <a href={profile.resumeUrl} target="_blank" rel="noopener noreferrer">
               Download Résumé
-            </Link>
+            </a>
           </Button>
           <Button asChild size="lg" variant="outline" className="rounded-full px-8">
             <Link href="/contact">Get in touch</Link>
