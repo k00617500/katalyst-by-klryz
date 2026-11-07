@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 import Image from "next/image";
 import { Menu, Music2, Pause, Play, Repeat, Shuffle, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { watchToolkitTabAudio } from "@/lib/toolkit-tab-audio";
 import { ScrollReveal } from "@/components/animations/scroll-reveal";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -50,7 +51,7 @@ declare global {
 }
 
 const C4 = 261.63;
-const NOTE_FLASH_MS = 220;
+const NOTE_FLASH_MS = 160;
 const TRACK_END_WINDOW_MS = 1200;
 const PLAYBACK_START_TIMEOUT_MS = 4500;
 // Spotify previews report progress roughly once a second in the foreground.
@@ -116,12 +117,13 @@ function createShuffleOrder(songCount: number) {
   return order;
 }
 
-const randomTileIndex = (excluding: number | null) => {
-  if (toolkitItems.length <= 1) return 0;
-  let next = Math.floor(Math.random() * toolkitItems.length);
-  while (next === excluding) next = Math.floor(Math.random() * toolkitItems.length);
-  return next;
-};
+function randomTileIndex(previous: number | null) {
+  const tileCount = toolkitItems.length;
+  if (tileCount <= 1) return 0;
+  if (previous === null) return Math.floor(Math.random() * tileCount);
+  const index = Math.floor(Math.random() * (tileCount - 1));
+  return index >= previous ? index + 1 : index;
+}
 
 export function ToolkitSection() {
   const { enabled, toggle, playNote } = useSound();
@@ -135,12 +137,16 @@ export function ToolkitSection() {
   const [shuffle, setShuffle] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const [showSpotifyControls, setShowSpotifyControls] = useState(false);
+  const [beatSync, setBeatSync] = useState<"idle" | "connecting" | "ready" | "retry" | "unsupported">("idle");
 
   const controllerRef = useRef<SpotifyEmbedController | null>(null);
   const embedContainerRef = useRef<HTMLDivElement | null>(null);
   const activeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tileRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const activeTileRef = useRef<HTMLDivElement | null>(null);
+  const tabAudioRef = useRef<AbortController | null>(null);
+  const previousTileRef = useRef<number | null>(null);
+  const resetBeatRef = useRef<(() => void) | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
   const stallWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playbackStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -148,21 +154,24 @@ export function ToolkitSection() {
   const playingRef = useRef(false);
   const readyRef = useRef(false);
   const playRequestedRef = useRef(false);
-  const spotifyControlsVisibleRef = useRef(false);
 
   const songIndexRef = useRef(0);
   const songsRef = useRef(toolkitSongs);
   const loopRef = useRef(false);
   const shuffleOrderRef = useRef<number[] | null>(null);
 
+  const clearActiveTile = useCallback(() => {
+    if (activeTimeoutRef.current) clearTimeout(activeTimeoutRef.current);
+    activeTimeoutRef.current = null;
+    activeTileRef.current?.classList.remove("is-active");
+    activeTileRef.current = null;
+  }, []);
+
   const updatePlaying = useCallback((playing: boolean) => {
     playingRef.current = playing;
     setIsPlaying(playing);
-    if (!playing) {
-      if (activeTimeoutRef.current) clearTimeout(activeTimeoutRef.current);
-      setActiveIndex(null);
-    }
-  }, []);
+    if (!playing) clearActiveTile();
+  }, [clearActiveTile]);
 
   const resetPlayback = useCallback(() => {
     lastPlaybackRef.current = null;
@@ -175,8 +184,8 @@ export function ToolkitSection() {
     resetPlayback();
     playRequestedRef.current = true;
     playbackStartTimeoutRef.current = setTimeout(() => {
-      spotifyControlsVisibleRef.current = true;
-      setShowSpotifyControls(true);
+      // A preview may stall on its first start. Give the selected track one retry in place.
+      if (playRequestedRef.current && readyRef.current) controllerRef.current?.resume();
     }, PLAYBACK_START_TIMEOUT_MS);
   }, [resetPlayback]);
 
@@ -184,8 +193,8 @@ export function ToolkitSection() {
     const previousUri = songsRef.current[songIndexRef.current].uri;
     const { uri } = songsRef.current[index];
     songIndexRef.current = index;
-    spotifyControlsVisibleRef.current = false;
-    setShowSpotifyControls(false);
+    previousTileRef.current = null;
+    resetBeatRef.current?.();
     requestPlayback();
     setCurrentSongIndex(index);
     setPositionMs(0);
@@ -239,6 +248,12 @@ export function ToolkitSection() {
             readyRef.current = true;
             if (playRequestedRef.current) controller.play();
           });
+          controller.addListener("playback_started", ({ data }) => {
+            if (cancelled || !playRequestedRef.current || data.playingURI !== songsRef.current[songIndexRef.current].uri) return;
+            updatePlaying(true);
+            if (stallWatchdogRef.current) clearTimeout(stallWatchdogRef.current);
+            stallWatchdogRef.current = setTimeout(() => updatePlaying(false), STALL_WATCHDOG_MS);
+          });
           controller.addListener("playback_update", ({ data }) => {
             const { playingURI, isPaused, isBuffering, position, duration } = data;
             if (cancelled || playingURI !== songsRef.current[songIndexRef.current].uri) return;
@@ -251,21 +266,21 @@ export function ToolkitSection() {
             const finishedTrack =
               playRequestedRef.current && !isBuffering && previous && !previous.isPaused && duration > 0 &&
               ((position >= duration && previous.position < duration) ||
-                (isPaused && position === 0 && previous.position >= duration - TRACK_END_WINDOW_MS));
+                (isPaused && (position >= duration - 250 ||
+                  (position === 0 && previous.position >= duration - TRACK_END_WINDOW_MS))));
             if (finishedTrack) {
               onTrackEnded();
               return;
             }
 
-            const advanced = previous && position > previous.position;
-            if ((!playRequestedRef.current && !spotifyControlsVisibleRef.current) || isPaused || isBuffering || position >= duration ||
-                !advanced) {
+            if (!playRequestedRef.current || isPaused || isBuffering ||
+                (duration > 0 && position >= duration)) {
               if (stallWatchdogRef.current) clearTimeout(stallWatchdogRef.current);
               updatePlaying(false);
               return;
             }
+            if (position <= (previous?.position ?? 0)) return;
 
-            playRequestedRef.current = true;
             if (playbackStartTimeoutRef.current) clearTimeout(playbackStartTimeoutRef.current);
             updatePlaying(true);
             if (stallWatchdogRef.current) clearTimeout(stallWatchdogRef.current);
@@ -297,56 +312,45 @@ export function ToolkitSection() {
     };
   }, [onTrackEnded, updatePlaying]);
 
-  const flashActive = useCallback((index: number) => {
-    if (!playingRef.current) return;
-    if (activeTimeoutRef.current) clearTimeout(activeTimeoutRef.current);
-    setActiveIndex(index);
-    activeTimeoutRef.current = setTimeout(() => setActiveIndex(null), NOTE_FLASH_MS);
-  }, []);
+  const flashBeat = useCallback(() => {
+    if (!playRequestedRef.current) return;
+    const playback = lastPlaybackRef.current;
+    // Spotify's progress events can lag the audio. An audible beat can still light a tile
+    // while the current track's last reported state says it is playing.
+    if (!playingRef.current && (!playback || playback.isPaused || playback.isBuffering || playback.position === 0 ||
+      (playback.duration > 0 && playback.position >= playback.duration))) return;
+    const index = randomTileIndex(previousTileRef.current);
+    const tile = tileRefs.current[index];
+    if (!tile) return;
+    previousTileRef.current = index;
+    clearActiveTile();
+    tile.classList.add("is-active");
+    activeTileRef.current = tile;
+    activeTimeoutRef.current = setTimeout(clearActiveTile, NOTE_FLASH_MS);
+  }, [clearActiveTile]);
 
-  // While a song is actually playing, tiles just follow the beat visually — no audio, so they don't compete with
-  // the real track. Paused/idle, hover and click sound the current song's own piano motif instead.
+  const startTabAudio = useCallback(() => {
+    if (tabAudioRef.current) return;
+    const capture = new AbortController();
+    tabAudioRef.current = capture;
+    setBeatSync("connecting");
+    void watchToolkitTabAudio(capture.signal, flashBeat, (reason) => {
+      tabAudioRef.current = null;
+      resetBeatRef.current = null;
+      clearActiveTile();
+      setBeatSync(reason);
+    }, (resetBeat) => {
+      resetBeatRef.current = resetBeat;
+      setBeatSync("ready");
+    });
+  }, [clearActiveTile, flashBeat]);
+
   const song = songs[currentSongIndex];
 
   const hitTile = useCallback((index: number, click: boolean) => {
-    if (isPlaying) return;
+    if (playingRef.current || playRequestedRef.current) return;
     playNote(noteFrequency(index, song), click);
-  }, [isPlaying, playNote, song]);
-
-  const clickTile = useCallback((index: number) => {
-    flashActive(index);
-    hitTile(index, true);
-  }, [flashActive, hitTile]);
-
-  const beatMs = 60000 / song.bpm;
-
-  // A random tile lights up on every beat of the song's own assigned tempo — a DJ pad, not a fixed left-to-right
-  // sweep, and no sound plays here (the real song is already the audio). Scheduled off an absolute target time
-  // via requestAnimationFrame rather than setInterval, so ticks don't drift apart as the page stays open — each
-  // beat is computed from where the clock SHOULD be, not from when the last callback happened to run.
-  useEffect(() => {
-    if (!isPlaying) return;
-    let lastTile: number | null = null;
-    let nextBeatAt = performance.now();
-    let rafId = 0;
-    let cancelled = false;
-
-    const tick = () => {
-      if (cancelled) return;
-      const now = performance.now();
-      if (now >= nextBeatAt) {
-        const tileIndex = randomTileIndex(lastTile);
-        lastTile = tileIndex;
-        flashActive(tileIndex);
-        nextBeatAt += beatMs;
-        // If the tab was throttled/backgrounded, don't fire a burst of catch-up beats — just resume from now.
-        if (now - nextBeatAt > beatMs) nextBeatAt = now + beatMs;
-      }
-      rafId = requestAnimationFrame(tick);
-    };
-    rafId = requestAnimationFrame(tick);
-    return () => { cancelled = true; cancelAnimationFrame(rafId); };
-  }, [beatMs, flashActive, isPlaying]);
+  }, [playNote, song]);
 
   const togglePlay = useCallback(() => {
     const controller = controllerRef.current;
@@ -358,10 +362,17 @@ export function ToolkitSection() {
     }
     const position = lastPlaybackRef.current?.position ?? 0;
     requestPlayback();
-    if (!controller || !readyRef.current) return;
-    if (position > 0) controller.resume();
-    else controller.play();
-  }, [requestPlayback, resetPlayback]);
+    if (controller && readyRef.current) {
+      if (position > 0) controller.resume();
+      else controller.play();
+    }
+    if (beatSync === "idle") startTabAudio();
+  }, [beatSync, requestPlayback, resetPlayback, startTabAudio]);
+
+  const skipFromControls = useCallback((direction: 1 | -1) => {
+    skipSong(direction);
+    if (beatSync === "idle") startTabAudio();
+  }, [beatSync, skipSong, startTabAudio]);
 
   const seek = useCallback((event: PointerEvent<HTMLDivElement>) => {
     const controller = controllerRef.current;
@@ -370,6 +381,7 @@ export function ToolkitSection() {
     const rect = track.getBoundingClientRect();
     const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
     resetPlayback();
+    resetBeatRef.current?.();
     controller.seek((ratio * durationMs) / 1000);
   }, [durationMs, resetPlayback]);
 
@@ -408,8 +420,11 @@ export function ToolkitSection() {
   }, [pickSong]);
 
   useEffect(() => () => {
-    if (activeTimeoutRef.current) clearTimeout(activeTimeoutRef.current);
-  }, []);
+    tabAudioRef.current?.abort();
+    tabAudioRef.current = null;
+    resetBeatRef.current = null;
+    clearActiveTile();
+  }, [clearActiveTile]);
 
   const progress = durationMs ? (positionMs / durationMs) * 100 : 0;
 
@@ -433,7 +448,7 @@ export function ToolkitSection() {
         </ScrollReveal>
 
         <ScrollReveal y={0} className="relative w-full shrink-0 lg:w-[360px]">
-          <div className="flex items-center gap-4 rounded-2xl border border-border bg-background p-4">
+          <div data-beat-sync={beatSync} className="flex items-center gap-4 rounded-2xl border border-border bg-background p-4">
             <div className="size-16 shrink-0 overflow-hidden rounded-xl bg-muted ring-1 ring-border">
               {song.cover ? <Image
                 key={song.cover}
@@ -506,7 +521,7 @@ export function ToolkitSection() {
                 <button
                   type="button"
                   aria-label="Previous song"
-                  onClick={() => skipSong(-1)}
+                  onClick={() => skipFromControls(-1)}
                   className="showcase-control size-7 text-muted-foreground hover:text-foreground"
                 >
                   <SkipBack className="size-3.5 fill-current" />
@@ -522,7 +537,7 @@ export function ToolkitSection() {
                 <button
                   type="button"
                   aria-label="Next song"
-                  onClick={() => skipSong(1)}
+                  onClick={() => skipFromControls(1)}
                   className="showcase-control size-7 text-muted-foreground hover:text-foreground"
                 >
                   <SkipForward className="size-3.5 fill-current" />
@@ -541,43 +556,25 @@ export function ToolkitSection() {
                   <Shuffle className="size-3.5" />
                 </button>
               </div>
+              {beatSync === "connecting" && (
+                <p role="status" className="text-xs text-muted-foreground">Choose this tab and enable tab audio in the browser picker.</p>
+              )}
+              {(beatSync === "retry" || (beatSync === "idle" && isPlaying)) && (
+                <button type="button" onClick={startTabAudio} className="text-xs text-muted-foreground underline underline-offset-2">
+                  Share this tab’s audio for beat sync
+                </button>
+              )}
+              {beatSync === "unsupported" && (
+                <p className="text-xs text-muted-foreground">Beat sync needs tab audio sharing in desktop Chrome or Edge.</p>
+              )}
             </div>
           </div>
-          {/* Keep the controlled Spotify embed at full size, even behind the compact controls. */}
+          {/* The compact controls own playback. Keep the Spotify controller mounted at full size. */}
           <div
-            inert={!showSpotifyControls}
-            className={showSpotifyControls
-              ? "mt-3 space-y-2"
-              : "pointer-events-none absolute inset-x-0 top-0 h-[152px] overflow-hidden opacity-0"}
+            inert
+            className="pointer-events-none absolute inset-x-0 top-0 h-[152px] overflow-hidden opacity-0"
           >
-            {showSpotifyControls && (
-              <p role="status" className="text-xs text-muted-foreground">
-                {isPlaying ? "Spotify playback controls" : (
-                  <>
-                    Use Spotify’s controls below to start or restart the preview, or{" "}
-                    <a
-                      href={`https://open.spotify.com/track/${song.id}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="underline underline-offset-4"
-                    >
-                      open the track in Spotify
-                    </a>.
-                  </>
-                )}
-              </p>
-            )}
             <div ref={embedContainerRef} className="[&>iframe]:block [&>iframe]:rounded-xl [&>iframe]:border-0" />
-            {showSpotifyControls && !playlistApi && (
-              <iframe
-                src={`https://open.spotify.com/embed/track/${song.id}`}
-                title="Toolkit Spotify player"
-                width="100%"
-                height="152"
-                className="block rounded-xl border-0"
-                allow="autoplay; encrypted-media"
-              />
-            )}
           </div>
         </ScrollReveal>
       </div>
@@ -603,7 +600,10 @@ export function ToolkitSection() {
                   <button
                     key={`${entry.id}-${entry.index}`}
                     type="button"
-                    onClick={() => pickSong(entry.index)}
+                    onClick={() => {
+                      pickSong(entry.index);
+                      if (beatSync === "idle") startTabAudio();
+                    }}
                     className={cn(
                       "flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-secondary",
                       entry.index === currentSongIndex && "bg-secondary",
@@ -647,18 +647,16 @@ export function ToolkitSection() {
           return (
             <div
               key={item.name}
-              className={cn(
-                "toolkit-tile group relative flex min-w-0 flex-col items-center justify-center gap-3 border-r border-b border-border bg-background px-2 py-7",
-                isPlaying && activeIndex === index && "is-active",
-              )}
+              ref={(tile) => { tileRefs.current[index] = tile; }}
+              className="toolkit-tile group relative flex min-w-0 flex-col items-center justify-center gap-3 border-r border-b border-border bg-background px-2 py-7"
               style={{ "--tool-color": isAdaptive ? "var(--foreground)" : item.color } as CSSProperties}
               onMouseEnter={() => hitTile(index, false)}
-              onClick={() => clickTile(index)}
+              onClick={() => hitTile(index, true)}
             >
               <Icon
-                className="size-8 text-muted-foreground/60 grayscale transition-all duration-300 md:size-9"
+                className="size-8 text-muted-foreground/60 grayscale md:size-9"
               />
-              <span className={cn("font-space text-xs text-muted-foreground transition-colors", isPlaying && "group-hover:text-foreground")}>
+              <span className="font-space text-xs text-muted-foreground">
                 {item.name}
               </span>
             </div>

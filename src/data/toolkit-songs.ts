@@ -6,9 +6,6 @@ export interface ToolkitSong {
   uri: string;
   /** Semitone offsets from the song's root note — an original motif, not a transcription of the real recording. */
   motif: number[];
-  /** An assigned tempo in BPM — no browser can read a real tempo out of a cross-origin Spotify stream, so every
-   *  song gets one automatically (deterministic per id) rather than asking a visitor to tap it in. */
-  bpm: number;
 }
 
 // A short, original melodic phrase per song. Deterministically picked from a small palette by the track's own
@@ -33,14 +30,8 @@ const MOTIF_PALETTE: number[][] = [
   [0, 6, 9],
 ];
 
-// A spread of plausible pop/dance tempos, deterministically picked per track id (from a different hash seed than
-// the motif, so pitch and tempo vary independently) so the same song always gets the same tempo. Not a measurement
-// of the real recording's actual tempo — no browser can read that out of a cross-origin Spotify stream — just a
-// consistent, automatic assignment.
-const BPM_PALETTE = [84, 90, 96, 100, 105, 110, 115, 120, 124, 128, 132, 138, 144, 150, 160];
-
-function hashId(id: string, seed = 0): number {
-  let hash = seed;
+function hashId(id: string): number {
+  let hash = 0;
   for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
   return Math.abs(hash);
 }
@@ -49,13 +40,9 @@ function motifFor(id: string): number[] {
   return MOTIF_PALETTE[hashId(id) % MOTIF_PALETTE.length];
 }
 
-function bpmFor(id: string): number {
-  return BPM_PALETTE[hashId(id, 7) % BPM_PALETTE.length];
-}
-
 // Titles, artists and cover art scraped from Spotify's public "Viral Hits Philippines" playlist
 // (open.spotify.com/playlist/37i9dQZF1DXe3Jzj3uus9u) — every track its anonymous web view exposes.
-const RAW_SONGS: Array<Omit<ToolkitSong, "uri" | "motif" | "bpm">> = [
+const RAW_SONGS: Array<Omit<ToolkitSong, "uri" | "motif">> = [
   { id: "7D2ZnXa4KgOg68ojItelCe", title: "Closer", artist: "GEHLEE", cover: "https://i.scdn.co/image/ab67616d00004851d50449aac071e64a5590be3e" },
   { id: "79QUyi043DxZVoVy50Ny61", title: "Kung Ayaw", artist: "Jan Roberts", cover: "https://i.scdn.co/image/ab67616d000048519a7392eca56fd7437889f55e" },
   { id: "5uU9RcqmUxm8z8coudZ8eN", title: "Angel Of My Dreams", artist: "JADE", cover: "https://i.scdn.co/image/ab67616d00004851e5f98f2ca43a2abadf80ac51" },
@@ -123,7 +110,6 @@ export function createToolkitSong(song: (typeof RAW_SONGS)[number]): ToolkitSong
     ...song,
     uri: `spotify:track:${song.id}`,
     motif: motifFor(song.id),
-    bpm: bpmFor(song.id),
   };
 }
 

@@ -218,7 +218,6 @@
 
 .toolkit-tile {
   flex: 1 0 33.333333%;
-  transition: background-color 250ms ease, box-shadow 250ms ease, transform 300ms cubic-bezier(.2,.8,.2,1);
 }
 
 @media (min-width: 640px) { .toolkit-tile { flex-basis: 20%; } }
@@ -235,26 +234,10 @@
   color: transparent;
 }
 
-.toolkit-grid.is-playing .toolkit-tile:hover {
-  z-index: 2;
-  transform: translateY(-6px);
-  background-color: color-mix(in srgb, var(--tool-color) 10%, var(--background));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tool-color) 35%, transparent);
-}
-
-.toolkit-grid.is-playing .toolkit-tile:hover svg {
-  color: var(--tool-color);
-  filter: grayscale(0);
-  transform: translateY(-3px);
-}
-
 .toolkit-tile.is-active {
   z-index: 2;
   transform: translateY(-6px) scale(1.04);
   background-color: color-mix(in srgb, var(--tool-color) 16%, var(--background));
-  /* Fast attack so the tile snaps on the beat instead of ramping in; leaving the state still uses the slower
-     base transition above, for a soft release back to idle. */
-  transition: background-color 50ms ease, transform 60ms cubic-bezier(.2,.8,.2,1);
 }
 
 .toolkit-tile.is-active svg {
@@ -263,8 +246,27 @@
   transform: translateY(-3px);
 }
 
-.toolkit-grid:not(.is-playing) :is(.toolkit-tile, .toolkit-tile svg, .toolkit-tile span) {
-  transition: none;
+@media (hover: hover) {
+  .toolkit-grid:not(.is-playing) .toolkit-tile:hover {
+    z-index: 2;
+    transform: translateY(-6px) scale(1.04);
+    background-color: color-mix(in srgb, var(--tool-color) 16%, var(--background));
+    transition: background-color 240ms ease, transform 240ms ease-out;
+  }
+
+  .toolkit-grid:not(.is-playing) .toolkit-tile:hover svg {
+    color: var(--tool-color);
+    filter: grayscale(0);
+    transform: translateY(-3px);
+    transition: color 240ms ease, filter 240ms ease, transform 240ms ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toolkit-tile.is-active,
+  .toolkit-tile.is-active svg,
+  .toolkit-grid:not(.is-playing) .toolkit-tile:hover,
+  .toolkit-grid:not(.is-playing) .toolkit-tile:hover svg { transform: none; }
 }
 
 @keyframes cursor-stamp-fade {
