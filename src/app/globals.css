@@ -341,6 +341,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  /* Fixed (not min-) height sized for the longest archetype string, so the
+     keyboard below never shifts between generations. */
+  height: 13rem;
+  overflow: hidden;
+}
+@media (min-width: 640px) {
+  .archetype-display {
+    height: 10rem;
+  }
+}
+@media (min-width: 768px) {
+  .archetype-display {
+    height: 8.5rem;
+  }
 }
 
 .vkeyboard {

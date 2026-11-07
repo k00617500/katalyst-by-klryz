@@ -126,12 +126,13 @@ export function ArchetypeKeyboardSection() {
       className="archetype-section container-page section-y relative overflow-hidden border-t border-border/60"
     >
       <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-        <div className="archetype-display min-h-[5.5rem]" aria-live="polite">
+        <div className="archetype-display" aria-live="polite">
           <ScrambleText
             key={index ?? "default"}
             text={displayText}
             trigger={trigger || 1}
-            speed={1.8}
+            speed={0.4}
+            holdFrames={20}
             as="p"
             className="font-mono text-balance text-xl leading-relaxed text-muted-foreground md:text-2xl"
           />

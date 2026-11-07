@@ -6,20 +6,21 @@ import { gsap } from "@/components/providers/gsap-provider";
 const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ!<>-_\\/[]{}—=+*^?#01";
 
 interface ScrambleTextOptions {
-  /** Characters revealed per tick, left to right. */
+  /** Characters locked in per frame, left to right — lower is slower. */
   speed?: number;
-  /** How many scrambled frames a character flickers through before locking. */
-  scrambleFrames?: number;
+  /** Frames of full-string noise before the reveal begins (builds suspense). */
+  holdFrames?: number;
 }
 
 /**
- * Imperative matrix-style decrypt effect: scrambles random glyphs then
- * progressively locks each character into the target string, left to right.
+ * Matrix-style decrypt effect: the whole string flickers as random glyphs,
+ * then characters lock into place left to right, slowly, so the reveal
+ * reads as deliberate rather than a glitch.
  */
 export function runScrambleText(
   el: HTMLElement,
   text: string,
-  { speed = 1, scrambleFrames = 10 }: ScrambleTextOptions = {},
+  { speed = 0.45, holdFrames = 18 }: ScrambleTextOptions = {},
   onComplete?: () => void,
 ) {
   const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -30,32 +31,27 @@ export function runScrambleText(
   }
 
   const chars = text.split("");
-  const revealed = chars.map(() => false);
   let frame = 0;
   let raf = 0;
 
   const tick = () => {
     frame += 1;
-    const revealCount = Math.min(chars.length, Math.floor(frame * speed * 0.6));
+    const revealCount =
+      frame <= holdFrames ? 0 : Math.min(chars.length, Math.floor((frame - holdFrames) * speed));
     let out = "";
     for (let i = 0; i < chars.length; i++) {
       const char = chars[i];
       if (char === " ") {
         out += " ";
-        continue;
-      }
-      if (i < revealCount) {
-        revealed[i] = true;
+      } else if (i < revealCount) {
         out += char;
-      } else if (i < revealCount + scrambleFrames) {
-        out += GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
       } else {
-        out += " ";
+        out += GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
       }
     }
     el.textContent = out;
 
-    if (revealed.every(Boolean) || revealCount > chars.length + scrambleFrames) {
+    if (revealCount >= chars.length) {
       el.textContent = text;
       onComplete?.();
       return;
@@ -73,6 +69,7 @@ interface ScrambleTextProps {
   className?: string;
   trigger: number;
   speed?: number;
+  holdFrames?: number;
   onStart?: () => void;
   onDone?: () => void;
 }
@@ -84,6 +81,7 @@ export function ScrambleText({
   className,
   trigger,
   speed,
+  holdFrames,
   onStart,
   onDone,
 }: ScrambleTextProps) {
@@ -95,7 +93,7 @@ export function ScrambleText({
     cleanupRef.current();
     onStart?.();
     gsap.fromTo(ref.current, { opacity: 0.4 }, { opacity: 1, duration: 0.3 });
-    cleanupRef.current = runScrambleText(ref.current, text, { speed }, onDone) ?? (() => {});
+    cleanupRef.current = runScrambleText(ref.current, text, { speed, holdFrames }, onDone) ?? (() => {});
     return () => cleanupRef.current();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trigger, text]);
