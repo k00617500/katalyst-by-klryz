@@ -37,5 +37,7 @@ export const profile = {
     "AI-powered applications",
     "Emerging technologies",
     "Interactive web experiences",
+    "Generative AI",
+    "Forward engineering",
   ],
 };

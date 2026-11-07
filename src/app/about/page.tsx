@@ -7,6 +7,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { Button } from "@/components/ui/button";
 import { profile } from "@/data/profile";
 import { skillGroups, languages, interests, currentlyLearning } from "@/data/skills";
+import { ArchetypeKeyboardSection } from "@/components/sections/archetype-keyboard-section";
 
 export const metadata: Metadata = {
   title: "About",
@@ -50,6 +51,8 @@ export default function AboutPage() {
           </ScrollReveal>
         </div>
       </section>
+
+      <ArchetypeKeyboardSection />
 
       <section className="container-page section-y border-t border-border/60">
         <ScrollReveal>

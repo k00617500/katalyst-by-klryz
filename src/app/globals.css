@@ -235,17 +235,36 @@
   color: transparent;
 }
 
-.toolkit-tile:hover {
+.toolkit-grid.is-playing .toolkit-tile:hover {
   z-index: 2;
   transform: translateY(-6px);
   background-color: color-mix(in srgb, var(--tool-color) 10%, var(--background));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tool-color) 35%, transparent);
 }
 
-.toolkit-tile:hover svg {
+.toolkit-grid.is-playing .toolkit-tile:hover svg {
   color: var(--tool-color);
   filter: grayscale(0);
   transform: translateY(-3px);
+}
+
+.toolkit-tile.is-active {
+  z-index: 2;
+  transform: translateY(-6px) scale(1.04);
+  background-color: color-mix(in srgb, var(--tool-color) 16%, var(--background));
+  /* Fast attack so the tile snaps on the beat instead of ramping in; leaving the state still uses the slower
+     base transition above, for a soft release back to idle. */
+  transition: background-color 50ms ease, transform 60ms cubic-bezier(.2,.8,.2,1);
+}
+
+.toolkit-tile.is-active svg {
+  color: var(--tool-color);
+  filter: grayscale(0);
+  transform: translateY(-3px);
+}
+
+.toolkit-grid:not(.is-playing) :is(.toolkit-tile, .toolkit-tile svg, .toolkit-tile span) {
+  transition: none;
 }
 
 @keyframes cursor-stamp-fade {
@@ -269,6 +288,22 @@
 .showcase-track { display: flex; gap: var(--showcase-gap); width: var(--showcase-card-width); margin-left: calc((100% - var(--showcase-card-width)) / 2); will-change: transform; }
 .showcase-card { width: var(--showcase-card-width); }
 .playground-experience { --photo-step: clamp(125px, 17vw, 270px); --photo-rise: clamp(65px, 9vw, 125px); position: relative; height: max(520px, 72svh); max-height: 820px; overflow: hidden; isolation: isolate; border-top: 1px solid var(--border); background: color-mix(in srgb, var(--background), var(--foreground) 3%); }
+.playground-experience {
+  background-color: oklch(0.09 0 0);
+  background-image:
+    radial-gradient(ellipse 70% 55% at 22% 18%, oklch(0.32 0.05 285 / 28%), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 82% 78%, oklch(0.28 0.04 255 / 20%), transparent 62%),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22300%22%20height%3D%22300%22%3E%3Ccircle%20cx%3D%22148.1%22%20cy%3D%22167.6%22%20r%3D%220.70%22%20fill%3D%22white%22%20opacity%3D%220.36%22%2F%3E%3Ccircle%20cx%3D%22199.4%22%20cy%3D%22167.3%22%20r%3D%221.26%22%20fill%3D%22white%22%20opacity%3D%220.72%22%2F%3E%3Ccircle%20cx%3D%22276.6%22%20cy%3D%2246.9%22%20r%3D%220.99%22%20fill%3D%22white%22%20opacity%3D%220.57%22%2F%3E%3Ccircle%20cx%3D%22171.4%22%20cy%3D%22275.5%22%20r%3D%221.42%22%20fill%3D%22white%22%20opacity%3D%220.90%22%2F%3E%3Ccircle%20cx%3D%22203.3%22%20cy%3D%22187.0%22%20r%3D%221.53%22%20fill%3D%22white%22%20opacity%3D%220.61%22%2F%3E%3Ccircle%20cx%3D%22249.8%22%20cy%3D%2214.4%22%20r%3D%220.92%22%20fill%3D%22white%22%20opacity%3D%220.66%22%2F%3E%3Ccircle%20cx%3D%22208.2%22%20cy%3D%2239.2%22%20r%3D%221.45%22%20fill%3D%22white%22%20opacity%3D%220.89%22%2F%3E%3Ccircle%20cx%3D%2287.2%22%20cy%3D%2277.7%22%20r%3D%221.55%22%20fill%3D%22white%22%20opacity%3D%220.29%22%2F%3E%3Ccircle%20cx%3D%22221.0%22%20cy%3D%22239.9%22%20r%3D%220.72%22%20fill%3D%22white%22%20opacity%3D%220.53%22%2F%3E%3Ccircle%20cx%3D%22243.7%22%20cy%3D%22265.0%22%20r%3D%221.01%22%20fill%3D%22white%22%20opacity%3D%220.29%22%2F%3E%3Ccircle%20cx%3D%22132.1%22%20cy%3D%22218.3%22%20r%3D%220.88%22%20fill%3D%22white%22%20opacity%3D%220.58%22%2F%3E%3Ccircle%20cx%3D%22151.2%22%20cy%3D%2213.3%22%20r%3D%220.96%22%20fill%3D%22white%22%20opacity%3D%220.41%22%2F%3E%3Ccircle%20cx%3D%22166.3%22%20cy%3D%2218.7%22%20r%3D%221.06%22%20fill%3D%22white%22%20opacity%3D%220.91%22%2F%3E%3Ccircle%20cx%3D%22145.8%22%20cy%3D%22233.3%22%20r%3D%221.51%22%20fill%3D%22white%22%20opacity%3D%220.62%22%2F%3E%3Ccircle%20cx%3D%22137.3%22%20cy%3D%22232.9%22%20r%3D%220.96%22%20fill%3D%22white%22%20opacity%3D%220.71%22%2F%3E%3Ccircle%20cx%3D%22289.9%22%20cy%3D%22259.3%22%20r%3D%221.26%22%20fill%3D%22white%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22257.3%22%20cy%3D%22255.0%22%20r%3D%221.55%22%20fill%3D%22white%22%20opacity%3D%220.63%22%2F%3E%3Ccircle%20cx%3D%22105.1%22%20cy%3D%2296.6%22%20r%3D%220.63%22%20fill%3D%22white%22%20opacity%3D%220.95%22%2F%3E%3Ccircle%20cx%3D%22287.6%22%20cy%3D%22237.7%22%20r%3D%220.66%22%20fill%3D%22white%22%20opacity%3D%220.39%22%2F%3E%3Ccircle%20cx%3D%22287.3%22%20cy%3D%22183.9%22%20r%3D%221.47%22%20fill%3D%22white%22%20opacity%3D%220.39%22%2F%3E%3Ccircle%20cx%3D%22293.1%22%20cy%3D%2271.1%22%20r%3D%220.65%22%20fill%3D%22white%22%20opacity%3D%220.41%22%2F%3E%3Ccircle%20cx%3D%22179.9%22%20cy%3D%22292.7%22%20r%3D%221.35%22%20fill%3D%22white%22%20opacity%3D%220.96%22%2F%3E%3Ccircle%20cx%3D%22152.3%22%20cy%3D%22235.2%22%20r%3D%221.51%22%20fill%3D%22white%22%20opacity%3D%220.74%22%2F%3E%3Ccircle%20cx%3D%22184.2%22%20cy%3D%22189.4%22%20r%3D%221.22%22%20fill%3D%22white%22%20opacity%3D%220.36%22%2F%3E%3Ccircle%20cx%3D%22177.5%22%20cy%3D%22118.9%22%20r%3D%221.53%22%20fill%3D%22white%22%20opacity%3D%220.33%22%2F%3E%3Ccircle%20cx%3D%22283.5%22%20cy%3D%22153.6%22%20r%3D%220.46%22%20fill%3D%22white%22%20opacity%3D%220.29%22%2F%3E%3Ccircle%20cx%3D%2279.1%22%20cy%3D%22245.1%22%20r%3D%220.84%22%20fill%3D%22white%22%20opacity%3D%220.84%22%2F%3E%3Ccircle%20cx%3D%22225.7%22%20cy%3D%22193.0%22%20r%3D%220.90%22%20fill%3D%22white%22%20opacity%3D%220.64%22%2F%3E%3Ccircle%20cx%3D%2241.9%22%20cy%3D%2214.3%22%20r%3D%221.32%22%20fill%3D%22white%22%20opacity%3D%220.98%22%2F%3E%3Ccircle%20cx%3D%22122.6%22%20cy%3D%2211.2%22%20r%3D%221.32%22%20fill%3D%22white%22%20opacity%3D%220.90%22%2F%3E%3Ccircle%20cx%3D%22118.9%22%20cy%3D%22142.8%22%20r%3D%220.80%22%20fill%3D%22white%22%20opacity%3D%220.92%22%2F%3E%3Ccircle%20cx%3D%226.9%22%20cy%3D%22128.8%22%20r%3D%221.45%22%20fill%3D%22white%22%20opacity%3D%220.74%22%2F%3E%3Ccircle%20cx%3D%22147.3%22%20cy%3D%22137.9%22%20r%3D%221.08%22%20fill%3D%22white%22%20opacity%3D%220.80%22%2F%3E%3Ccircle%20cx%3D%22110.7%22%20cy%3D%22120.8%22%20r%3D%221.38%22%20fill%3D%22white%22%20opacity%3D%220.29%22%2F%3E%3Ccircle%20cx%3D%22209.6%22%20cy%3D%22158.7%22%20r%3D%221.45%22%20fill%3D%22white%22%20opacity%3D%220.58%22%2F%3E%3Ccircle%20cx%3D%22228.8%22%20cy%3D%2286.3%22%20r%3D%220.62%22%20fill%3D%22white%22%20opacity%3D%220.74%22%2F%3E%3Ccircle%20cx%3D%22291.7%22%20cy%3D%2274.8%22%20r%3D%220.79%22%20fill%3D%22white%22%20opacity%3D%220.73%22%2F%3E%3Ccircle%20cx%3D%2241.0%22%20cy%3D%22264.9%22%20r%3D%221.08%22%20fill%3D%22white%22%20opacity%3D%220.93%22%2F%3E%3Ccircle%20cx%3D%22294.4%22%20cy%3D%22205.4%22%20r%3D%221.35%22%20fill%3D%22white%22%20opacity%3D%220.48%22%2F%3E%3Ccircle%20cx%3D%22144.3%22%20cy%3D%22201.8%22%20r%3D%220.93%22%20fill%3D%22white%22%20opacity%3D%220.36%22%2F%3E%3Ccircle%20cx%3D%22256.0%22%20cy%3D%22175.4%22%20r%3D%220.73%22%20fill%3D%22white%22%20opacity%3D%220.31%22%2F%3E%3Ccircle%20cx%3D%22253.9%22%20cy%3D%2297.3%22%20r%3D%221.22%22%20fill%3D%22white%22%20opacity%3D%220.73%22%2F%3E%3Ccircle%20cx%3D%22250.9%22%20cy%3D%22288.6%22%20r%3D%221.01%22%20fill%3D%22white%22%20opacity%3D%220.83%22%2F%3E%3Ccircle%20cx%3D%22158.1%22%20cy%3D%22158.4%22%20r%3D%220.90%22%20fill%3D%22white%22%20opacity%3D%220.84%22%2F%3E%3Ccircle%20cx%3D%22271.1%22%20cy%3D%2225.7%22%20r%3D%221.44%22%20fill%3D%22white%22%20opacity%3D%220.60%22%2F%3E%3Ccircle%20cx%3D%2266.3%22%20cy%3D%22119.3%22%20r%3D%221.46%22%20fill%3D%22white%22%20opacity%3D%220.44%22%2F%3E%3Ccircle%20cx%3D%2234.1%22%20cy%3D%228.2%22%20r%3D%221.06%22%20fill%3D%22white%22%20opacity%3D%220.31%22%2F%3E%3Ccircle%20cx%3D%22280.8%22%20cy%3D%22258.3%22%20r%3D%220.69%22%20fill%3D%22white%22%20opacity%3D%220.88%22%2F%3E%3Ccircle%20cx%3D%22154.1%22%20cy%3D%2264.3%22%20r%3D%220.77%22%20fill%3D%22white%22%20opacity%3D%220.27%22%2F%3E%3Ccircle%20cx%3D%22232.4%22%20cy%3D%22272.9%22%20r%3D%221.10%22%20fill%3D%22white%22%20opacity%3D%220.94%22%2F%3E%3Ccircle%20cx%3D%22126.4%22%20cy%3D%22276.8%22%20r%3D%220.89%22%20fill%3D%22white%22%20opacity%3D%220.53%22%2F%3E%3Ccircle%20cx%3D%22263.4%22%20cy%3D%2257.0%22%20r%3D%221.50%22%20fill%3D%22white%22%20opacity%3D%220.29%22%2F%3E%3Ccircle%20cx%3D%22259.7%22%20cy%3D%22127.6%22%20r%3D%220.64%22%20fill%3D%22white%22%20opacity%3D%220.75%22%2F%3E%3Ccircle%20cx%3D%2246.5%22%20cy%3D%2291.6%22%20r%3D%220.84%22%20fill%3D%22white%22%20opacity%3D%220.61%22%2F%3E%3Ccircle%20cx%3D%2247.3%22%20cy%3D%22111.3%22%20r%3D%220.40%22%20fill%3D%22white%22%20opacity%3D%220.27%22%2F%3E%3Ccircle%20cx%3D%22197.1%22%20cy%3D%2223.7%22%20r%3D%221.05%22%20fill%3D%22white%22%20opacity%3D%220.94%22%2F%3E%3Ccircle%20cx%3D%2233.5%22%20cy%3D%22166.5%22%20r%3D%220.56%22%20fill%3D%22white%22%20opacity%3D%220.45%22%2F%3E%3Ccircle%20cx%3D%22208.5%22%20cy%3D%2280.2%22%20r%3D%221.01%22%20fill%3D%22white%22%20opacity%3D%220.47%22%2F%3E%3Ccircle%20cx%3D%22123.4%22%20cy%3D%22148.4%22%20r%3D%220.88%22%20fill%3D%22white%22%20opacity%3D%220.78%22%2F%3E%3Ccircle%20cx%3D%2257.6%22%20cy%3D%22161.9%22%20r%3D%220.49%22%20fill%3D%22white%22%20opacity%3D%220.26%22%2F%3E%3Ccircle%20cx%3D%22259.0%22%20cy%3D%22234.7%22%20r%3D%221.55%22%20fill%3D%22white%22%20opacity%3D%220.46%22%2F%3E%3Ccircle%20cx%3D%22125.8%22%20cy%3D%2249.6%22%20r%3D%220.89%22%20fill%3D%22white%22%20opacity%3D%220.69%22%2F%3E%3Ccircle%20cx%3D%22287.7%22%20cy%3D%2244.7%22%20r%3D%221.45%22%20fill%3D%22white%22%20opacity%3D%220.93%22%2F%3E%3Ccircle%20cx%3D%22203.5%22%20cy%3D%22106.5%22%20r%3D%220.76%22%20fill%3D%22white%22%20opacity%3D%220.28%22%2F%3E%3Ccircle%20cx%3D%22156.8%22%20cy%3D%22213.9%22%20r%3D%220.59%22%20fill%3D%22white%22%20opacity%3D%220.82%22%2F%3E%3Ccircle%20cx%3D%22159.5%22%20cy%3D%22200.5%22%20r%3D%221.22%22%20fill%3D%22white%22%20opacity%3D%220.45%22%2F%3E%3Ccircle%20cx%3D%22124.5%22%20cy%3D%22226.0%22%20r%3D%220.81%22%20fill%3D%22white%22%20opacity%3D%220.33%22%2F%3E%3Ccircle%20cx%3D%2287.7%22%20cy%3D%22244.6%22%20r%3D%221.18%22%20fill%3D%22white%22%20opacity%3D%220.58%22%2F%3E%3Ccircle%20cx%3D%22219.4%22%20cy%3D%22201.2%22%20r%3D%220.92%22%20fill%3D%22white%22%20opacity%3D%220.77%22%2F%3E%3Ccircle%20cx%3D%22226.2%22%20cy%3D%22279.1%22%20r%3D%221.34%22%20fill%3D%22white%22%20opacity%3D%220.37%22%2F%3E%3Ccircle%20cx%3D%22223.9%22%20cy%3D%2238.3%22%20r%3D%221.8%22%20fill%3D%22white%22%20opacity%3D%220.9%22%2F%3E%3Ccircle%20cx%3D%2243.4%22%20cy%3D%22144.6%22%20r%3D%221.8%22%20fill%3D%22white%22%20opacity%3D%220.9%22%2F%3E%3Ccircle%20cx%3D%22267.7%22%20cy%3D%2261.9%22%20r%3D%221.8%22%20fill%3D%22white%22%20opacity%3D%220.9%22%2F%3E%3Ccircle%20cx%3D%22165.0%22%20cy%3D%2259.0%22%20r%3D%221.8%22%20fill%3D%22white%22%20opacity%3D%220.9%22%2F%3E%3Ccircle%20cx%3D%2222.6%22%20cy%3D%22226.9%22%20r%3D%221.8%22%20fill%3D%22white%22%20opacity%3D%220.9%22%2F%3E%3Ccircle%20cx%3D%22239.8%22%20cy%3D%2245.0%22%20r%3D%221.8%22%20fill%3D%22white%22%20opacity%3D%220.9%22%2F%3E%3C%2Fsvg%3E"),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22300%22%20height%3D%22300%22%3E%3Ccircle%20cx%3D%22148.1%22%20cy%3D%22167.6%22%20r%3D%220.70%22%20fill%3D%22white%22%20opacity%3D%220.36%22%2F%3E%3Ccircle%20cx%3D%2287.2%22%20cy%3D%2277.7%22%20r%3D%221.55%22%20fill%3D%22white%22%20opacity%3D%220.29%22%2F%3E%3Ccircle%20cx%3D%22221.0%22%20cy%3D%22239.9%22%20r%3D%220.72%22%20fill%3D%22white%22%20opacity%3D%220.53%22%2F%3E%3Ccircle%20cx%3D%22132.1%22%20cy%3D%22218.3%22%20r%3D%220.88%22%20fill%3D%22white%22%20opacity%3D%220.58%22%2F%3E%3Ccircle%20cx%3D%22289.9%22%20cy%3D%22259.3%22%20r%3D%221.26%22%20fill%3D%22white%22%20opacity%3D%220.65%22%2F%3E%3Ccircle%20cx%3D%22105.1%22%20cy%3D%2296.6%22%20r%3D%220.63%22%20fill%3D%22white%22%20opacity%3D%220.95%22%2F%3E%3Ccircle%20cx%3D%22293.1%22%20cy%3D%2271.1%22%20r%3D%220.65%22%20fill%3D%22white%22%20opacity%3D%220.41%22%2F%3E%3Ccircle%20cx%3D%22283.5%22%20cy%3D%22153.6%22%20r%3D%220.46%22%20fill%3D%22white%22%20opacity%3D%220.29%22%2F%3E%3Ccircle%20cx%3D%2279.1%22%20cy%3D%22245.1%22%20r%3D%220.84%22%20fill%3D%22white%22%20opacity%3D%220.84%22%2F%3E%3Ccircle%20cx%3D%226.9%22%20cy%3D%22128.8%22%20r%3D%221.45%22%20fill%3D%22white%22%20opacity%3D%220.74%22%2F%3E%3Ccircle%20cx%3D%22228.8%22%20cy%3D%2286.3%22%20r%3D%220.62%22%20fill%3D%22white%22%20opacity%3D%220.74%22%2F%3E%3Ccircle%20cx%3D%2241.0%22%20cy%3D%22264.9%22%20r%3D%221.08%22%20fill%3D%22white%22%20opacity%3D%220.93%22%2F%3E%3Ccircle%20cx%3D%22144.3%22%20cy%3D%22201.8%22%20r%3D%220.93%22%20fill%3D%22white%22%20opacity%3D%220.36%22%2F%3E%3Ccircle%20cx%3D%2266.3%22%20cy%3D%22119.3%22%20r%3D%221.46%22%20fill%3D%22white%22%20opacity%3D%220.44%22%2F%3E%3Ccircle%20cx%3D%22280.8%22%20cy%3D%22258.3%22%20r%3D%220.69%22%20fill%3D%22white%22%20opacity%3D%220.88%22%2F%3E%3Ccircle%20cx%3D%22126.4%22%20cy%3D%22276.8%22%20r%3D%220.89%22%20fill%3D%22white%22%20opacity%3D%220.53%22%2F%3E%3Ccircle%20cx%3D%2246.5%22%20cy%3D%2291.6%22%20r%3D%220.84%22%20fill%3D%22white%22%20opacity%3D%220.61%22%2F%3E%3Ccircle%20cx%3D%2233.5%22%20cy%3D%22166.5%22%20r%3D%220.56%22%20fill%3D%22white%22%20opacity%3D%220.45%22%2F%3E%3Ccircle%20cx%3D%2257.6%22%20cy%3D%22161.9%22%20r%3D%220.49%22%20fill%3D%22white%22%20opacity%3D%220.26%22%2F%3E%3Ccircle%20cx%3D%22125.8%22%20cy%3D%2249.6%22%20r%3D%220.89%22%20fill%3D%22white%22%20opacity%3D%220.69%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: repeat, repeat, repeat, repeat;
+  background-size: 100% 100%, 100% 100%, 300px 300px, 170px 170px;
+  background-position: 0 0, 0 0, 0 0, 40px 60px;
+  animation: playground-galaxy-drift 220s linear infinite;
+}
+@keyframes playground-galaxy-drift {
+  from { background-position: 0 0, 0 0, 0 0, 40px 60px; }
+  to { background-position: 0 0, 0 0, -300px -300px, -300px 400px; }
+}
 .playground-rail { position: absolute; inset: 0; perspective: 1500px; }
 .playground-photo { position: absolute; top: 48%; left: 50%; width: clamp(120px, 15vw, 220px); aspect-ratio: 1; cursor: zoom-in; background: var(--muted); box-shadow: -7px 9px 18px #0002; transform-style: preserve-3d; border: 1px solid #ffffff40; }
 .playground-photo:focus-visible { outline: 3px solid var(--brand); outline-offset: 5px; }
@@ -318,6 +353,97 @@
 @media (max-width: 639px) {
   .hero-playground { margin-top: 12px; }
   .hero-art-stage { height: 310px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow-blob {
+    animation: none;
+  }
+}
+
+/* --- Archetype keyboard section --- */
+.archetype-section {
+  --vkey-bg: #e9ebe3;
+  --vkey-color: #6b6f62;
+  isolation: isolate;
+}
+.dark .archetype-section {
+  --vkey-bg: #1b1d16;
+  --vkey-color: #7d8273;
+}
+
+.archetype-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  /* Fixed (not min-) height sized for the longest archetype string, so the
+     keyboard below never shifts between generations. */
+  height: 13rem;
+  overflow: hidden;
+}
+@media (min-width: 640px) {
+  .archetype-display {
+    height: 10rem;
+  }
+}
+@media (min-width: 768px) {
+  .archetype-display {
+    height: 8.5rem;
+  }
+}
+
+.vkeyboard {
+  --vkey-size: clamp(2.1rem, 5.4vw, 2.75rem);
+  --vkey-gap: clamp(0.3rem, 1vw, 0.5rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--vkey-gap);
+}
+
+.vkeyboard-row {
+  display: flex;
+  gap: var(--vkey-gap);
+}
+
+.vkey {
+  width: var(--vkey-size);
+  height: var(--vkey-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(var(--vkey-size) * 0.26);
+  background: var(--vkey-bg);
+  color: var(--vkey-color);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: calc(var(--vkey-size) * 0.4);
+  text-transform: lowercase;
+  user-select: none;
+}
+
+.vkey-enter {
+  width: auto;
+  padding: 0 1rem;
+  border: none;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--vkey-bg), var(--foreground) 12%);
+  color: var(--foreground);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  outline-offset: 4px;
+}
+.vkey-enter:focus-visible {
+  outline: 2px solid var(--foreground);
+}
+
+.vkey-space {
+  width: min(20rem, 60vw);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vkey { opacity: 1 !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {
