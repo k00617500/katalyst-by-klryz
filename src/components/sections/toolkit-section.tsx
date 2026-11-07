@@ -52,6 +52,7 @@ declare global {
 const C4 = 261.63;
 const NOTE_FLASH_MS = 220;
 const TRACK_END_WINDOW_MS = 1200;
+const PLAYBACK_START_TIMEOUT_MS = 4500;
 // Spotify previews report progress roughly once a second in the foreground.
 const STALL_WATCHDOG_MS = 1600;
 let spotifyApi: SpotifyIframeApi | undefined;
@@ -135,16 +136,19 @@ export function ToolkitSection() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [showSpotifyControls, setShowSpotifyControls] = useState(false);
 
   const controllerRef = useRef<SpotifyEmbedController | null>(null);
   const embedContainerRef = useRef<HTMLDivElement | null>(null);
   const activeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
   const stallWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const playbackStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastPlaybackRef = useRef<SpotifyPlaybackState | null>(null);
   const playingRef = useRef(false);
   const readyRef = useRef(false);
   const playRequestedRef = useRef(false);
+  const spotifyControlsVisibleRef = useRef(false);
 
   const songIndexRef = useRef(0);
   const songsRef = useRef(toolkitSongs);
@@ -163,15 +167,26 @@ export function ToolkitSection() {
   const resetPlayback = useCallback(() => {
     lastPlaybackRef.current = null;
     if (stallWatchdogRef.current) clearTimeout(stallWatchdogRef.current);
+    if (playbackStartTimeoutRef.current) clearTimeout(playbackStartTimeoutRef.current);
     updatePlaying(false);
   }, [updatePlaying]);
+
+  const requestPlayback = useCallback(() => {
+    resetPlayback();
+    playRequestedRef.current = true;
+    playbackStartTimeoutRef.current = setTimeout(() => {
+      spotifyControlsVisibleRef.current = true;
+      setShowSpotifyControls(true);
+    }, PLAYBACK_START_TIMEOUT_MS);
+  }, [resetPlayback]);
 
   const loadSong = useCallback((index: number) => {
     const previousUri = songsRef.current[songIndexRef.current].uri;
     const { uri } = songsRef.current[index];
     songIndexRef.current = index;
-    playRequestedRef.current = true;
-    resetPlayback();
+    spotifyControlsVisibleRef.current = false;
+    setShowSpotifyControls(false);
+    requestPlayback();
     setCurrentSongIndex(index);
     setPositionMs(0);
 
@@ -184,7 +199,7 @@ export function ToolkitSection() {
     } else if (readyRef.current) {
       controller.restart();
     }
-  }, [resetPlayback]);
+  }, [requestPlayback]);
 
   const skipSong = useCallback((direction: 1 | -1) => {
     const order = shuffleOrderRef.current;
@@ -214,10 +229,11 @@ export function ToolkitSection() {
       const initialUri = songsRef.current[songIndexRef.current].uri;
       api.createController(
         target,
-        { uri: initialUri, width: "100%", height: "100%" },
+        { uri: initialUri, width: "100%", height: 152 },
         (controller) => {
           if (cancelled) { controller.destroy(); return; }
           controllerRef.current = controller;
+          container.querySelector("iframe")?.setAttribute("title", "Toolkit Spotify player");
           controller.addListener("ready", () => {
             if (cancelled) return;
             readyRef.current = true;
@@ -242,13 +258,15 @@ export function ToolkitSection() {
             }
 
             const advanced = previous && position > previous.position;
-            if (!playRequestedRef.current || isPaused || isBuffering || position >= duration ||
+            if ((!playRequestedRef.current && !spotifyControlsVisibleRef.current) || isPaused || isBuffering || position >= duration ||
                 !advanced) {
               if (stallWatchdogRef.current) clearTimeout(stallWatchdogRef.current);
               updatePlaying(false);
               return;
             }
 
+            playRequestedRef.current = true;
+            if (playbackStartTimeoutRef.current) clearTimeout(playbackStartTimeoutRef.current);
             updatePlaying(true);
             if (stallWatchdogRef.current) clearTimeout(stallWatchdogRef.current);
             stallWatchdogRef.current = setTimeout(() => updatePlaying(false), STALL_WATCHDOG_MS);
@@ -273,6 +291,7 @@ export function ToolkitSection() {
       controllerRef.current?.destroy();
       controllerRef.current = null;
       if (stallWatchdogRef.current) clearTimeout(stallWatchdogRef.current);
+      if (playbackStartTimeoutRef.current) clearTimeout(playbackStartTimeoutRef.current);
       if (window.onSpotifyIframeApiReady === initialize) delete window.onSpotifyIframeApiReady;
       script?.remove();
     };
@@ -331,13 +350,18 @@ export function ToolkitSection() {
 
   const togglePlay = useCallback(() => {
     const controller = controllerRef.current;
-    const pause = playingRef.current;
-    playRequestedRef.current = !pause;
-    resetPlayback();
+    if (playingRef.current) {
+      playRequestedRef.current = false;
+      resetPlayback();
+      controller?.pause();
+      return;
+    }
+    const position = lastPlaybackRef.current?.position ?? 0;
+    requestPlayback();
     if (!controller || !readyRef.current) return;
-    if (pause) controller.pause();
-    else controller.resume();
-  }, [resetPlayback]);
+    if (position > 0) controller.resume();
+    else controller.play();
+  }, [requestPlayback, resetPlayback]);
 
   const seek = useCallback((event: PointerEvent<HTMLDivElement>) => {
     const controller = controllerRef.current;
@@ -408,7 +432,7 @@ export function ToolkitSection() {
           />
         </ScrollReveal>
 
-        <ScrollReveal y={0} className="w-full shrink-0 lg:w-[360px]">
+        <ScrollReveal y={0} className="relative w-full shrink-0 lg:w-[360px]">
           <div className="flex items-center gap-4 rounded-2xl border border-border bg-background p-4">
             <div className="size-16 shrink-0 overflow-hidden rounded-xl bg-muted ring-1 ring-border">
               {song.cover ? <Image
@@ -519,10 +543,41 @@ export function ToolkitSection() {
               </div>
             </div>
           </div>
-          {/* Loads the real Spotify recording for this section's player; kept visually hidden since our own controls drive it. */}
-          {/* Spotify's createController swaps the target node for its iframe, so the hiding class lives on this wrapper, not the node itself. */}
-          <div className="sr-only">
-            <div ref={embedContainerRef} />
+          {/* Keep the controlled Spotify embed at full size, even behind the compact controls. */}
+          <div
+            inert={!showSpotifyControls}
+            className={showSpotifyControls
+              ? "mt-3 space-y-2"
+              : "pointer-events-none absolute inset-x-0 top-0 h-[152px] overflow-hidden opacity-0"}
+          >
+            {showSpotifyControls && (
+              <p role="status" className="text-xs text-muted-foreground">
+                {isPlaying ? "Spotify playback controls" : (
+                  <>
+                    Use Spotify’s controls below to start or restart the preview, or{" "}
+                    <a
+                      href={`https://open.spotify.com/track/${song.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline underline-offset-4"
+                    >
+                      open the track in Spotify
+                    </a>.
+                  </>
+                )}
+              </p>
+            )}
+            <div ref={embedContainerRef} className="[&>iframe]:block [&>iframe]:rounded-xl [&>iframe]:border-0" />
+            {showSpotifyControls && !playlistApi && (
+              <iframe
+                src={`https://open.spotify.com/embed/track/${song.id}`}
+                title="Toolkit Spotify player"
+                width="100%"
+                height="152"
+                className="block rounded-xl border-0"
+                allow="autoplay; encrypted-media"
+              />
+            )}
           </div>
         </ScrollReveal>
       </div>
