@@ -126,7 +126,14 @@ export function ArchetypeKeyboardSection() {
       className="archetype-section container-page section-y relative overflow-hidden border-t border-border/60"
     >
       <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-        <div className="archetype-display" aria-live="polite">
+        <h2 className="font-heading text-3xl font-medium tracking-tight md:text-4xl">
+          Why &apos;The Katalyst?&apos;
+        </h2>
+        <p className="mt-3 max-w-md text-balance text-sm text-muted-foreground md:text-base">
+          Fifty-one answers to one question — press enter for mine.
+        </p>
+
+        <div className="archetype-display mt-8" aria-live="polite">
           <ScrambleText
             key={index ?? "default"}
             text={displayText}
