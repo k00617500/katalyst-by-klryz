@@ -366,7 +366,7 @@
   border-radius: calc(var(--vkey-size) * 0.26);
   background: var(--vkey-bg);
   color: var(--vkey-color);
-  font-family: var(--font-heading), ui-sans-serif, sans-serif;
+  font-family: var(--font-mono), ui-monospace, monospace;
   font-weight: 500;
   font-size: calc(var(--vkey-size) * 0.4);
   text-transform: lowercase;

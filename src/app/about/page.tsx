@@ -52,6 +52,8 @@ export default function AboutPage() {
         </div>
       </section>
 
+      <ArchetypeKeyboardSection />
+
       <section className="container-page section-y border-t border-border/60">
         <ScrollReveal>
           <SectionHeading eyebrow="Education" title="Academic background" className="mb-10" />
@@ -62,8 +64,6 @@ export default function AboutPage() {
           <p className="text-muted-foreground">Major in {profile.education.major}</p>
         </ScrollReveal>
       </section>
-
-      <ArchetypeKeyboardSection />
 
       <section className="container-page section-y border-t border-border/60">
         <ScrollReveal>
