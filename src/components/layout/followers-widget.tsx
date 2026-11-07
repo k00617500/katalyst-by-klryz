@@ -180,12 +180,13 @@ export function FollowersWidget({ compact = false }: { compact?: boolean }) {
           type="button"
           variant="secondary"
           size="sm"
-          className="relative rounded-full pr-2.5 pl-2.5"
+          className="relative gap-1 rounded-full pr-2.5 pl-2.5"
           aria-label={`Follow this site — ${count ?? 0} followers`}
           onClick={openModal}
         >
-          <Plus className="size-3.5" />
           <span className="font-mono text-xs tabular-nums">{count ?? "–"}</span>
+          <span className="font-mono text-xs">Followers</span>
+          <Plus className="size-3.5" />
         </Button>
       ) : (
         <div className="flex items-center gap-1.5 rounded-full border border-border bg-background/60 py-1 pr-1 pl-3 text-sm">
