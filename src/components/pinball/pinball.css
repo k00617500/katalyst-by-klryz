@@ -82,7 +82,15 @@
 .pb-ranks strong { font: 700 .8rem var(--font-mono), monospace; font-variant-numeric: tabular-nums; }
 .pb-ranks time { grid-column: 1 / -1; color: var(--pb-muted); font-size: .68rem; }
 .pb-leaderboard > div:first-child, .pb-live { display: flex; flex-direction: column; min-height: 0; }
-.pb-ranks { overflow-y: auto; min-height: 0; scrollbar-width: thin; }
+.pb-ranks {
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pb-accent) var(--pb-tile);
+}
+.pb-ranks::-webkit-scrollbar { width: 8px; }
+.pb-ranks::-webkit-scrollbar-track { background: var(--pb-tile); border-radius: 4px; }
+.pb-ranks::-webkit-scrollbar-thumb { background: var(--pb-accent); border-radius: 4px; border: 2px solid var(--pb-tile); }
 .pb-run, .pb-live, .pb-keys { border: 1px solid var(--pb-border); padding: clamp(6px, 1vw, 11px); border-radius: 6px; }
 
 .pb-runTotals, .pb-ballScores {
