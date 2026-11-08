@@ -24,6 +24,7 @@ const HIGH_SCORE_KEY = "katalyst-pinball-follower-highscore";
 const LAST_ROUND_KEY = "katalyst-pinball-last-round";
 const PLAYED_KEY = "katalyst-pinball-played";
 const RECENT_PLAYERS = 12;
+const RECENT_RUNS = 10;
 const COLUMNS = "device_id, username, score, played_at";
 let memoryScores: StoredScore[] = [];
 let storageAvailable = true;
@@ -115,9 +116,9 @@ export function resetPinballScores(deviceId: string) {
   window.dispatchEvent(new CustomEvent(PINBALL_RESET_EVENT, { detail: deviceId }));
 }
 
-export async function fetchScoreboards(): Promise<{ top: PinballScoreRow[]; recent: PinballScoreRow[] }> {
+export async function fetchScoreboards(): Promise<{ top: PinballScoreRow[] }> {
   const client = supabase;
-  if (!client) return { top: [], recent: [] };
+  if (!client) return { top: [] };
   const history: PinballScoreRow[] = [];
   const pageSize = 250;
   for (let offset = 0; ; offset += pageSize) {
@@ -126,7 +127,7 @@ export async function fetchScoreboards(): Promise<{ top: PinballScoreRow[]; rece
     if (page.error?.code === "PGRST205" || page.error?.code === "42P01") break;
     if (page.error) throw page.error;
     history.push(...page.data.map(mapRow));
-    if (page.data.length < pageSize) return { top: topPlayers(history), recent: recentScores(history) };
+    if (page.data.length < pageSize) return { top: topPlayers(history) };
   }
 
   // Existing projects still filter legacy guest runs while the migration is pending.
@@ -148,7 +149,21 @@ export async function fetchScoreboards(): Promise<{ top: PinballScoreRow[]; rece
     }
     if (page.data.length < pageSize) break;
   }
-  return { top: topPlayers(history), recent: recentScores(history) };
+  return { top: topPlayers(history) };
+}
+
+/** This device's own run history — every completed round it has played, newest first. Unlike
+ * `topPlayers`/`recentScores` (which collapse to one row per player), this never dedupes: the
+ * same player legitimately shows up once per round. */
+export async function fetchPersonalHistory(deviceId: string): Promise<PinballScoreRow[]> {
+  const client = supabase;
+  if (!client || !deviceId) return [];
+  const { data, error } = await client.from("pinball_scores").select(COLUMNS)
+    .eq("device_id", deviceId).gt("score", 0)
+    .order("played_at", { ascending: false }).limit(RECENT_RUNS);
+  if (error?.code === "PGRST205" || error?.code === "42P01") return [];
+  if (error) throw error;
+  return data.map(mapRow);
 }
 
 export function recordScore(score: NewScore) {

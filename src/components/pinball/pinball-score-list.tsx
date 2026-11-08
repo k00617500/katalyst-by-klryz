@@ -14,10 +14,9 @@ export function PinballScoreList({ scores, deviceId, label, ranked = false }: {
   return (
     <ol className="pb-ranks" aria-label={label} data-ranked={ranked}>
       {scores.map((row, index) => {
-        const key = scoreUserKey(row.username);
         const self = !!deviceId && row.deviceId === deviceId;
         return (
-          <li key={key} data-self={self}>
+          <li key={`${row.deviceId ?? scoreUserKey(row.username)}-${row.playedAt}-${row.score}-${index}`} data-self={self}>
             {ranked && <span className="pb-place" aria-label={`Rank ${index + 1}`}>{index + 1}</span>}
             <div className="pb-scorePlayer"><span className="pb-scoreName" title={row.username}>{row.username}</span>
               {ranked && self && <span className="pb-selfTag">Rank Check</span>}

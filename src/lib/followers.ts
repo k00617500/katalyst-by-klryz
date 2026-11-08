@@ -19,6 +19,7 @@ export interface Follower {
   isFollowing: boolean;
   createdAt: string;
   nameTag: NameTag | null;
+  nameTagSet: boolean;
 }
 
 /**
@@ -58,12 +59,12 @@ function cacheUsername(username: string | null) {
   }
 }
 
-type FollowerRow = { device_id: string; username: string; is_following: boolean; created_at: string; name_tag?: unknown };
+type FollowerRow = { device_id: string; username: string; is_following: boolean; created_at: string; name_tag?: unknown; name_tag_set?: unknown };
 const fields = "device_id, username, is_following, created_at";
 
 function mapRow(row: FollowerRow): Follower {
   return { deviceId: row.device_id, username: row.username, isFollowing: row.is_following, createdAt: row.created_at,
-    nameTag: isNameTag(row.name_tag) ? row.name_tag : null };
+    nameTag: isNameTag(row.name_tag) ? row.name_tag : null, nameTagSet: row.name_tag_set === true };
 }
 
 function missingNameTags(error: { code: string } | null) {
@@ -87,7 +88,7 @@ export async function fetchFollowers(): Promise<Follower[]> {
     .select(columns)
     .eq("is_following", true)
     .order("created_at", { ascending: true });
-  const result = await list(fields + ", name_tag");
+  const result = await list(fields + ", name_tag, name_tag_set");
   const { data } = missingNameTags(result.error) ? await list(fields) : result;
   return ((data ?? []) as unknown as FollowerRow[]).map(mapRow);
 }
@@ -100,7 +101,7 @@ export async function fetchSelf(deviceId: string): Promise<Follower | null> {
     .select(columns)
     .eq("device_id", deviceId)
     .maybeSingle();
-  const result = await get(fields + ", name_tag");
+  const result = await get(fields + ", name_tag, name_tag_set");
   const { data, error } = missingNameTags(result.error) ? await get(fields) : result;
   const row = data as unknown as FollowerRow | null;
   if (!error) cacheUsername(row?.is_following ? row.username : null);

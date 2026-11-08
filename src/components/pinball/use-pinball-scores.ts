@@ -3,15 +3,19 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import {
-  fetchScoreboards, getLocalScores, PINBALL_RESET_EVENT, recentScores, SCORE_CHANGE_EVENT,
+  fetchPersonalHistory, fetchScoreboards, getLocalScores, PINBALL_RESET_EVENT, SCORE_CHANGE_EVENT,
   SCORE_STORAGE_KEY, syncScores, topPlayers, scoreUserKey, type PinballScoreRow,
 } from "@/lib/pinball/leaderboard";
+
+const RECENT_RUNS = 10;
 
 export function usePinballScores(deviceId: string | null, username: string | null) {
   const channelId = useId();
   const [local, setLocal] = useState(getLocalScores);
   const [top, setTop] = useState<PinballScoreRow[]>([]);
-  const [recent, setRecent] = useState<PinballScoreRow[]>([]);
+  // This device's own run history (not everyone's recent bests — that's redundant with the
+  // leaderboard above it, since both would just be "who's near the top" reshuffled).
+  const [history, setHistory] = useState<PinballScoreRow[]>([]);
   const [loading, setLoading] = useState(Boolean(supabase));
   const [offline, setOffline] = useState(!supabase);
 
@@ -23,10 +27,13 @@ export function usePinballScores(deviceId: string | null, username: string | nul
       const current = ++request;
       setLocal(getLocalScores());
       try {
-        const result = await fetchScoreboards();
+        const [board, personal] = await Promise.all([
+          fetchScoreboards(),
+          deviceId ? fetchPersonalHistory(deviceId) : Promise.resolve([]),
+        ]);
         if (!active || current !== request) return;
-        setTop(result.top);
-        setRecent(result.recent);
+        setTop(board.top);
+        setHistory(personal);
         setOffline(!supabase);
       } catch {
         if (!active || current !== request) return;
@@ -39,7 +46,7 @@ export function usePinballScores(deviceId: string | null, username: string | nul
     const onReset = (event: Event) => {
       const removedDevice = (event as CustomEvent<string>).detail;
       setTop((rows) => rows.filter((row) => row.deviceId !== removedDevice));
-      setRecent((rows) => rows.filter((row) => row.deviceId !== removedDevice));
+      setHistory((rows) => rows.filter((row) => row.deviceId !== removedDevice));
       void refresh();
     };
     void refresh();
@@ -65,12 +72,14 @@ export function usePinballScores(deviceId: string | null, username: string | nul
       window.clearInterval(poll);
       if (channel) void supabase?.removeChannel(channel);
     };
-  }, [channelId]);
+  }, [channelId, deviceId]);
 
   const visibleLocal = useMemo(() => deviceId && username ? local.filter((row) =>
     row.deviceId === deviceId && scoreUserKey(row.username) === scoreUserKey(username) && row.score > 0 && (offline || row.pending)
   ) : [], [local, offline, deviceId, username]);
   const ranked = useMemo(() => topPlayers([...top, ...visibleLocal]), [top, visibleLocal]);
-  const runs = useMemo(() => recentScores([...recent, ...visibleLocal]), [recent, visibleLocal]);
+  const runs = useMemo(() =>
+    [...history, ...visibleLocal].sort((a, b) => Date.parse(b.playedAt) - Date.parse(a.playedAt)).slice(0, RECENT_RUNS),
+    [history, visibleLocal]);
   return { top: ranked, recent: runs, loading, offline };
 }

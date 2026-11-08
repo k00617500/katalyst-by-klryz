@@ -255,23 +255,27 @@ export function FollowersWidget({ compact = false }: { compact?: boolean }) {
                   Unfollow
                 </Button>
               </div>
-              <fieldset className="space-y-2" disabled={busy}>
-                <legend className="text-sm font-medium">How should I address you?</legend>
-                <p className="text-xs text-muted-foreground">Select the option that best represents you. This question is optional. Your choice sets your public name-tag color.</p>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {nameTagOptions.map(({ label, value }) => (
-                    <label key={label} className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-2 py-2 text-xs">
-                      <input type="radio" name={`name-tag-${channelId}`} checked={nameTag === value} onChange={() => setNameTag(value)} />
-                      <span className={cn("size-3 shrink-0 rounded-sm", tagColors[value ?? "gray"])} aria-hidden="true" />
-                      {label}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-              {nameTag !== self.nameTag && (
-                <Button type="button" className="w-full" disabled={busy} onClick={() => void handleFollow()}>
-                  Save name tag
-                </Button>
+              {self.nameTagSet ? (
+                <p className="text-xs text-muted-foreground">You&apos;ve already answered &ldquo;How should I address you?&rdquo; — that choice is locked in and can&apos;t be changed.</p>
+              ) : (
+                <>
+                  <fieldset className="space-y-2" disabled={busy}>
+                    <legend className="text-sm font-medium">How should I address you?</legend>
+                    <p className="text-xs text-muted-foreground">Select the option that best represents you. This question is optional. Your choice sets your public name-tag color, and can&apos;t be changed once saved.</p>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {nameTagOptions.map(({ label, value }) => (
+                        <label key={label} className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-2 py-2 text-xs">
+                          <input type="radio" name={`name-tag-${channelId}`} checked={nameTag === value} onChange={() => setNameTag(value)} />
+                          <span className={cn("size-3 shrink-0 rounded-sm", tagColors[value ?? "gray"])} aria-hidden="true" />
+                          {label}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                  <Button type="button" className="w-full" disabled={busy} onClick={() => void handleFollow()}>
+                    Save name tag
+                  </Button>
+                </>
               )}
             </>
           ) : step === "username" ? (

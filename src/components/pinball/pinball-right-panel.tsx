@@ -44,8 +44,8 @@ export function PinballRightPanel({ hud, scores, loading, deviceId, personalBest
       </section>
       <div className="pb-live">
         <h3><Radio size={17} /> Live Scoreboard</h3>
-        {scores.length === 0 && <p className="pb-empty">{loading ? "Loading scores…" : "Waiting for completed runs."}</p>}
-        <PinballScoreList scores={scores} deviceId={deviceId} label="Recently updated personal bests" />
+        {scores.length === 0 && <p className="pb-empty">{loading ? "Loading scores…" : "Play a round to start your history."}</p>}
+        <PinballScoreList scores={scores} deviceId={deviceId} label="Your recent rounds" />
       </div>
 
       <div className="pb-keys">
