@@ -20,6 +20,12 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Spectator count
+
+Set `NEXT_PUBLIC_SUPABASE_URL` to the Supabase project URL and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to its public anon or publishable key. Use the same project as the followers feature. Add the values to `.env.local` for local development or to the Vercel project's environment variables before building and deploying.
+
+The header uses Supabase Realtime Presence with public channel access. No SQL migration, service role key, or Redis database is needed for this feature. Each hostname has its own live count, and tabs in the same browser profile share an anonymous key when browser storage is available. Presence is temporary and does not store historical visits.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

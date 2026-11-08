@@ -55,9 +55,7 @@ export function openFollowersModal() {
   window.dispatchEvent(new Event(OPEN_EVENT));
 }
 
-export function FollowersWidget({ compact = false }: { compact?: boolean }) {
-  // The widget renders twice (desktop + mobile header, both mounted regardless of which is visible via CSS),
-  // so each instance needs its own Realtime channel name — Supabase dedupes channels by name on the client.
+export function FollowersWidget() {
   const channelId = useId();
   const [open, setOpen] = useState(false);
   const [count, setCount] = useState<number | null>(null);
@@ -116,15 +114,9 @@ export function FollowersWidget({ compact = false }: { compact?: boolean }) {
   }, [loadModalData]);
 
   useEffect(() => {
-    const handleExternalOpen = () => {
-      // Two instances are always mounted (desktop + mobile header); only the one matching the
-      // current viewport should respond, so a single external trigger doesn't stack two dialogs.
-      const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
-      if (isDesktop === !compact) openModal();
-    };
-    window.addEventListener(OPEN_EVENT, handleExternalOpen);
-    return () => window.removeEventListener(OPEN_EVENT, handleExternalOpen);
-  }, [compact, openModal]);
+    window.addEventListener(OPEN_EVENT, openModal);
+    return () => window.removeEventListener(OPEN_EVENT, openModal);
+  }, [openModal]);
 
   const handleFollow = useCallback(async () => {
     const handle = self?.username ?? username.trim();
@@ -176,36 +168,21 @@ export function FollowersWidget({ compact = false }: { compact?: boolean }) {
 
   return (
     <>
-      {compact ? (
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          className="relative gap-1 rounded-full pr-2.5 pl-2.5"
-          aria-label={`Follow this site — ${count ?? 0} followers`}
-          onClick={openModal}
-        >
-          <span className="font-mono text-xs tabular-nums">{count ?? "–"}</span>
-          <span className="font-mono text-xs">Followers</span>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-8 shrink-0 gap-1 rounded-full px-1.5 font-mono text-xs text-muted-foreground tabular-nums min-[360px]:px-2 sm:gap-1.5 sm:pr-0.5 sm:pl-2.5"
+        aria-label={count === null ? "Follow this site" : `Follow this site — ${count} followers`}
+        title="Followers"
+        onClick={openModal}
+      >
+        <span>{count ?? "–"}</span>
+        <span className="hidden min-[500px]:inline">Followers</span>
+        <span className="flex shrink-0 items-center justify-center rounded-full text-foreground sm:size-6 sm:bg-secondary">
           <Plus className="size-3.5" />
-        </Button>
-      ) : (
-        <div className="flex items-center gap-1.5 rounded-full border border-border bg-background/60 py-1 pr-1 pl-3 text-sm">
-          <span className="font-mono text-xs text-muted-foreground tabular-nums">
-            {count ?? "–"} Followers
-          </span>
-          <Button
-            type="button"
-            size="icon-sm"
-            variant="secondary"
-            className="rounded-full"
-            aria-label="Follow this site"
-            onClick={openModal}
-          >
-            <Plus className="size-3.5" />
-          </Button>
-        </div>
-      )}
+        </span>
+      </Button>
 
       <Dialog open={open} onOpenChange={(next) => {
         if (busy) return;

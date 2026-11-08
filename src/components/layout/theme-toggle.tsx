@@ -15,13 +15,17 @@ export function ThemeToggle() {
     setMounted(true);
   }, []);
 
+  const isDark = !mounted || resolvedTheme === "dark";
+  const label = isDark ? "Switch to light mode" : "Switch to dark mode";
+
   return (
     <Button
       variant="ghost"
       size="icon"
-      aria-label="Toggle theme"
+      aria-label={label}
+      title={label}
       onClick={(event) => {
-        const nextTheme = resolvedTheme === "dark" ? "light" : "dark";
+        const nextTheme = isDark ? "light" : "dark";
         if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
           setTheme(nextTheme);
           return;
@@ -38,7 +42,7 @@ export function ThemeToggle() {
       }}
       className="rounded-full"
     >
-      {mounted && resolvedTheme === "dark" ? (
+      {isDark ? (
         <Sun key="sun" className="theme-icon size-4" />
       ) : (
         <Moon key="moon" className="theme-icon size-4" />
