@@ -54,7 +54,7 @@ export async function watchToolkitTabAudio(
     ]).then(() => true, () => false);
     signal.addEventListener("abort", close, { once: true });
 
-    // Open the picker during the Play gesture. Keep the tab's normal audio output.
+    // Open the picker only from the beat-sync control. Keep normal playback audible.
     const options: TabCaptureOptions = {
       video: { displaySurface: "browser" },
       audio: { suppressLocalAudioPlayback: false, restrictOwnAudio: false },

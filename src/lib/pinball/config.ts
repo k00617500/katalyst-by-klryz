@@ -104,11 +104,22 @@ export const PLUNGER = {
   /** The tap strength reliably clears the shooter lane. */
   minStrength: 0.7,
   maxChargeMs: 1100,
+  fullHoldMs: 1500,
+  minCycleStrength: 0.75,
 };
 
 export function plungerStrength(heldMs: number): number {
-  const progress = Math.max(0, Math.min(1, heldMs / PLUNGER.maxChargeMs));
-  return PLUNGER.minStrength + (1 - PLUNGER.minStrength) * progress;
+  const { minStrength, maxChargeMs, fullHoldMs, minCycleStrength } = PLUNGER;
+  if (heldMs <= maxChargeMs) {
+    return minStrength + (1 - minStrength) * (Math.max(0, heldMs) / maxChargeMs);
+  }
+
+  const cycleMs = (heldMs - maxChargeMs) % (fullHoldMs + 2 * maxChargeMs);
+  if (cycleMs <= fullHoldMs) return 1;
+
+  const sweep = (cycleMs - fullHoldMs) / maxChargeMs;
+  const dip = (1 - Math.cos(Math.PI * sweep)) / 2;
+  return 1 - (1 - minCycleStrength) * dip;
 }
 
 /** v = η·x·√(k/m) — Hooke's-law spring energy converted to launch velocity. */

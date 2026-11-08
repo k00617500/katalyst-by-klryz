@@ -53,7 +53,7 @@ declare global {
 const C4 = 261.63;
 const NOTE_FLASH_MS = 130;
 const TRACK_END_WINDOW_MS = 1200;
-// A couple of extra seconds of buffer so a slow-starting preview gets a fair chance before we retry it.
+// Give a slow-starting embed a chance before retrying from the compact player.
 const PLAYBACK_START_TIMEOUT_MS = 6500;
 // Spotify previews report progress roughly once a second in the foreground. A few added seconds of
 // slack here avoids flipping to "paused" during brief background-tab throttling.
@@ -186,7 +186,6 @@ export function ToolkitSection() {
     resetPlayback();
     playRequestedRef.current = true;
     playbackStartTimeoutRef.current = setTimeout(() => {
-      // A preview may stall on its first start. Give the selected track one retry in place.
       if (playRequestedRef.current && readyRef.current) controllerRef.current?.resume();
     }, PLAYBACK_START_TIMEOUT_MS);
   }, [resetPlayback]);
@@ -244,7 +243,16 @@ export function ToolkitSection() {
         (controller) => {
           if (cancelled) { controller.destroy(); return; }
           controllerRef.current = controller;
-          container.querySelector("iframe")?.setAttribute("title", "Toolkit Spotify player");
+          const iframe = container.querySelector("iframe");
+          if (iframe) {
+            iframe.title = "Toolkit Spotify player";
+            iframe.loading = "eager";
+          }
+          const trackProgress = () => {
+            updatePlaying(true);
+            if (stallWatchdogRef.current) clearTimeout(stallWatchdogRef.current);
+            stallWatchdogRef.current = setTimeout(() => updatePlaying(false), STALL_WATCHDOG_MS);
+          };
           controller.addListener("ready", () => {
             if (cancelled) return;
             readyRef.current = true;
@@ -252,9 +260,7 @@ export function ToolkitSection() {
           });
           controller.addListener("playback_started", ({ data }) => {
             if (cancelled || !playRequestedRef.current || data.playingURI !== songsRef.current[songIndexRef.current].uri) return;
-            updatePlaying(true);
-            if (stallWatchdogRef.current) clearTimeout(stallWatchdogRef.current);
-            stallWatchdogRef.current = setTimeout(() => updatePlaying(false), STALL_WATCHDOG_MS);
+            trackProgress();
           });
           controller.addListener("playback_update", ({ data }) => {
             const { playingURI, isPaused, isBuffering, position, duration } = data;
@@ -284,9 +290,7 @@ export function ToolkitSection() {
             if (position <= (previous?.position ?? 0)) return;
 
             if (playbackStartTimeoutRef.current) clearTimeout(playbackStartTimeoutRef.current);
-            updatePlaying(true);
-            if (stallWatchdogRef.current) clearTimeout(stallWatchdogRef.current);
-            stallWatchdogRef.current = setTimeout(() => updatePlaying(false), STALL_WATCHDOG_MS);
+            trackProgress();
           });
           const selectedUri = songsRef.current[songIndexRef.current].uri;
           if (selectedUri !== initialUri) controller.loadUri(selectedUri);
@@ -378,13 +382,7 @@ export function ToolkitSection() {
       if (position > 0) controller.resume();
       else controller.play();
     }
-    if (beatSync === "idle") startTabAudio();
-  }, [beatSync, requestPlayback, resetPlayback, startTabAudio]);
-
-  const skipFromControls = useCallback((direction: 1 | -1) => {
-    skipSong(direction);
-    if (beatSync === "idle") startTabAudio();
-  }, [beatSync, skipSong, startTabAudio]);
+  }, [requestPlayback, resetPlayback]);
 
   const seek = useCallback((event: PointerEvent<HTMLDivElement>) => {
     const controller = controllerRef.current;
@@ -459,8 +457,8 @@ export function ToolkitSection() {
           />
         </ScrollReveal>
 
-        <ScrollReveal y={0} className="relative w-full shrink-0 lg:w-[360px]">
-          <div data-beat-sync={beatSync} className="flex items-center gap-4 rounded-2xl border border-border bg-background p-4">
+        <ScrollReveal y={0} className="relative isolate w-full shrink-0 lg:w-[360px]">
+          <div data-beat-sync={beatSync} className="relative z-10 flex items-center gap-4 rounded-2xl border border-border bg-background p-4">
             <div className="size-16 shrink-0 overflow-hidden rounded-xl bg-muted ring-1 ring-border">
               {song.cover ? <Image
                 key={song.cover}
@@ -533,7 +531,7 @@ export function ToolkitSection() {
                 <button
                   type="button"
                   aria-label="Previous song"
-                  onClick={() => skipFromControls(-1)}
+                  onClick={() => skipSong(-1)}
                   className="showcase-control size-7 text-muted-foreground hover:text-foreground"
                 >
                   <SkipBack className="size-3.5 fill-current" />
@@ -549,7 +547,7 @@ export function ToolkitSection() {
                 <button
                   type="button"
                   aria-label="Next song"
-                  onClick={() => skipFromControls(1)}
+                  onClick={() => skipSong(1)}
                   className="showcase-control size-7 text-muted-foreground hover:text-foreground"
                 >
                   <SkipForward className="size-3.5 fill-current" />
@@ -578,11 +576,8 @@ export function ToolkitSection() {
               )}
             </div>
           </div>
-          {/* The compact controls own playback. Keep the Spotify controller mounted at full size. */}
-          <div
-            inert
-            className="pointer-events-none absolute inset-x-0 top-0 h-[152px] overflow-hidden opacity-0"
-          >
+          {/* Keep the embed rendered behind the compact controls so it can play without taking over the layout. */}
+          <div inert className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
             <div ref={embedContainerRef} className="[&>iframe]:block [&>iframe]:rounded-xl [&>iframe]:border-0" />
           </div>
         </ScrollReveal>
@@ -609,10 +604,7 @@ export function ToolkitSection() {
                   <button
                     key={`${entry.id}-${entry.index}`}
                     type="button"
-                    onClick={() => {
-                      pickSong(entry.index);
-                      if (beatSync === "idle") startTabAudio();
-                    }}
+                    onClick={() => pickSong(entry.index)}
                     className={cn(
                       "flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-secondary",
                       entry.index === currentSongIndex && "bg-secondary",

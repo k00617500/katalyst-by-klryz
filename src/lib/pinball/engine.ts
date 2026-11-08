@@ -501,7 +501,7 @@ export class PinballEngine {
 
   releasePlunger() {
     if (!this.plungerCharging || this.phase !== "playing" || !this.laneBall || this.ballLaunched) return;
-    const strength = plungerStrength(this.time - this.plungerChargeStart);
+    const strength = this.getPlungerStrength();
     this.cancelPlunger();
     this.ballLaunched = true;
     Body.setStatic(this.laneBall, false);
