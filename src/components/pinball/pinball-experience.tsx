@@ -12,6 +12,7 @@ import { PinballRightPanel } from "./pinball-right-panel";
 import { PinballInstructionsModal } from "./pinball-instructions-modal";
 import { usePinballGame } from "./use-pinball-game";
 import { usePinballControls } from "./use-pinball-controls";
+import { requestMotionPermission, useDeviceShake } from "./use-device-shake";
 import { useFollowerIdentity } from "./use-follower-identity";
 import { usePinballScores } from "./use-pinball-scores";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -52,10 +53,12 @@ export function PinballExperience() {
     return moved;
   }, [nudgeTable]);
   usePinballControls({ ...game, nudge }, !!player && !showStory && !instructionsOpen && !atRest && !stuck);
+  useDeviceShake(() => nudge("up"), playing && !showStory && !instructionsOpen && hud.tiltState !== "tilted");
 
   const focusCabinet = () => cabinet.current?.focus({ preventScroll: true });
   const start = () => {
     if (!player) return;
+    void requestMotionPermission();
     setStoryOpen(false);
     game.startGame();
     focusCabinet();
