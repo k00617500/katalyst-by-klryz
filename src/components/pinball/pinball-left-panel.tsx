@@ -38,7 +38,7 @@ export function PinballLeftPanel({
         <strong>{username ?? "Guest"}</strong>
         <button type="button" className="pb-sideStart" onClick={username ? onStart : openFollowersModal}
           disabled={!identityLoaded || (!!username && !canStart)}>
-          {!identityLoaded ? "Checking follower status…" : username ? "Play Non-Stop!" : "Follow Me!"}
+          {!identityLoaded ? "Checking follower status…" : username ? "Play Again!" : "Follow Me!"}
         </button>
       </div>
     </aside>

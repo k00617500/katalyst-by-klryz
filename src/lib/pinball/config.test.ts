@@ -60,3 +60,18 @@ test("charge increases continuously from tap strength to full power", () => {
   }
   assert.equal(plungerStrength(PLUNGER.maxChargeMs + 500), 1);
 });
+
+test("holding at full power pauses for 1.5 seconds before cycling through 75%", () => {
+  const fullAt = PLUNGER.maxChargeMs;
+  const startsFallingAt = fullAt + 1500;
+  const bottomAt = startsFallingAt + PLUNGER.maxChargeMs;
+  const backToFullAt = bottomAt + PLUNGER.maxChargeMs;
+
+  assert.equal(plungerStrength(startsFallingAt), 1);
+  assert.ok(plungerStrength(startsFallingAt + 1) < 1);
+  assert.equal(plungerStrength(bottomAt), 0.75);
+  assert.ok(plungerStrength(bottomAt + PLUNGER.maxChargeMs / 2) > 0.75);
+  assert.equal(plungerStrength(backToFullAt), 1);
+  assert.equal(plungerStrength(backToFullAt + 1500), 1);
+  assert.ok(plungerStrength(backToFullAt + 1501) < 1);
+});

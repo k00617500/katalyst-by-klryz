@@ -50,6 +50,19 @@ test("tap, minimum and full spring pulls all clear the shooter lane and drain in
   assert.ok(speeds[0] < speeds[1] && speeds[1] < speeds[2]);
 });
 
+test("releasing during the power drop launches at the current meter strength", () => {
+  const launches: number[] = [];
+  const engine = table({ onLaunch: (strength) => launches.push(strength) });
+  engine.chargePlunger();
+  const releaseAt = PLUNGER.maxChargeMs + PLUNGER.fullHoldMs + PLUNGER.maxChargeMs / 2;
+  step(engine, Math.round(releaseAt / FIXED_TIMESTEP_MS));
+  const displayedStrength = engine.getPlungerStrength();
+  assert.ok(displayedStrength > PLUNGER.minCycleStrength && displayedStrength < 1);
+  engine.releasePlunger();
+  assert.deepEqual(launches, [displayedStrength]);
+  engine.destroy();
+});
+
 test("a powered flipper sends the same incoming ball back up the table", () => {
   const result = (held: boolean) => {
     const engine = table();
