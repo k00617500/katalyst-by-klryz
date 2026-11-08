@@ -42,10 +42,11 @@ const tagColors = {
   gray: "bg-zinc-200 text-zinc-900 dark:bg-zinc-700 dark:text-zinc-100",
 };
 
-function FollowerNameTag({ follower }: { follower: Follower }) {
+function FollowerNameTag({ follower, className }: { follower: Follower; className?: string }) {
   return <span title={follower.username} className={cn(
-    "min-w-0 truncate rounded px-2 py-0.5 font-medium",
+    "min-w-0 max-w-full truncate rounded px-2 py-0.5 font-medium",
     tagColors[follower.nameTag ?? "gray"],
+    className,
   )}>{follower.username}</span>;
 }
 
@@ -327,27 +328,21 @@ export function FollowersWidget({ compact = false }: { compact?: boolean }) {
             <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
               {count ?? 0} {count === 1 ? "follower" : "followers"}
             </p>
-            <div className="grid max-h-[min(42dvh,21rem)] grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-3">
+            <div className="flex max-h-[min(42dvh,21rem)] flex-wrap gap-2 overflow-y-auto">
               {orderedFollowers === null && (
-                <p className="col-span-full py-4 text-center text-xs text-muted-foreground">Loading…</p>
+                <p className="w-full py-4 text-center text-xs text-muted-foreground">Loading…</p>
               )}
               {orderedFollowers?.length === 0 && (
-                <p className="col-span-full py-4 text-center text-xs text-muted-foreground">
+                <p className="w-full py-4 text-center text-xs text-muted-foreground">
                   No followers yet — be the first.
                 </p>
               )}
               {orderedFollowers?.map((follower) => {
                 const isSelf = follower.deviceId === deviceId;
                 return (
-                  <div
-                    key={follower.deviceId}
-                    className={cn(
-                      "flex min-w-0 items-center gap-2 rounded-md border border-border px-2.5 py-2 text-sm",
-                      isSelf && "bg-secondary/60",
-                    )}
-                  >
-                    <FollowerNameTag follower={follower} />
-                    {isSelf && <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground">You</span>}
+                  <div key={follower.deviceId} className="flex min-w-0 max-w-full items-center gap-1.5">
+                    <FollowerNameTag follower={follower} className={isSelf ? "ring-2 ring-offset-2 ring-offset-background ring-border" : undefined} />
+                    {isSelf && <span className="shrink-0 font-mono text-[10px] text-muted-foreground">You</span>}
                   </div>
                 );
               })}
