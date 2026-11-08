@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { Eye } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 
@@ -91,8 +90,7 @@ export function LiveViewers() {
         )}
       />
       <span aria-hidden="true" className="font-semibold">{isLive ? countFormatter.format(presence) : "–"}</span>
-      <Eye aria-hidden="true" className="size-3.5 text-muted-foreground min-[440px]:hidden" />
-      <span aria-hidden="true" className="hidden text-muted-foreground min-[440px]:inline">
+      <span aria-hidden="true" className="text-muted-foreground">
         {spectatorLabel}
       </span>
     </div>

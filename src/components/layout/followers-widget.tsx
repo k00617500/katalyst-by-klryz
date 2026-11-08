@@ -178,7 +178,7 @@ export function FollowersWidget() {
         onClick={openModal}
       >
         <span>{count ?? "–"}</span>
-        <span className="hidden min-[500px]:inline">Followers</span>
+        <span>Followers</span>
         <span className="flex shrink-0 items-center justify-center rounded-full text-foreground sm:size-6 sm:bg-secondary">
           <Plus className="size-3.5" />
         </span>
