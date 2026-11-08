@@ -20,7 +20,7 @@ export function PinballScoreList({ scores, deviceId, label, ranked = false }: {
           <li key={key} data-self={self}>
             {ranked && <span className="pb-place" aria-label={`Rank ${index + 1}`}>{index + 1}</span>}
             <div className="pb-scorePlayer"><span className="pb-scoreName" title={row.username}>{row.username}</span>
-              {ranked && self && <span className="pb-selfTag">You Are Here</span>}
+              {ranked && self && <span className="pb-selfTag">Rank Check</span>}
             </div>
             <strong>{row.score.toLocaleString()}</strong>
             <time dateTime={row.playedAt}>{dateTime.format(new Date(row.playedAt))}</time>
