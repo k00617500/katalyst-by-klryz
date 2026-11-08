@@ -14,6 +14,7 @@ export function PinballLeftPanel({
   identityLoaded,
   onStart,
   canStart,
+  hasPlayed,
 }: {
   scores: PinballScoreRow[];
   loading: boolean;
@@ -23,6 +24,7 @@ export function PinballLeftPanel({
   identityLoaded: boolean;
   onStart: () => void;
   canStart: boolean;
+  hasPlayed: boolean;
 }) {
   return (
     <aside className="pb-panel pb-leaderboard">
@@ -38,7 +40,7 @@ export function PinballLeftPanel({
         <strong>{username ?? "Guest"}</strong>
         <button type="button" className="pb-sideStart" onClick={username ? onStart : openFollowersModal}
           disabled={!identityLoaded || (!!username && !canStart)}>
-          {!identityLoaded ? "Checking follower status…" : username ? "Play Again!" : "Follow Me!"}
+          {!identityLoaded ? "Checking follower status…" : username ? (hasPlayed ? "Play Again!" : "Start Game!") : "Follow Me!"}
         </button>
       </div>
     </aside>

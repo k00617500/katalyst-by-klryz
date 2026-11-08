@@ -95,7 +95,7 @@ export function PinballExperience() {
       {player && <p className="pb-greeting">What&apos;s up, {player}?!</p>}
       <div className="pb-layout" ref={layout}>
         <PinballLeftPanel scores={scores.top} loading={scores.loading} offline={scores.offline} username={player}
-          deviceId={playerId} identityLoaded={loaded} canStart={canStart && atRest} onStart={start} />
+          deviceId={playerId} identityLoaded={loaded} canStart={canStart && atRest} onStart={start} hasPlayed={gameOver} />
         <div className="pb-cabinet" ref={cabinet} tabIndex={-1}>
           <div className="pb-backglass">
             <span className="pb-machineLabel">Pinball</span>
