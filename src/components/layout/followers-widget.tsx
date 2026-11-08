@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useState } from "react";
 import { Plus, UserRound } from "lucide-react";
+import { headerCounterIcon, headerCounterPill } from "@/components/layout/header-counter-styles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -172,14 +173,14 @@ export function FollowersWidget() {
         type="button"
         variant="outline"
         size="sm"
-        className="h-8 shrink-0 gap-1 rounded-full px-1.5 font-mono text-xs text-muted-foreground tabular-nums min-[360px]:px-2 sm:gap-1.5 sm:pr-0.5 sm:pl-2.5"
+        className={headerCounterPill}
         aria-label={count === null ? "Follow this site" : `Follow this site — ${count} followers`}
         title="Followers"
         onClick={openModal}
       >
         <span>{count ?? "–"}</span>
         <span>Followers</span>
-        <span className="flex shrink-0 items-center justify-center rounded-full text-foreground sm:size-6 sm:bg-secondary">
+        <span className={headerCounterIcon}>
           <Plus className="size-3.5" />
         </span>
       </Button>

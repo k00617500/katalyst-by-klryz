@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { headerCounterIcon, headerCounterPill } from "@/components/layout/header-counter-styles";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 
@@ -77,21 +78,12 @@ export function LiveViewers() {
     : presence === "connecting" ? "Connecting to spectator count" : "Spectator count unavailable";
 
   return (
-    <div
-      title={label}
-      className="inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-background/60 px-1.5 font-mono text-[11px] leading-none tabular-nums min-[360px]:px-2 sm:px-2.5"
-    >
+    <div title={label} className={headerCounterPill}>
       <span className="sr-only">{label}</span>
-      <span
-        aria-hidden="true"
-        className={cn(
-          "size-1.5 shrink-0 rounded-full",
-          isLive ? "bg-brand-ink shadow-[0_0_8px_var(--brand)]" : "bg-muted-foreground/55",
-        )}
-      />
-      <span aria-hidden="true" className="font-semibold">{isLive ? countFormatter.format(presence) : "–"}</span>
-      <span aria-hidden="true" className="text-muted-foreground">
-        {spectatorLabel}
+      <span aria-hidden="true">{isLive ? countFormatter.format(presence) : "–"}</span>
+      <span aria-hidden="true">{spectatorLabel}</span>
+      <span aria-hidden="true" className={headerCounterIcon}>
+        <span className={cn("size-1.5 rounded-full", isLive ? "bg-brand-ink" : "bg-muted-foreground/55")} />
       </span>
     </div>
   );
