@@ -53,7 +53,7 @@ declare global {
 const C4 = 261.63;
 const NOTE_FLASH_MS = 130;
 const TRACK_END_WINDOW_MS = 1200;
-// Give a slow-starting embed a chance before offering its native Play button.
+// Give a slow-starting embed a chance before retrying from the compact player.
 const PLAYBACK_START_TIMEOUT_MS = 6500;
 // Spotify previews report progress roughly once a second in the foreground. A few added seconds of
 // slack here avoids flipping to "paused" during brief background-tab throttling.
@@ -140,7 +140,6 @@ export function ToolkitSection() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [beatSync, setBeatSync] = useState<"idle" | "connecting" | "ready" | "retry" | "unsupported">("idle");
-  const [showSpotifyControls, setShowSpotifyControls] = useState(false);
 
   const controllerRef = useRef<SpotifyEmbedController | null>(null);
   const embedContainerRef = useRef<HTMLDivElement | null>(null);
@@ -157,7 +156,6 @@ export function ToolkitSection() {
   const playingRef = useRef(false);
   const readyRef = useRef(false);
   const playRequestedRef = useRef(false);
-  const spotifyControlsVisibleRef = useRef(false);
 
   const songIndexRef = useRef(0);
   const songsRef = useRef(toolkitSongs);
@@ -184,27 +182,18 @@ export function ToolkitSection() {
     updatePlaying(false);
   }, [updatePlaying]);
 
-  const offerSpotifyControls = useCallback(() => {
-    playRequestedRef.current = false;
-    updatePlaying(false);
-    spotifyControlsVisibleRef.current = true;
-    setShowSpotifyControls(true);
-  }, [updatePlaying]);
-
   const requestPlayback = useCallback(() => {
     resetPlayback();
     playRequestedRef.current = true;
-    playbackStartTimeoutRef.current = setTimeout(offerSpotifyControls, PLAYBACK_START_TIMEOUT_MS);
-  }, [offerSpotifyControls, resetPlayback]);
+    playbackStartTimeoutRef.current = setTimeout(() => {
+      if (playRequestedRef.current && readyRef.current) controllerRef.current?.resume();
+    }, PLAYBACK_START_TIMEOUT_MS);
+  }, [resetPlayback]);
 
   const loadSong = useCallback((index: number) => {
     const previousUri = songsRef.current[songIndexRef.current].uri;
     const { uri } = songsRef.current[index];
     songIndexRef.current = index;
-    if (uri !== previousUri) {
-      spotifyControlsVisibleRef.current = false;
-      setShowSpotifyControls(false);
-    }
     previousTileRef.current = null;
     resetBeatRef.current?.();
     requestPlayback();
@@ -262,7 +251,7 @@ export function ToolkitSection() {
           const trackProgress = () => {
             updatePlaying(true);
             if (stallWatchdogRef.current) clearTimeout(stallWatchdogRef.current);
-            stallWatchdogRef.current = setTimeout(offerSpotifyControls, STALL_WATCHDOG_MS);
+            stallWatchdogRef.current = setTimeout(() => updatePlaying(false), STALL_WATCHDOG_MS);
           };
           controller.addListener("ready", () => {
             if (cancelled) return;
@@ -270,9 +259,7 @@ export function ToolkitSection() {
             if (playRequestedRef.current) controller.play();
           });
           controller.addListener("playback_started", ({ data }) => {
-            if (cancelled || data.playingURI !== songsRef.current[songIndexRef.current].uri ||
-                (!playRequestedRef.current && !spotifyControlsVisibleRef.current)) return;
-            playRequestedRef.current = true;
+            if (cancelled || !playRequestedRef.current || data.playingURI !== songsRef.current[songIndexRef.current].uri) return;
             trackProgress();
           });
           controller.addListener("playback_update", ({ data }) => {
@@ -294,7 +281,7 @@ export function ToolkitSection() {
               return;
             }
 
-            if ((!playRequestedRef.current && !spotifyControlsVisibleRef.current) || isPaused || isBuffering ||
+            if (!playRequestedRef.current || isPaused || isBuffering ||
                 (duration > 0 && position >= duration)) {
               if (stallWatchdogRef.current) clearTimeout(stallWatchdogRef.current);
               updatePlaying(false);
@@ -303,7 +290,6 @@ export function ToolkitSection() {
             if (position <= (previous?.position ?? 0)) return;
 
             if (playbackStartTimeoutRef.current) clearTimeout(playbackStartTimeoutRef.current);
-            playRequestedRef.current = true;
             trackProgress();
           });
           const selectedUri = songsRef.current[songIndexRef.current].uri;
@@ -330,7 +316,7 @@ export function ToolkitSection() {
       if (window.onSpotifyIframeApiReady === initialize) delete window.onSpotifyIframeApiReady;
       script?.remove();
     };
-  }, [offerSpotifyControls, onTrackEnded, updatePlaying]);
+  }, [onTrackEnded, updatePlaying]);
 
   const flashBeat = useCallback(() => {
     if (!playRequestedRef.current) return;
@@ -471,8 +457,8 @@ export function ToolkitSection() {
           />
         </ScrollReveal>
 
-        <ScrollReveal y={0} className="relative w-full shrink-0 lg:w-[360px]">
-          <div data-beat-sync={beatSync} className="flex items-center gap-4 rounded-2xl border border-border bg-background p-4">
+        <ScrollReveal y={0} className="relative isolate w-full shrink-0 lg:w-[360px]">
+          <div data-beat-sync={beatSync} className="relative z-10 flex items-center gap-4 rounded-2xl border border-border bg-background p-4">
             <div className="size-16 shrink-0 overflow-hidden rounded-xl bg-muted ring-1 ring-border">
               {song.cover ? <Image
                 key={song.cover}
@@ -590,25 +576,9 @@ export function ToolkitSection() {
               )}
             </div>
           </div>
-          {/* Keep the same embed mounted so the listener can use Spotify's Play button if needed. */}
-          <div
-            inert={!showSpotifyControls}
-            className={showSpotifyControls
-              ? "mt-3 space-y-2"
-              : "pointer-events-none absolute inset-x-0 top-0 h-[152px] overflow-hidden opacity-0"}
-          >
-            {showSpotifyControls && (
-              <p className="text-xs text-muted-foreground">
-                Use Spotify’s player below or{" "}
-                <a href={`https://open.spotify.com/track/${song.id}`} target="_blank" rel="noreferrer"
-                  className="underline underline-offset-4">open this track in Spotify</a>.
-              </p>
-            )}
+          {/* Keep the embed rendered behind the compact controls so it can play without taking over the layout. */}
+          <div inert className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
             <div ref={embedContainerRef} className="[&>iframe]:block [&>iframe]:rounded-xl [&>iframe]:border-0" />
-            {showSpotifyControls && !playlistApi && (
-              <iframe src={`https://open.spotify.com/embed/track/${song.id}`} title="Toolkit Spotify player"
-                width="100%" height={152} className="block rounded-xl border-0" allow="autoplay; encrypted-media" />
-            )}
           </div>
         </ScrollReveal>
       </div>
