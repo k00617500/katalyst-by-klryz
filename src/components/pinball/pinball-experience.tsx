@@ -127,7 +127,7 @@ export function PinballExperience() {
               </div>
             )}
             {gameOver && !showStory && (
-              <div className="pb-prompt"><div className="pb-badge" role="status"><span>Game over</span><small>Select &ldquo;Play Again!&rdquo; in the left panel.</small></div></div>
+              <div className="pb-prompt"><div className="pb-badge" role="status"><span>Game over</span><small>Select &ldquo;Play Again!&rdquo; to start a new round.</small></div></div>
             )}
             {paused && !storyOpen && !instructionsOpen && (
               <div className="pb-prompt"><button type="button" className="pb-startButton" onClick={() => { game.togglePause(); focusCabinet(); }}><Play size={17} /> Resume</button></div>
