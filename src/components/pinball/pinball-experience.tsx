@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CircleHelp, Info, Pause, Play, RotateCcw, Volume2, VolumeX, Zap } from "lucide-react";
 import { loadRestartDeadline } from "@/lib/pinball/restart";
 import type { NudgeDirection } from "@/lib/pinball/engine";
@@ -20,6 +20,7 @@ import "./pinball.css";
 export function PinballExperience() {
   const [storyOpen, setStoryOpen] = useState(() => !loadRestartDeadline());
   const [instructionsOpen, setInstructionsOpen] = useState(false);
+  const layout = useRef<HTMLDivElement>(null);
   const cabinet = useRef<HTMLDivElement>(null);
   const shake = useRef<Animation | null>(null);
   const { isFollower, username, deviceId, loaded } = useFollowerIdentity();
@@ -53,6 +54,22 @@ export function PinballExperience() {
   }, [nudgeTable]);
   usePinballControls({ ...game, nudge }, !!player && !showStory && !instructionsOpen && !atRest && !stuck);
 
+  useEffect(() => {
+    const panels = layout.current?.querySelectorAll<HTMLElement>(".pb-panel");
+    if (!panels || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        entry.target.classList.add("pb-panel-revealed");
+        observer.unobserve(entry.target);
+      }
+    }, { rootMargin: "0px 0px -48px" });
+
+    panels.forEach((panel) => observer.observe(panel));
+    return () => observer.disconnect();
+  }, []);
+
   const focusCabinet = () => cabinet.current?.focus({ preventScroll: true });
   const start = () => {
     if (!player) return;
@@ -73,7 +90,7 @@ export function PinballExperience() {
     <section className="pb-arcade" aria-label="Playground pinball arcade">
       <h2 className="sr-only">Playground Pinball</h2>
       {player && <p className="pb-greeting">What&apos;s up, {player}?!</p>}
-      <div className="pb-layout">
+      <div className="pb-layout" ref={layout}>
         <PinballLeftPanel scores={scores.top} loading={scores.loading} offline={scores.offline} username={player}
           deviceId={playerId} identityLoaded={loaded} canStart={canStart && atRest} onStart={start} />
         <div className="pb-cabinet" ref={cabinet} tabIndex={-1}>

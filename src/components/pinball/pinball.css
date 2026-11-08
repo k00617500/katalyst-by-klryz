@@ -46,6 +46,19 @@
   border-radius: 13px;
   background: var(--pb-panel);
 }
+@media (prefers-reduced-motion: no-preference) {
+  .pb-panel-revealed {
+    animation: pb-panel-enter 450ms cubic-bezier(.2, .7, .25, 1);
+  }
+  @keyframes pb-panel-enter {
+    from { opacity: .45; transform: translate(var(--pb-panel-enter-x, 0px), 12px); }
+    to { opacity: 1; transform: translate(0, 0); }
+  }
+}
+@media (min-width: 700px) {
+  .pb-leaderboard { --pb-panel-enter-x: -16px; }
+  .pb-scoreboard { --pb-panel-enter-x: 16px; }
+}
 .pb-panel h3 { display: flex; align-items: center; gap: 8px; font-size: .95rem; font-weight: 720; }
 .pb-panel h3 svg { color: var(--pb-accent); flex-shrink: 0; }
 .pb-panelTag { margin-left: auto; border: 1px solid var(--pb-border); border-radius: 4px; padding: 3px 5px; color: var(--pb-accent); font: 650 .61rem var(--font-mono), monospace; white-space: nowrap; text-transform: uppercase; }
