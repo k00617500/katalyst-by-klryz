@@ -119,7 +119,7 @@ export default function ExperiencePage() {
       <section className="container-page section-y border-t border-border/60">
         <SectionHeading eyebrow="Participation" title="Attended sessions" description="Conferences, roadshows, and webinars — Certificates of Participation" className="mb-10" />
         <div className="divide-y divide-border border-t border-border">
-          {attendedSessions.map((session) => <article key={session.title} className="grid gap-3 py-6 md:grid-cols-[160px_1fr] md:gap-8">
+          {[...attendedSessions].sort((a, b) => b.date.localeCompare(a.date)).map((session) => <article key={session.title} className="grid gap-3 py-6 md:grid-cols-[160px_1fr] md:gap-8">
             <time dateTime={session.date} className="font-mono text-xs text-muted-foreground">{session.dateLabel ?? new Date(`${session.date}T00:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</time>
             <div>
               <h3 className="text-lg font-medium">{session.title}</h3>
