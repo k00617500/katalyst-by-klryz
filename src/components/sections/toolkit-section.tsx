@@ -657,15 +657,15 @@ export function ToolkitSection() {
             <div
               key={item.name}
               ref={(tile) => { tileRefs.current[index] = tile; }}
-              className="toolkit-tile group relative flex min-w-0 flex-col items-center justify-center gap-2 border-r border-b border-border bg-background px-2"
+              className="toolkit-tile group relative flex min-w-0 flex-col items-center justify-center gap-1 border-r border-b border-border bg-background px-1 sm:gap-2 sm:px-2"
               style={{ "--tool-color": isAdaptive ? "var(--foreground)" : item.color } as CSSProperties}
               onMouseEnter={() => hitTile(index, false)}
               onClick={() => hitTile(index, true)}
             >
               <Icon
-                className="size-7 text-muted-foreground/60 grayscale"
+                className="size-4 text-muted-foreground/60 grayscale sm:size-6 lg:size-7"
               />
-              <span className="font-space text-xs text-muted-foreground">
+              <span className="truncate font-space text-[9px] text-muted-foreground sm:text-xs">
                 {item.name}
               </span>
             </div>

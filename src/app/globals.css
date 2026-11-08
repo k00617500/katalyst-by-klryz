@@ -217,14 +217,14 @@
 }
 
 .toolkit-tile {
-  flex: 1 0 33.333333%;
-  padding-block: 0.875rem;
+  flex: 1 0 20%;
+  padding-block: 0.5rem;
 }
 
-@media (min-width: 640px) { .toolkit-tile { flex-basis: 20%; } }
+@media (min-width: 640px) { .toolkit-tile { flex-basis: 16.666666%; padding-block: 0.75rem; } }
 @media (min-width: 1024px) {
   .toolkit-section { padding-block: clamp(1rem, 3dvh, 2.5rem); }
-  .toolkit-tile { flex-basis: 16.666666%; padding-block: clamp(.375rem, 1.25dvh, .9rem); }
+  .toolkit-tile { flex-basis: 12.5%; padding-block: clamp(.375rem, 1.25dvh, .9rem); }
 }
 
 .project-scroll-track { scrollbar-color: var(--brand-ink) var(--muted); scrollbar-width: thin; }
