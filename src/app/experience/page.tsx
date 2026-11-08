@@ -7,7 +7,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { Button } from "@/components/ui/button";
 import { experienceEntries } from "@/data/experience";
 import { profile } from "@/data/profile";
-import { webinarSessions } from "@/data/participation";
+import { attendedSessions } from "@/data/participation";
 
 export const metadata: Metadata = {
   title: "Experience",
@@ -117,11 +117,16 @@ export default function ExperiencePage() {
       </section>
 
       <section className="container-page section-y border-t border-border/60">
-        <SectionHeading eyebrow="Participation" title="Attended webinar sessions" description="West Visayas State University · Zoom · Certificates of Participation" className="mb-10" />
+        <SectionHeading eyebrow="Participation" title="Attended sessions" description="Conferences, roadshows, and webinars — Certificates of Participation" className="mb-10" />
         <div className="divide-y divide-border border-t border-border">
-          {webinarSessions.map((session) => <article key={session.title} className="grid gap-3 py-6 md:grid-cols-[160px_1fr] md:gap-8">
-            <time dateTime={session.date} className="font-mono text-xs text-muted-foreground">{new Date(`${session.date}T00:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</time>
-            <div><h3 className="text-lg font-medium">{session.title}</h3><p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">{session.summary}</p><p className="mt-2 font-mono text-xs text-muted-foreground">Certificate issued {new Date(`${session.issued}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p></div>
+          {attendedSessions.map((session) => <article key={session.title} className="grid gap-3 py-6 md:grid-cols-[160px_1fr] md:gap-8">
+            <time dateTime={session.date} className="font-mono text-xs text-muted-foreground">{session.dateLabel ?? new Date(`${session.date}T00:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</time>
+            <div>
+              <h3 className="text-lg font-medium">{session.title}</h3>
+              {session.location && <p className="mt-1 font-mono text-xs text-muted-foreground">{session.location}</p>}
+              {session.summary && <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">{session.summary}</p>}
+              {session.issued && <p className="mt-2 font-mono text-xs text-muted-foreground">Certificate issued {new Date(`${session.issued}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>}
+            </div>
           </article>)}
         </div>
       </section>
