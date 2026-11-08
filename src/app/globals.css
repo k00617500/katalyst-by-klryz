@@ -216,15 +216,25 @@
   animation: cursor-stamp-fade 1.2s ease-out forwards;
 }
 
+/* A grid (not flex-wrap) keeps every column the same width even when the last row doesn't
+   fill out — flex-wrap items with flex-grow stretch to fill a short last row unevenly. */
+.toolkit-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+}
 .toolkit-tile {
-  flex: 1 0 20%;
+  min-width: 0;
   padding-block: 0.5rem;
 }
 
-@media (min-width: 640px) { .toolkit-tile { flex-basis: 16.666666%; padding-block: 0.75rem; } }
+@media (min-width: 640px) {
+  .toolkit-grid { grid-template-columns: repeat(6, 1fr); }
+  .toolkit-tile { padding-block: 0.75rem; }
+}
 @media (min-width: 1024px) {
   .toolkit-section { padding-block: clamp(1rem, 3dvh, 2.5rem); }
-  .toolkit-tile { flex-basis: 12.5%; padding-block: clamp(.375rem, 1.25dvh, .9rem); }
+  .toolkit-grid { grid-template-columns: repeat(8, 1fr); }
+  .toolkit-tile { padding-block: clamp(.375rem, 1.25dvh, .9rem); }
 }
 
 .project-scroll-track { scrollbar-color: var(--brand-ink) var(--muted); scrollbar-width: thin; }

@@ -638,7 +638,7 @@ export function ToolkitSection() {
       <ScrollReveal
         y={0}
         className={cn(
-          "toolkit-grid mt-8 flex flex-wrap overflow-hidden rounded-lg border-t border-l border-border",
+          "toolkit-grid mt-8 overflow-hidden rounded-lg border-t border-l border-border",
           isPlaying && "is-playing",
         )}
       >
