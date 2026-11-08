@@ -81,9 +81,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
+      data-theme="dark"
       suppressHydrationWarning
       className={cn(
-        "dark",
         "h-full",
         "antialiased",
         geistMono.variable,
@@ -97,7 +97,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <link href="https://fonts.cdnfonts.com/css/instagram-sans-2" rel="stylesheet" />
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <ThemeProvider attribute="class" storageKey="katalyst-theme" defaultTheme="dark" enableSystem={false}>
+        <ThemeProvider attribute="data-theme" storageKey="katalyst-theme" defaultTheme="dark" enableSystem={false} enableColorScheme={false}>
           <SoundProvider>
           <TooltipProvider delayDuration={150}>
             <Preloader />

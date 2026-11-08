@@ -7,8 +7,8 @@ import type { PinballEngine } from "@/lib/pinball/engine";
 
 export function PinballCanvas({ engine, blurred = false }: { engine: PinballEngine; blurred?: boolean }) {
   const hostRef = useRef<HTMLDivElement | null>(null);
-  const { resolvedTheme } = useTheme();
-  const theme: PinballTheme = resolvedTheme === "light" ? "light" : "dark";
+  const { theme: selectedTheme } = useTheme();
+  const theme: PinballTheme = selectedTheme === "light" ? "light" : "dark";
   const rendererRef = useRef<ReturnType<typeof createPinballRenderer> | null>(null);
 
   useEffect(() => {

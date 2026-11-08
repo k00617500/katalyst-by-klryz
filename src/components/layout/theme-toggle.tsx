@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
-import { flushSync } from "react-dom";
 import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function ThemeToggle() {
-  const { resolvedTheme, setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -15,38 +14,21 @@ export function ThemeToggle() {
     setMounted(true);
   }, []);
 
-  const isDark = !mounted || resolvedTheme === "dark";
-  const label = isDark ? "Switch to light mode" : "Switch to dark mode";
+  const isLight = mounted && theme === "light";
+  const label = isLight ? "Switch to dark mode" : "Switch to light mode";
 
   return (
     <Button
+      type="button"
       variant="ghost"
       size="icon"
       aria-label={label}
       title={label}
-      onClick={(event) => {
-        const nextTheme = isDark ? "light" : "dark";
-        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-          setTheme(nextTheme);
-          return;
-        }
-        if (!document.startViewTransition) {
-          flushSync(() => setTheme(nextTheme));
-          document.documentElement.animate([{ opacity: 0.55 }, { opacity: 1 }], { duration: 650, easing: "ease-out" });
-          return;
-        }
-        const rect = event.currentTarget.getBoundingClientRect();
-        document.documentElement.style.setProperty("--theme-x", `${rect.left + rect.width / 2}px`);
-        document.documentElement.style.setProperty("--theme-y", `${rect.top + rect.height / 2}px`);
-        document.startViewTransition(() => flushSync(() => setTheme(nextTheme)));
-      }}
+      onClick={() => setTheme((current) => current === "light" ? "dark" : "light")}
       className="rounded-full"
     >
-      {isDark ? (
-        <Sun key="sun" className="theme-icon size-4" />
-      ) : (
-        <Moon key="moon" className="theme-icon size-4" />
-      )}
+      <Sun aria-hidden="true" className="hidden size-4 dark:block" />
+      <Moon aria-hidden="true" className="size-4 dark:hidden" />
     </Button>
   );
 }

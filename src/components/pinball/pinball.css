@@ -20,7 +20,7 @@
   color: var(--pb-accent);
   font-weight: 750;
 }
-.dark .pb-arcade {
+html:not([data-theme="light"]) .pb-arcade {
   --pb-panel: #080808;
   --pb-text: #f5f5f5;
   --pb-muted: #a8a8ae;
@@ -168,9 +168,9 @@
 .pb-intro { position: absolute; inset: 0; display: grid; place-content: center; gap: 8px; padding: 14px; text-align: center; background: #edf3e299; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); color: #182515; }
 .pb-intro h3 { font-size: clamp(1.1rem, 2vw, 1.65rem); font-weight: 750; text-shadow: 0 1px 10px #edf3e2; }
 .pb-intro p { max-width: 25ch; font-size: .8rem; line-height: 1.5; text-shadow: 0 1px 8px #edf3e2; }
-.dark .pb-intro { background: #10160e99; color: #edf3e2; }
-.dark .pb-intro h3 { text-shadow: 0 1px 10px #10160e; }
-.dark .pb-intro p { text-shadow: 0 1px 8px #10160e; }
+html:not([data-theme="light"]) .pb-intro { background: #10160e99; color: #edf3e2; }
+html:not([data-theme="light"]) .pb-intro h3 { text-shadow: 0 1px 10px #10160e; }
+html:not([data-theme="light"]) .pb-intro p { text-shadow: 0 1px 8px #10160e; }
 
 .pb-controlDeck { display: grid; grid-template-columns: 1fr 1.25fr 1fr; align-items: start; gap: 6px; margin-top: 7px; }
 .pb-holdButton, .pb-launchButton { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 40px; width: 100%; border: 1px solid #4a4a60; border-radius: 5px; background: #232434; color: #f3eaff; font-size: .74rem; font-weight: 750; touch-action: none; user-select: none; }
