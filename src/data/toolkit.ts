@@ -2,6 +2,7 @@ import type { IconType } from "react-icons";
 import { VscVscode } from "react-icons/vsc";
 import { RiOpenaiFill } from "react-icons/ri";
 import { TbBrandAdobePhotoshop } from "react-icons/tb";
+import { BiPalette } from "react-icons/bi";
 import {
   SiHtml5,
   SiCss,
@@ -23,6 +24,7 @@ import {
   SiShadcnui,
   SiLeaflet,
   SiPostgresql, SiGithub, SiClaude, SiGithubcopilot, SiOllama, SiHuggingface, SiGit, SiClickup,
+  SiFacebook, SiNotion,
 } from "react-icons/si";
 
 export interface ToolkitItem {
@@ -62,4 +64,7 @@ export const toolkitItems: ToolkitItem[] = [
   { name: "VS Code", icon: VscVscode, color: "#007ACC" },
   { name: "ClickUp", icon: SiClickup, color: "#FF4785" },
   { name: "Adobe Photoshop", icon: TbBrandAdobePhotoshop, color: "#31A8FF" },
+  { name: "Canva", icon: BiPalette, color: "#00C4CC" },
+  { name: "Facebook Business Suite", icon: SiFacebook, color: "#0866FF" },
+  { name: "Notion", icon: SiNotion, color: "adaptive" },
 ];
