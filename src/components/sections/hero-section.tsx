@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { MagneticButton } from "@/components/animations/magnetic-button";
 import { profile } from "@/data/profile";
 import { HeroPlayground } from "@/components/sections/hero-playground";
+import { track } from "@/lib/analytics/track";
 
 registerGsap();
 
@@ -143,7 +144,7 @@ export function HeroSection() {
           </div>
           <div data-hero-cta>
             <Button asChild size="lg" variant="ghost" className="rounded-full px-5">
-              <Link href={profile.resumeUrl} target="_blank">
+              <Link href={profile.resumeUrl} target="_blank" onClick={() => track("resume_download")}>
                 Download Résumé
               </Link>
             </Button>

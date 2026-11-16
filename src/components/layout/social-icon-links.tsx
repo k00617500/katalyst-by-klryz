@@ -1,3 +1,5 @@
+"use client";
+
 import { Mail } from "lucide-react";
 import {
   FaGithub,
@@ -8,6 +10,7 @@ import {
 } from "react-icons/fa6";
 import { socialLinks } from "@/data/social-links";
 import { cn } from "@/lib/utils";
+import { track } from "@/lib/analytics/track";
 
 const iconMap = {
   github: FaGithub,
@@ -30,6 +33,11 @@ export function SocialIconLinks({ className }: { className?: string }) {
             target={link.href.startsWith("mailto:") ? undefined : "_blank"}
             rel="noreferrer"
             aria-label={link.label}
+            onClick={() =>
+              track(link.href.startsWith("mailto:") ? "email_click" : "social_link_click", {
+                platform: link.icon,
+              })
+            }
             className="flex size-9 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-brand hover:text-foreground"
           >
             <Icon className="size-4" />

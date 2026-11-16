@@ -5,14 +5,6 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { SoundProvider } from "@/components/providers/sound-provider";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { Navbar } from "@/components/layout/navbar";
-import { Footer } from "@/components/layout/footer";
-import { ScrollProgress } from "@/components/animations/scroll-progress";
-import { Preloader } from "@/components/animations/preloader";
-import { BackToTop } from "@/components/layout/back-to-top";
-import { CursorStamps } from "@/components/animations/cursor-stamps";
-import { SiteParallax } from "@/components/animations/site-parallax";
 import { profile } from "@/data/profile";
 import { cn } from "@/lib/utils";
 
@@ -98,18 +90,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider attribute="data-theme" storageKey="katalyst-theme" defaultTheme="dark" enableSystem={false} enableColorScheme={false}>
-          <SoundProvider>
-          <TooltipProvider delayDuration={150}>
-            <Preloader />
-            <ScrollProgress />
-            <Navbar />
-            <main className="flex-1">{children}</main>
-            <Footer />
-            <BackToTop />
-            <CursorStamps />
-            <SiteParallax />
-          </TooltipProvider>
-          </SoundProvider>
+          <SoundProvider>{children}</SoundProvider>
         </ThemeProvider>
         <Analytics />
         <SpeedInsights />

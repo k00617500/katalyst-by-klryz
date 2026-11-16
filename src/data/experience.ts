@@ -13,6 +13,14 @@ export const experienceEntries: ExperienceEntry[] = [
     skills: ["Project Leadership", "UI/UX Design", "Web Development", "Logistic Regression"],
   },
   {
+    id: "cramgrounds-study-hub",
+    type: "work",
+    organization: "Cramgrounds Study Hub",
+    position: "Creative Director",
+    startDate: "March 28, 2026",
+    endDate: "November 9, 2026",
+  },
+  {
     id: "foreal-solutions",
     type: "startup",
     organization: "Foreal Solutions",

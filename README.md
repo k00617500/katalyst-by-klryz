@@ -26,6 +26,49 @@ Set `NEXT_PUBLIC_SUPABASE_URL` to the Supabase project URL and `NEXT_PUBLIC_SUPA
 
 The header uses Supabase Realtime Presence with public channel access. No SQL migration, service role key, or Redis database is needed for this feature. Each hostname has its own live count, and tabs in the same browser profile share an anonymous key when browser storage is available. Presence is temporary and does not store historical visits.
 
+## Admin CMS
+
+The Journal is a database-driven CMS at `/admin` (Supabase-backed), not source-controlled MDX.
+
+### 1. Apply the database schema
+
+This machine can't reach your Supabase project's Postgres connection directly, so run these yourself in the [Supabase SQL Editor](https://supabase.com/dashboard/project/_/sql/new), in order:
+
+1. `supabase/migrations/0007_cms_core.sql` — posts, categories, tags, profiles, RLS
+2. `supabase/migrations/0008_cms_media.sql` — media table + the `media` Storage bucket
+3. `supabase/migrations/0009_analytics_events.sql` — custom analytics events table
+
+### 2. Set environment variables
+
+Copy `.env.example` to `.env.local` and fill in `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and a random `CRON_SECRET` (`openssl rand -hex 32`). Add the same variables to the Vercel project before deploying, and add `CRON_SECRET` there too so Vercel Cron can call the scheduled-publishing endpoint.
+
+### 3. Create your admin account
+
+```bash
+npm run cms:create-admin -- you@example.com "Your Name"
+```
+
+This prints a temporary password. Log in at `/admin/login`, then use "Forgot your password?" to set your own. Only accounts with a row in `profiles` can access the CMS — there's no public sign-up.
+
+### 4. Migrate the existing articles (optional)
+
+The two existing MDX articles in `src/content/journal` can be moved into the database:
+
+```bash
+npm run cms:migrate-posts
+```
+
+Verify them at `/journal`, then you can delete `src/content/journal` and `src/lib/journal.ts` — nothing else references them.
+
+### 5. Scheduled publishing
+
+`vercel.json` runs `/api/admin/scheduled-publishing` every 5 minutes via Vercel Cron, authenticated with `CRON_SECRET`. Locally, nothing publishes scheduled posts automatically — call that endpoint yourself with the right bearer token, or just publish immediately instead of scheduling while developing.
+
+### What's still manual
+
+- **Projects** (`/projects`) are still source-controlled in `src/data/projects.ts`, not database-driven — only Journal articles moved to the CMS.
+- **Traffic/audience analytics** (visitors, sources, devices) aren't wired into the dashboard — Vercel Web Analytics' Hobby plan has no API for historical data. Custom event tracking (`page_view`, etc.) is in place via `/api/track` → `analytics_events`, but the dashboard doesn't chart it yet.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

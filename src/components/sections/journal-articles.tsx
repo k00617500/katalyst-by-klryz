@@ -4,7 +4,15 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { ViewToggle, type ContentView } from "@/components/ui/view-toggle";
 import { cn } from "@/lib/utils";
-import type { JournalFrontmatter } from "@/lib/journal";
+
+interface JournalFrontmatter {
+  title: string;
+  date: string;
+  category: string;
+  excerpt: string;
+  coverImage?: string;
+}
+
 export function JournalArticles({ articles }: { articles: { slug: string; frontmatter: JournalFrontmatter; readingTime: string }[] }) {
   const [view, setView] = useState<ContentView>("list");
   return <>
