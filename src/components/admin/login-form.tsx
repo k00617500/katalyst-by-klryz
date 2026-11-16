@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { login, requestPasswordReset, type LoginState, type ForgotPasswordState } from "@/app/admin/(auth)/login/actions";
 
@@ -54,7 +55,7 @@ export function LoginForm({ next }: { next?: string }) {
       </div>
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>
-        <Input id="password" name="password" type="password" required />
+        <PasswordInput id="password" name="password" required />
       </div>
       {state.error && (
         <p role="alert" className="flex items-center gap-2 text-sm text-destructive">

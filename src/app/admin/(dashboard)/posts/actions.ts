@@ -65,10 +65,18 @@ function parsePostForm(formData: FormData) {
   return postSchema.parse(raw);
 }
 
-export async function saveDraft(_state: PostFormState, formData: FormData): Promise<PostFormState> {
+/**
+ * Creates or updates the post from form data. Never requires a cover image,
+ * category, tags, or any other optional field — only title and slug.
+ */
+async function upsertPostFromForm(formData: FormData): Promise<{ id: string; error?: never } | { error: string; id?: never }> {
   const { profile, user } = await verifyAdminSession();
   const parsed = parsePostForm(formData);
   const postId = formData.get("postId")?.toString();
+
+  if (!parsed.title.trim()) {
+    return { error: "Give the article a title first." };
+  }
 
   if (!(await isSlugAvailable(parsed.slug, postId))) {
     return { error: "That slug is already in use by another article." };
@@ -97,12 +105,42 @@ export async function saveDraft(_state: PostFormState, formData: FormData): Prom
 
   if (postId) {
     await updatePost(postId, input);
-    revalidateJournal();
-    return { postId };
+    return { id: postId };
   }
 
   const created = await createDraftPost(input, profile?.id ?? user.id);
-  redirect(`/admin/posts/${created.id}/edit`);
+  return { id: created.id };
+}
+
+export async function saveDraft(_state: PostFormState, formData: FormData): Promise<PostFormState> {
+  const result = await upsertPostFromForm(formData);
+  if (!result.id) return { error: result.error ?? "Could not save the article." };
+
+  revalidateJournal();
+  if (!formData.get("postId")) redirect(`/admin/posts/${result.id}/edit`);
+  return { postId: result.id };
+}
+
+/** Save + publish in one step, so a brand-new, never-saved article can be published immediately. */
+export async function publishNowAction(_state: PostFormState, formData: FormData): Promise<PostFormState> {
+  const result = await upsertPostFromForm(formData);
+  if (!result.id) return { error: result.error ?? "Could not save the article." };
+
+  await publishPost(result.id);
+  revalidateJournal();
+  if (!formData.get("postId")) redirect(`/admin/posts/${result.id}/edit`);
+  return { postId: result.id };
+}
+
+/** Save + schedule in one step, for a brand-new, never-saved article. */
+export async function scheduleNowAction(formData: FormData, scheduledAt: string): Promise<PostFormState> {
+  const result = await upsertPostFromForm(formData);
+  if (!result.id) return { error: result.error ?? "Could not save the article." };
+
+  await schedulePost(result.id, scheduledAt);
+  revalidateJournal();
+  if (!formData.get("postId")) redirect(`/admin/posts/${result.id}/edit`);
+  return { postId: result.id };
 }
 
 export async function publishAction(postId: string) {

@@ -38,8 +38,10 @@ import {
   checkSlugAvailability,
   deleteAction,
   publishAction,
+  publishNowAction,
   saveDraft,
   scheduleAction,
+  scheduleNowAction,
   unpublishAction,
   unscheduleAction,
 } from "@/app/admin/(dashboard)/posts/actions";
@@ -243,13 +245,34 @@ export function PostEditor({
                   Cancel schedule
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={() => setScheduleOpen(true)} disabled={!post?.id}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setScheduleOpen(true)}
+                disabled={!title.trim() || Boolean(slugError)}
+              >
                 <CalendarClock className="size-4" /> {post?.status === "scheduled" ? "Reschedule" : "Schedule"}
               </Button>
               <Button
                 size="sm"
-                disabled={!post?.id || Boolean(slugError)}
-                onClick={() => post?.id && startTransition(() => publishAction(post.id))}
+                disabled={!title.trim() || Boolean(slugError)}
+                onClick={() => {
+                  setStatus("saving");
+                  startTransition(async () => {
+                    if (post?.id) {
+                      await publishAction(post.id);
+                      setStatus("saved");
+                      setDirty(false);
+                      return;
+                    }
+                    const result = await publishNowAction({}, buildFormData());
+                    if (result?.error) setStatus("error");
+                    else {
+                      setStatus("saved");
+                      setDirty(false);
+                    }
+                  });
+                }}
               >
                 <Send className="size-4" /> Publish now
               </Button>
@@ -468,11 +491,26 @@ export function PostEditor({
               Cancel
             </Button>
             <Button
-              disabled={!scheduledAt || !post?.id}
+              disabled={!scheduledAt || !title.trim() || Boolean(slugError)}
               onClick={() => {
-                if (!post?.id || !scheduledAt) return;
-                startTransition(() => scheduleAction(post.id, new Date(scheduledAt).toISOString()));
+                if (!scheduledAt) return;
+                const iso = new Date(scheduledAt).toISOString();
                 setScheduleOpen(false);
+                setStatus("saving");
+                startTransition(async () => {
+                  if (post?.id) {
+                    await scheduleAction(post.id, iso);
+                    setStatus("saved");
+                    setDirty(false);
+                    return;
+                  }
+                  const result = await scheduleNowAction(buildFormData(), iso);
+                  if (result?.error) setStatus("error");
+                  else {
+                    setStatus("saved");
+                    setDirty(false);
+                  }
+                });
               }}
             >
               Schedule

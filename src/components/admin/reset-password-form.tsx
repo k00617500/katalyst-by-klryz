@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { updatePassword, type ResetPasswordState } from "@/app/admin/(auth)/reset-password/actions";
 
@@ -14,11 +14,11 @@ export function ResetPasswordForm() {
     <form action={action} className="space-y-5">
       <div className="space-y-2">
         <Label htmlFor="password">New password</Label>
-        <Input id="password" name="password" type="password" minLength={8} required autoFocus />
+        <PasswordInput id="password" name="password" minLength={8} required autoFocus />
       </div>
       <div className="space-y-2">
         <Label htmlFor="confirmPassword">Confirm password</Label>
-        <Input id="confirmPassword" name="confirmPassword" type="password" minLength={8} required />
+        <PasswordInput id="confirmPassword" name="confirmPassword" minLength={8} required />
       </div>
       {state.error && (
         <p role="alert" className="flex items-center gap-2 text-sm text-destructive">
