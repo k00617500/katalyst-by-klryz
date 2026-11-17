@@ -16,7 +16,7 @@ export const experienceEntries: ExperienceEntry[] = [
     id: "cramgrounds-study-hub",
     type: "work",
     organization: "Cramgrounds Study Hub",
-    position: "Creative Director",
+    position: "Creative Associate",
     startDate: "March 28, 2026",
     endDate: "November 9, 2026",
   },
@@ -73,7 +73,7 @@ export const experienceEntries: ExperienceEntry[] = [
     position: "Junior Photojournalist | Senior Photojournalist | Art Director",
     location: "La Paz, Iloilo City, PH",
     startDate: "2023",
-    current: true,
+    endDate: "2025",
     responsibilities: [
       "Directing publication layouts and graphic design while managing tight deadlines across simultaneous editorial projects.",
       "Directing layouts and visual identity for multiple publication issues.",
