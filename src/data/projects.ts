@@ -33,6 +33,56 @@ const projectEntries: Project[] = [
     overview: description,
   })),
   {
+    slug: "merkaventures",
+    title: "MerkaVentures",
+    shortDescription:
+      "A student marketplace for the WVSU-HCC Campus Student Council — student entrepreneurs showcase products and services and reach more customers on campus.",
+    categories: ["web-development", "startup-entrepreneurship", "ui-ux-design"],
+    year: 2026,
+    featured: true,
+    technologies: ["React", "TypeScript", "Vite", "Tailwind CSS", "shadcn/ui", "Supabase", "Capacitor"],
+    thumbnail: "/images/project (11).png",
+    overview:
+      "MerkaVentures is an initiative by the Councilors of the WVSU-HCC Campus Student Council that gives student entrepreneurs a space to showcase their products and services and reach more customers within campus. Buyers browse by category, store, and community posts; sellers manage listings and orders; and administrators review seller applications and moderate the marketplace — all from one shared codebase. The platform is currently in beta testing.",
+    caseStudy: {
+      background:
+        "Built for the WVSU-HCC Campus Student Council to connect student sellers and buyers in one place, promoting creativity, financial independence, and practical business skills so students can turn their ideas into real ventures.",
+      objectives: [
+        "Give student sellers a storefront for food, clothing, crafts, beauty, school supplies, services, and more",
+        "Let buyers discover products by category and store, save favorites, place orders, and message sellers",
+        "Provide an admin portal for seller application review, moderation, categories, announcements, and analytics with CSV/PDF reports",
+        "Ship web plus Android and iOS shells (Capacitor) with realtime notifications from a single Supabase backend",
+      ],
+      developmentProcess:
+        "Buyer, seller, and administrator interfaces share one React + TypeScript codebase backed by Supabase (Postgres with row-level security, Auth, Storage, Realtime). Database workflows are covered by automated tests, and the app is in beta testing ahead of a verified production release.",
+    },
+  },
+  {
+    slug: "dwellr",
+    title: "dwellr",
+    shortDescription:
+      "A boarding house marketplace and management platform — renters find a room on a map and pay bills, while owners run properties, tenants, and billing in one app.",
+    categories: ["web-development", "startup-entrepreneurship", "ui-ux-design"],
+    year: 2026,
+    featured: true,
+    technologies: ["React", "TypeScript", "Supabase", "MapLibre GL", "Tailwind CSS", "i18next", "Capacitor"],
+    thumbnail: "/images/project (12).png",
+    overview:
+      "dwellr is a multi-tenant boarding house marketplace and property-management platform — “Find your space. Manage your place.” Renters browse listings on a map, apply for a room or bedspace, pay bills, message the landlady, and request repairs. Owners manage properties, rooms, tenants, billing, and payments from a dashboard with collections and occupancy analytics, while a platform admin verifies every business before it goes public. The platform is currently in beta testing.",
+    caseStudy: {
+      background:
+        "Boarding house renting is often handled through scattered messages, paper agreements, and manual payment tracking. dwellr brings discovery, applications, billing, and communication into one multi-tenant platform.",
+      objectives: [
+        "Let renters search a map of listings, apply for a room or bedspace, and track their bills and repairs",
+        "Give owners an ERP for properties, floors, rooms, bedspaces, boarders, agreements, billing, and payment verification",
+        "Surface collections, net operating performance, payment methods, and occupancy per property in a live dashboard",
+        "Verify every business through an admin workflow before listings go public",
+      ],
+      developmentProcess:
+        "Built with React, TypeScript, Tailwind, and shadcn/ui on a Supabase backend (Postgres RLS, Auth, Storage, Realtime, Edge Functions), with MapLibre GL maps and i18n support for eight languages. Workflows such as double-booking prevention, utility billing, proration, and tenant isolation are verified by automated tests, and a Capacitor shell covers Android and iOS.",
+    },
+  },
+  {
     slug: "agrichain",
     title: "AgriChain",
     shortDescription:
