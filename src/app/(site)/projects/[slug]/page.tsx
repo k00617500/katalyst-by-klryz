@@ -1,13 +1,29 @@
+import { stat } from "node:fs/promises";
+import { join } from "node:path";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Download } from "lucide-react";
 import { FaGithub } from "react-icons/fa6";
 import { ScrollReveal } from "@/components/animations/scroll-reveal";
 import { Button } from "@/components/ui/button";
 import { ProjectCard } from "@/components/projects/project-card";
 import { getProjectBySlug, projects } from "@/data/projects";
+
+const manualPreviews: Partial<Record<string, {
+  cover: string;
+  width: number;
+  height: number;
+  flipbook: string;
+}>> = {
+  dwellr: {
+    cover: "/docs/dwellr-user-manual-cover.webp",
+    width: 638,
+    height: 900,
+    flipbook: "https://heyzine.com/flip-book/a909b2449d.html",
+  },
+};
 
 export function generateStaticParams() {
   return projects.map((project) => ({ slug: project.slug }));
@@ -46,6 +62,18 @@ function InfoSection({
   );
 }
 
+async function getManualUrl(slug: string) {
+  const filename = `${slug}-user-manual.pdf`;
+
+  try {
+    const file = await stat(join(process.cwd(), "public", "docs", filename));
+    return file.isFile() && file.size > 0 ? `/docs/${filename}` : null;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw error;
+  }
+}
+
 export default async function ProjectPage({
   params,
 }: {
@@ -55,6 +83,8 @@ export default async function ProjectPage({
   const project = getProjectBySlug(slug);
   if (!project) notFound();
 
+  const manualUrl = await getManualUrl(project.slug);
+  const manualPreview = manualPreviews[project.slug];
   const cs = project.caseStudy;
   const related = projects.filter((p) => p.slug !== project.slug).slice(0, 2);
 
@@ -115,6 +145,7 @@ export default async function ProjectPage({
           />
         </ScrollReveal>
       </section>
+
 
       <article className="mx-auto w-full max-w-[840px] px-6 py-12 md:px-10 md:py-16">
         <InfoSection title="Overview">
@@ -206,6 +237,50 @@ export default async function ProjectPage({
           </InfoSection>
         )}
       </article>
+
+      {manualUrl && (
+        <section
+          id="user-manual"
+          aria-labelledby="user-manual-title"
+          className="mx-auto mb-16 w-full max-w-[840px] scroll-mt-28 px-6 md:mb-24 md:px-10"
+        >
+          <div className="overflow-hidden rounded-lg border border-border bg-card text-card-foreground">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border p-4 md:p-5">
+              <h2 id="user-manual-title" className="text-xl font-medium tracking-tight">
+                User Manual
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {manualPreview && (
+                  <Button asChild variant="outline" className="rounded-full">
+                    <a href={manualPreview.flipbook} target="_blank" rel="noopener noreferrer">
+                      Open Flipbook
+                      <ArrowUpRight aria-hidden="true" />
+                    </a>
+                  </Button>
+                )}
+                <Button asChild variant="outline" className="rounded-full">
+                  <a href={manualUrl} target="_blank" rel="noopener noreferrer">
+                    Open PDF
+                    <ArrowUpRight aria-hidden="true" />
+                  </a>
+                </Button>
+                <Button asChild className="rounded-full">
+                  <a href={manualUrl} download>
+                    <Download aria-hidden="true" />
+                    Download PDF
+                  </a>
+                </Button>
+              </div>
+            </div>
+            <iframe
+              src={`${manualUrl}#toolbar=0&navpanes=0&view=FitH`}
+              title={`${project.title} user manual`}
+              loading="lazy"
+              className="block h-[80vh] min-h-[28rem] w-full border-0 bg-muted"
+            />
+          </div>
+        </section>
+      )}
 
       {related.length > 0 && (
         <section className="container-page section-y border-t border-border/60">
