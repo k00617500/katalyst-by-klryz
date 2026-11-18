@@ -1,13 +1,29 @@
+import { stat } from "node:fs/promises";
+import { join } from "node:path";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Download } from "lucide-react";
 import { FaGithub } from "react-icons/fa6";
 import { ScrollReveal } from "@/components/animations/scroll-reveal";
 import { Button } from "@/components/ui/button";
 import { ProjectCard } from "@/components/projects/project-card";
 import { getProjectBySlug, projects } from "@/data/projects";
+
+// Beta/open-source projects that spectators can try live via a QR code.
+const betaProjects = new Set(["merkaventures", "dwellr"]);
+
+async function getManualUrl(slug: string) {
+  const filename = `${slug}-user-manual.pdf`;
+  try {
+    const file = await stat(join(process.cwd(), "public", "docs", filename));
+    return file.isFile() && file.size > 0 ? `/docs/${filename}` : null;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw error;
+  }
+}
 
 export function generateStaticParams() {
   return projects.map((project) => ({ slug: project.slug }));
@@ -55,6 +71,8 @@ export default async function ProjectPage({
   const project = getProjectBySlug(slug);
   if (!project) notFound();
 
+  const manualUrl = await getManualUrl(project.slug);
+  const showLiveAccess = betaProjects.has(project.slug) && !!project.liveUrl;
   const cs = project.caseStudy;
   const related = projects.filter((p) => p.slug !== project.slug).slice(0, 2);
 
@@ -115,6 +133,57 @@ export default async function ProjectPage({
           />
         </ScrollReveal>
       </section>
+
+      {showLiveAccess && project.liveUrl && (
+        <section
+          id="try-it-live"
+          aria-labelledby="try-it-live-title"
+          className="mx-auto mt-10 w-full max-w-[840px] px-6 md:mt-12 md:px-10"
+        >
+          <div className="flex flex-col items-center gap-6 rounded-lg border border-border bg-card p-6 text-card-foreground sm:flex-row md:p-8">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/qr/${project.slug}.svg`}
+              alt={`QR code that opens ${project.title} live`}
+              width={176}
+              height={176}
+              className="size-40 shrink-0 rounded-md bg-white p-2 md:size-44"
+            />
+            <div className="text-center sm:text-left">
+              <p className="font-mono text-xs tracking-wide text-muted-foreground uppercase">
+                Open source &middot; Live &middot; Beta
+              </p>
+              <h2 id="try-it-live-title" className="mt-2 text-xl font-medium tracking-tight md:text-2xl">
+                Try {project.title} live
+              </h2>
+              <p className="mt-3 font-space text-sm leading-relaxed text-muted-foreground md:text-base">
+                Scan the QR code or use the link to open the running app. This is an open-source
+                project, and I&apos;d be glad to have beta-testers &mdash; try it out and tell me
+                what you think.
+              </p>
+              <a
+                href={project.liveUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-block break-all font-mono text-sm underline underline-offset-4"
+              >
+                {project.liveUrl.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+              </a>
+              <div className="mt-4 flex flex-wrap justify-center gap-2 sm:justify-start">
+                <Button asChild className="rounded-full">
+                  <a href={project.liveUrl} target="_blank" rel="noopener noreferrer">
+                    Open Live App
+                    <ArrowUpRight aria-hidden="true" />
+                  </a>
+                </Button>
+                <Button asChild variant="outline" className="rounded-full">
+                  <Link href="/contact">Become a Beta-Tester</Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       <article className="mx-auto w-full max-w-[840px] px-6 py-12 md:px-10 md:py-16">
         <InfoSection title="Overview">
@@ -206,6 +275,42 @@ export default async function ProjectPage({
           </InfoSection>
         )}
       </article>
+
+      {manualUrl && (
+        <section
+          id="user-manual"
+          aria-labelledby="user-manual-title"
+          className="mx-auto w-full max-w-[840px] scroll-mt-28 px-6 pb-12 md:px-10 md:pb-16"
+        >
+          <div className="overflow-hidden rounded-lg border border-border bg-card text-card-foreground">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border p-4 md:p-5">
+              <h2 id="user-manual-title" className="text-xl font-medium tracking-tight">
+                User Manual
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                <Button asChild variant="outline" className="rounded-full">
+                  <a href={manualUrl} target="_blank" rel="noopener noreferrer">
+                    Open PDF
+                    <ArrowUpRight aria-hidden="true" />
+                  </a>
+                </Button>
+                <Button asChild className="rounded-full">
+                  <a href={manualUrl} download>
+                    <Download aria-hidden="true" />
+                    Download PDF
+                  </a>
+                </Button>
+              </div>
+            </div>
+            <iframe
+              src={`${manualUrl}#view=FitH`}
+              title={`${project.title} user manual`}
+              loading="lazy"
+              className="block h-[min(75vh,48rem)] min-h-96 w-full border-0 bg-muted"
+            />
+          </div>
+        </section>
+      )}
 
       {related.length > 0 && (
         <section className="container-page section-y border-t border-border/60">

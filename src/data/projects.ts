@@ -42,6 +42,7 @@ const projectEntries: Project[] = [
     featured: true,
     technologies: ["React", "TypeScript", "Vite", "Tailwind CSS", "shadcn/ui", "Supabase", "Capacitor"],
     thumbnail: "/images/project (11).png",
+    liveUrl: "https://merkaventures.vercel.app/",
     overview:
       "MerkaVentures is an initiative by the Councilors of the WVSU-HCC Campus Student Council that gives student entrepreneurs a space to showcase their products and services and reach more customers within campus. Buyers browse by category, store, and community posts; sellers manage listings and orders; and administrators review seller applications and moderate the marketplace — all from one shared codebase. The platform is currently in beta testing.",
     caseStudy: {
@@ -67,6 +68,7 @@ const projectEntries: Project[] = [
     featured: true,
     technologies: ["React", "TypeScript", "Supabase", "MapLibre GL", "Tailwind CSS", "i18next", "Capacitor"],
     thumbnail: "/images/project (12).png",
+    liveUrl: "https://dwellr-main.vercel.app/",
     overview:
       "dwellr is a multi-tenant boarding house marketplace and property-management platform — “Find your space. Manage your place.” Renters browse listings on a map, apply for a room or bedspace, pay bills, message the landlady, and request repairs. Owners manage properties, rooms, tenants, billing, and payments from a dashboard with collections and occupancy analytics, while a platform admin verifies every business before it goes public. The platform is currently in beta testing.",
     caseStudy: {
