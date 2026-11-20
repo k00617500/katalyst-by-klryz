@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "vemxhbrbdkojmuhatymo.supabase.co" },
       { protocol: "https", hostname: "i.scdn.co" },
+      { protocol: "https", hostname: "**.spotifycdn.com" },
     ],
     dangerouslyAllowSVG: true,
     contentDispositionType: "attachment",

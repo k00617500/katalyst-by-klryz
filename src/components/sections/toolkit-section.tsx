@@ -318,6 +318,34 @@ export function ToolkitSection() {
     };
   }, [onTrackEnded, updatePlaying]);
 
+  // Keep the catalog in lock-step with the live Spotify playlist (new songs, removals, cover art).
+  useEffect(() => {
+    let cancelled = false;
+    const sync = async () => {
+      try {
+        const response = await fetch("/api/toolkit-songs", { cache: "no-store" });
+        if (!response.ok) return;
+        const { songs: live } = (await response.json()) as { songs?: Array<{ id: string; title: string; artist: string; cover: string }> };
+        if (cancelled || !live?.length) return;
+        const known = new Map(songsRef.current.map((entry) => [entry.id, entry]));
+        const next = live.map((entry) => createToolkitSong({ ...entry, cover: entry.cover || known.get(entry.id)?.cover || "" }));
+        const current = songsRef.current[songIndexRef.current];
+        let index = next.findIndex((entry) => entry.id === current.id);
+        if (index === -1) { next.push(current); index = next.length - 1; }
+        songsRef.current = next;
+        songIndexRef.current = index;
+        if (shuffleOrderRef.current) shuffleOrderRef.current = createShuffleOrder(next.length);
+        setSongs(next);
+        setCurrentSongIndex(index);
+      } catch { /* keep the current list */ }
+    };
+    void sync();
+    const timer = setInterval(sync, 60_000);
+    const onVisible = () => { if (document.visibilityState === "visible") void sync(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { cancelled = true; clearInterval(timer); document.removeEventListener("visibilitychange", onVisible); };
+  }, []);
+
   const flashBeat = useCallback(() => {
     if (!playRequestedRef.current) return;
     const playback = lastPlaybackRef.current;
@@ -422,7 +450,7 @@ export function ToolkitSection() {
         const title = metadata?.title;
         if (!title) return;
         const thumbnail = metadata?.thumbnail_url;
-        const cover = thumbnail?.startsWith("https://i.scdn.co/image/") ? thumbnail : "";
+        const cover = thumbnail && /^https:\/\/[\w.-]+\.(scdn\.co|spotifycdn\.com)\//.test(thumbnail) ? thumbnail : "";
         songsRef.current = songsRef.current.map((entry) => entry.id === id ? { ...entry, title, cover } : entry);
         setSongs(songsRef.current);
       })
