@@ -1,15 +1,35 @@
-export const MOODS = [
-  { key: "moody", label: "Moody", blurb: "quiet main-character energy. dim lights, good soundtrack, zero small talk." },
-  { key: "flowy", label: "Flowy", blurb: "easy-breezy and in the zone. you glide through pages like they're a playlist." },
-  { key: "deep", label: "Deep", blurb: "thoughtful and curious. you read the fine print on purpose." },
-  { key: "playful", label: "Playful", blurb: "chaos, but make it cute. you're here to poke every single button." },
-  { key: "edgy", label: "Edgy", blurb: "bold, sharp and a little rebellious. you came to judge the kerning." },
-] as const;
+export interface MoodOption {
+  label: string;
+  description: string;
+}
 
-export type MoodKey = (typeof MOODS)[number]["key"];
-export type Ratings = Record<MoodKey, number>;
+// Visitors pick between MIN_MOODS and MAX_MOODS of these; each picked mood becomes an axis on the chart.
+export const MOOD_OPTIONS: MoodOption[] = [
+  { label: "Happy", description: "Enjoying the overall experience" },
+  { label: "Impressed", description: "Amazed by the quality of work" },
+  { label: "Inspired", description: "Motivated by the projects or achievements" },
+  { label: "Curious", description: "Interested in learning more about the creator" },
+  { label: "Excited", description: "Enthusiastic about the showcased work" },
+  { label: "Interested", description: "Actively engaged with the content" },
+  { label: "Surprised", description: "Encountering something unexpected or impressive" },
+  { label: "Amazed", description: "Experiencing a strong positive impression" },
+  { label: "Confident", description: "Feels assured about the creator's capabilities" },
+  { label: "Trusting", description: "Developing trust in the creator's credibility" },
+  { label: "Admiring", description: "Appreciating the creativity and skills displayed" },
+  { label: "Motivated", description: "Encouraged to explore or take action" },
+  { label: "Engaged", description: "Actively paying attention to the portfolio" },
+  { label: "Confused", description: "Having difficulty understanding the content" },
+  { label: "Overwhelmed", description: "Finding too much information or visual content" },
+  { label: "Bored", description: "Losing interest while browsing" },
+  { label: "Skeptical", description: "Uncertain about the credibility or claims" },
+  { label: "Disappointed", description: "Finding something below expectations" },
+  { label: "Frustrated", description: "Experiencing difficulty navigating the website" },
+  { label: "Indifferent", description: "Showing little apparent interest in the experience" },
+];
 
-export const DEFAULT_RATINGS: Ratings = { moody: 5, flowy: 5, deep: 5, playful: 5, edgy: 5 };
+export const MIN_MOODS = 3;
+export const MAX_MOODS = 5;
+export const DEFAULT_RATING = 5;
 
 export interface VibeMemoji {
   id: string;

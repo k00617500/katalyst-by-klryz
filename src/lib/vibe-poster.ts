@@ -1,17 +1,14 @@
-import { MOODS, type Ratings } from "@/data/vibe-check";
 
-// Poster layout is authored on a 1080 x 1920 canvas and scaled for any output size.
+// The poster is authored on a 1080 x 1080 square and scaled for any output size.
 export const POSTER_W = 1080;
-export const POSTER_H = 1920;
+export const POSTER_H = 1080;
 
 const CENTER_X = 540;
-const CENTER_Y = 960;
-const OUTER_R = 390;
-const MAX_FACE_R = 380;
-const STEPS_PER_SECTOR = 16;
-// Axes run clockwise from the top: flowy, deep, edgy, playful, moody.
-const AXES = ["flowy", "deep", "edgy", "playful", "moody"] as const;
-const AXIS_LABEL_OFFSET = 54;
+const CENTER_Y = 480;
+const OUTER_R = 360;
+const MAX_FACE_R = 352;
+const STEPS_PER_SECTOR = 24;
+const AXIS_LABEL_OFFSET = 50;
 
 export interface PosterColors {
   fg: string;
@@ -22,8 +19,12 @@ export interface PosterColors {
 export interface PosterOptions {
   source: CanvasImageSource | null;
   sourceSize: { w: number; h: number };
-  /** Animated, fractional ratings (0 - 10). */
-  ratings: Ratings;
+  /** One label per axis, clockwise from the top. Empty strings draw unlabeled axes. */
+  labels: string[];
+  /** Animated, fractional ratings (0 - 10) that drive the stretch, one per axis. */
+  ratings: number[];
+  /** The ratings the viewer actually chose, used for the average. */
+  finalRatings: number[];
   username: string;
   blurb: string;
   thumb: CanvasImageSource | null;
@@ -32,20 +33,25 @@ export interface PosterOptions {
   fontFamily: string;
   /** Text shown in the middle while there is nothing to warp yet. */
   placeholder?: string;
-  transparentBackground?: boolean;
 }
 
-const axisAngle = (index: number) => ((-90 + index * 72) * Math.PI) / 180;
+const axisAngle = (index: number, count: number) => ((-90 + (index * 360) / count) * Math.PI) / 180;
 const radiusFor = (rating: number) => MAX_FACE_R * (0.2 + 0.8 * Math.min(10, Math.max(0, rating)) / 10);
+
+export function averageRating(ratings: number[]) {
+  return ratings.length ? ratings.reduce((sum, value) => sum + value, 0) / ratings.length : 0;
+}
 
 /** Radius of the stretched shape at an angle: linear between axis tips, pinched in between for a star-like look. */
 function shapeRadius(radii: number[], angle: number) {
+  const count = radii.length;
+  const span = 360 / count;
   let degrees = ((angle * 180) / Math.PI + 90) % 360;
   if (degrees < 0) degrees += 360;
-  const sector = Math.min(4, Math.floor(degrees / 72));
-  const t = (degrees - sector * 72) / 72;
+  const sector = Math.min(count - 1, Math.floor(degrees / span));
+  const t = (degrees - sector * span) / span;
   const from = radii[sector];
-  const to = radii[(sector + 1) % 5];
+  const to = radii[(sector + 1) % count];
   const lerp = from + (to - from) * t;
   return lerp * (1 - 0.2 * Math.sin(Math.PI * t));
 }
@@ -69,12 +75,12 @@ function triangleTransform(s: number[], d: number[]) {
   return [a, b, c, dd, d[0] - a * s[0] - c * s[1], d[1] - b * s[0] - dd * s[1]] as const;
 }
 
-function drawWarpedImage(ctx: CanvasRenderingContext2D, source: CanvasImageSource, size: { w: number; h: number }, ratings: Ratings) {
-  const radii = AXES.map((axis) => radiusFor(ratings[axis]));
+function drawWarpedImage(ctx: CanvasRenderingContext2D, source: CanvasImageSource, size: { w: number; h: number }, ratings: number[]) {
+  const radii = ratings.map(radiusFor);
   const sourceRadius = Math.min(size.w, size.h) / 2;
   const sx = size.w / 2;
   const sy = size.h / 2;
-  const total = STEPS_PER_SECTOR * 5;
+  const total = STEPS_PER_SECTOR * radii.length;
   const points: Array<{ dx: number; dy: number; sx: number; sy: number }> = [];
   for (let i = 0; i <= total; i++) {
     const angle = -Math.PI / 2 + (i / total) * Math.PI * 2;
@@ -91,15 +97,10 @@ function drawWarpedImage(ctx: CanvasRenderingContext2D, source: CanvasImageSourc
     const b = points[i + 1];
     const matrix = triangleTransform([sx, sy, a.sx, a.sy, b.sx, b.sy], [CENTER_X, CENTER_Y, a.dx, a.dy, b.dx, b.dy]);
     if (!matrix) continue;
-    // Grow the clip a hair so neighbouring triangles never leave seams.
-    const grow = (px: number, py: number) => {
-      const vx = px - CENTER_X;
-      const vy = py - CENTER_Y;
-      const len = Math.hypot(vx, vy) || 1;
-      return [px + (vx / len) * 1.2, py + (vy / len) * 1.2] as const;
-    };
-    const ga = grow(a.dx, a.dy);
-    const gb = grow(b.dx, b.dy);
+    // Overlap neighbouring wedges along the chord so antialiased clip edges never leave seam lines.
+    const stretch = 0.2;
+    const ga = [a.dx + (a.dx - b.dx) * stretch, a.dy + (a.dy - b.dy) * stretch] as const;
+    const gb = [b.dx + (b.dx - a.dx) * stretch, b.dy + (b.dy - a.dy) * stretch] as const;
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(CENTER_X, CENTER_Y);
@@ -127,24 +128,55 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   return lines;
 }
 
+// One colour, spread unevenly: each corner gets its own reach and strength so the touch of colour never looks stamped.
+// It stays tucked into the corners and never reaches the chart.
+const GLOW_RGB = "164,221,0";
+const CORNER_GLOWS: Array<{ x: number; y: number; rx: number; ry: number; alpha: number }> = [
+  { x: 0, y: 0, rx: 300, ry: 210, alpha: 0.34 },
+  { x: POSTER_W, y: 0, rx: 170, ry: 250, alpha: 0.2 },
+  { x: 0, y: POSTER_H, rx: 210, ry: 150, alpha: 0.24 },
+  { x: POSTER_W, y: POSTER_H, rx: 270, ry: 290, alpha: 0.3 },
+];
+
+function drawCornerGlows(ctx: CanvasRenderingContext2D) {
+  for (const glow of CORNER_GLOWS) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(glow.x === 0 ? 0 : glow.x - glow.rx, glow.y === 0 ? 0 : glow.y - glow.ry, glow.rx, glow.ry);
+    ctx.clip();
+    // Stretch a round gradient into an ellipse so each side spreads by a different amount.
+    ctx.translate(glow.x, glow.y);
+    ctx.scale(glow.rx, glow.ry);
+    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+    gradient.addColorStop(0, `rgba(${GLOW_RGB},${glow.alpha})`);
+    gradient.addColorStop(0.55, `rgba(${GLOW_RGB},${glow.alpha * 0.36})`);
+    gradient.addColorStop(1, `rgba(${GLOW_RGB},0)`);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(-1.2, -1.2, 2.4, 2.4);
+    ctx.restore();
+  }
+}
+
+/** Readable text colours for any chosen background. */
+export function colorsForBackground(background: string, fallback: PosterColors): PosterColors {
+  const match = /^#([0-9a-f]{6})$/i.exec(background);
+  if (!match) return fallback;
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(match[1].slice(i, i + 2), 16));
+  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  const dark = luminance > 0.55;
+  return { bg: background, fg: dark ? "#111111" : "#f5f5f5", muted: dark ? "#6b6b6b" : "#9a9a9a" };
+}
+
 export function drawPoster(ctx: CanvasRenderingContext2D, options: PosterOptions) {
   const { colors, fontFamily } = options;
   ctx.save();
   ctx.clearRect(0, 0, POSTER_W, POSTER_H);
-  if (!options.transparentBackground) {
-    ctx.fillStyle = colors.bg;
-    ctx.fillRect(0, 0, POSTER_W, POSTER_H);
-  }
+  ctx.fillStyle = colors.bg;
+  ctx.fillRect(0, 0, POSTER_W, POSTER_H);
+  drawCornerGlows(ctx);
   ctx.textBaseline = "alphabetic";
 
-  ctx.fillStyle = colors.fg;
-  ctx.textAlign = "center";
-  ctx.font = `700 70px ${fontFamily}`;
-  ctx.fillText("what’s your vibe today?", POSTER_W / 2, 190);
-  ctx.font = `600 34px ${fontFamily}`;
-  ctx.fillText("pause and see which hit matches your energy.", POSTER_W / 2, 262);
-
-  // Chart frame: three rings, five axes, five labels.
+  // Chart frame: three rings, five axes.
   ctx.lineWidth = 2;
   ctx.strokeStyle = colors.fg;
   ctx.beginPath();
@@ -159,54 +191,59 @@ export function drawPoster(ctx: CanvasRenderingContext2D, options: PosterOptions
   }
   ctx.setLineDash([]);
   ctx.strokeStyle = colors.muted;
-  ctx.lineWidth = 2;
-  AXES.forEach((_, i) => {
-    const angle = axisAngle(i);
+  options.labels.forEach((_, i) => {
+    const angle = axisAngle(i, options.labels.length);
     ctx.beginPath();
     ctx.moveTo(CENTER_X, CENTER_Y);
-    ctx.lineTo(CENTER_X + Math.cos(angle) * (OUTER_R + 40), CENTER_Y + Math.sin(angle) * (OUTER_R + 40));
+    ctx.lineTo(CENTER_X + Math.cos(angle) * (OUTER_R + 36), CENTER_Y + Math.sin(angle) * (OUTER_R + 36));
     ctx.stroke();
   });
 
   if (options.source) drawWarpedImage(ctx, options.source, options.sourceSize, options.ratings);
   else if (options.placeholder) {
     ctx.fillStyle = colors.muted;
-    ctx.font = `500 34px ${fontFamily}`;
-    ctx.fillText(options.placeholder, CENTER_X, CENTER_Y + 12);
+    ctx.textAlign = "center";
+    ctx.font = `400 30px ${fontFamily}`;
+    ctx.fillText(options.placeholder, CENTER_X, CENTER_Y + 10);
   }
 
   ctx.fillStyle = colors.fg;
-  ctx.font = `500 36px ${fontFamily}`;
-  AXES.forEach((axis, i) => {
-    const angle = axisAngle(i);
+  ctx.font = `400 30px ${fontFamily}`;
+  options.labels.forEach((axis, i) => {
+    if (!axis) return;
+    const angle = axisAngle(i, options.labels.length);
     const r = OUTER_R + AXIS_LABEL_OFFSET;
     const x = CENTER_X + Math.cos(angle) * r;
-    const y = CENTER_Y + Math.sin(angle) * r + 12;
-    ctx.textAlign = Math.abs(Math.cos(angle)) < 0.2 ? "center" : Math.cos(angle) > 0 ? "left" : "right";
-    const label = axis;
-    ctx.fillText(label, x, y);
+    const y = CENTER_Y + Math.sin(angle) * r + 10;
+    const text = axis.toLowerCase();
+    const width = ctx.measureText(text).width;
+    const align = Math.abs(Math.cos(angle)) < 0.2 ? "center" : Math.cos(angle) > 0 ? "left" : "right";
+    ctx.textAlign = align;
+    // Keep long mood names inside the poster.
+    const margin = 28;
+    const fitted = align === "right" ? Math.max(x, margin + width) : align === "left" ? Math.min(x, POSTER_W - margin - width) : Math.min(Math.max(x, margin + width / 2), POSTER_W - margin - width / 2);
+    ctx.fillText(text, fitted, y);
   });
 
-  // Footer: wordmark, results line, blurb, small memoji tile.
+  // Footer: the username (the only bold text), the rating average, then the blurb.
+  const name = options.username.trim() || "you";
   ctx.textAlign = "left";
   ctx.fillStyle = colors.fg;
-  ctx.font = `700 54px ${fontFamily}`;
-  ctx.fillText("the katalyst.", 60, 1640);
-  ctx.font = `600 32px ${fontFamily}`;
-  const name = options.username.trim() || "you";
-  ctx.fillText(`results : ${name}`, 60, 1696);
-  ctx.font = `500 30px ${fontFamily}`;
-  ctx.fillStyle = colors.fg;
+  ctx.font = `700 50px ${fontFamily}`;
+  ctx.fillText(name.length > 18 ? `${name.slice(0, 17)}…` : name, 56, 928);
+  ctx.font = `400 28px ${fontFamily}`;
+  ctx.fillText(`results : ${averageRating(options.finalRatings).toFixed(1)} average`, 56, 972);
+  ctx.font = `400 22px ${fontFamily}`;
   const lines = wrapText(ctx, options.blurb, 700);
-  lines.slice(0, 4).forEach((line, i) => ctx.fillText(line, 60, 1760 + i * 42));
+  lines.slice(0, 3).forEach((line, i) => ctx.fillText(line, 56, 1010 + i * 28));
 
   if (options.thumb) {
-    const size = 210;
-    const x = POSTER_W - 60 - size;
-    const y = 1620;
+    const size = 150;
+    const x = POSTER_W - 56 - size;
+    const y = 898;
     ctx.save();
     ctx.beginPath();
-    ctx.roundRect(x, y, size, size, 28);
+    ctx.roundRect(x, y, size, size, 22);
     ctx.fillStyle = colors.muted + "33";
     ctx.fill();
     ctx.clip();
@@ -219,11 +256,12 @@ export function drawPoster(ctx: CanvasRenderingContext2D, options: PosterOptions
   ctx.restore();
 }
 
-/** Blurb for a result: the strongest mood, plus a nod to the runner-up. */
-export function describeVibe(ratings: Ratings) {
-  const ranked = [...MOODS].sort((a, b) => ratings[b.key] - ratings[a.key]);
+/** Blurb for a result: the strongest mood in its own words, plus a nod to the runner-up. */
+export function describeVibe(moods: Array<{ label: string; description: string; rating: number }>) {
+  if (!moods.length) return "pick a few moods to see what your vibe looks like.";
+  const ranked = [...moods].sort((a, b) => b.rating - a.rating);
   const [first, second] = ranked;
-  const spread = ratings[first.key] - ratings[second.key];
-  if (spread <= 0.5) return `${first.blurb} also very ${second.label.toLowerCase()}. a balanced hit, a quiet powerhouse of style.`;
-  return `${first.blurb} with a side of ${second.label.toLowerCase()}. a quiet powerhouse of style.`;
+  const lead = `mostly ${first.label.toLowerCase()}: ${first.description.toLowerCase()}.`;
+  if (!second) return lead;
+  return second.rating === first.rating ? `${lead} also just as ${second.label.toLowerCase()}.` : `${lead} with a side of ${second.label.toLowerCase()}.`;
 }

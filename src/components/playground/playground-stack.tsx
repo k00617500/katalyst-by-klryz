@@ -237,7 +237,6 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
               onOpen={() => { warmPreview(item); select(slot % items.length); setOpen(true); }} />
           );
         })}
-        <div aria-hidden className="pointer-events-none absolute inset-0 z-[300] bg-[radial-gradient(ellipse_22%_30%_at_88%_14%,#000_20%,transparent_75%)]" />
       </div>
       )}
       {view === "grid" && (
