@@ -143,11 +143,11 @@ export function ChristmasCard({ open, onOpenChange, image, name, cover, ornament
               }}
             >
               {/* Right-hand inside page: the visitor's tree. */}
-              <div className="absolute inset-0 flex flex-col overflow-hidden rounded-r-[0.5em] bg-[#0a0a0a] p-[0.8em]">
+              <div className="absolute inset-0 flex flex-col overflow-hidden rounded-r-[0.5em] bg-gradient-to-br from-[#d1202f] to-[#8f0d1b] p-[0.8em]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={image} alt="Your decorated Christmas tree" className="min-h-0 flex-1 object-contain" draggable={false} />
                 <p className="mt-[0.4em] text-[1.45em] leading-[0.95] font-medium tracking-tight text-white">
-                  Merry<br />Christmas<span className="text-[#d8232a]">.</span>
+                  Merry<br />Christmas<span className="text-[#ffd9d4]">.</span>
                 </p>
               </div>
 
@@ -162,12 +162,12 @@ export function ChristmasCard({ open, onOpenChange, image, name, cover, ornament
                 <div className="absolute inset-0 [backface-visibility:hidden]">
                   <Cover cover={cover} />
                 </div>
-                <div className="absolute inset-0 flex [transform:rotateY(180deg)] flex-col justify-between overflow-hidden rounded-l-[0.5em] bg-gradient-to-br from-[#d1202f] to-[#8f0d1b] p-[1.3em] text-left text-[#fff7ee] [backface-visibility:hidden]">
+                <div className="absolute inset-0 flex [transform:rotateY(180deg)] flex-col justify-between overflow-hidden rounded-l-[0.5em] bg-[#1D4533] p-[1.3em] text-left text-[#fff7ee] [backface-visibility:hidden]">
                   <div className="space-y-[0.8em] pt-[1.6em]">
                     <p className="text-[1.5em] leading-[1.12] font-semibold tracking-tight break-words">
                       Have A Happy Christmas{label ? `, ${label}` : ""}
                     </p>
-                    <p className="text-[0.85em] leading-snug text-[#ffd9d4]">From The Katalyst by Klaryze!</p>
+                    <p className="text-[0.85em] leading-snug text-[#cfe8d5]">From The Katalyst by Klaryze!</p>
                   </div>
                   <div className="flex items-end justify-between">
                     <span className="text-[0.6em] tracking-[0.2em] text-white/70">2026</span>

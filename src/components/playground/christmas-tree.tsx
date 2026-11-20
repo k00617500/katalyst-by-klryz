@@ -177,7 +177,7 @@ export function ChristmasTree() {
     out.height = Math.round(outWidth / TREE_ASPECT);
     const ctx = out.getContext("2d");
     if (!ctx) return;
-    drawTree(ctx, outWidth, ornaments, "#0a0a0a");
+    drawTree(ctx, outWidth, ornaments); // transparent, so the card's red page shows behind it
     drawLights(ctx, outWidth, 1.2);
     setCardImage(out.toDataURL("image/png"));
     setCover(pickCardCover());

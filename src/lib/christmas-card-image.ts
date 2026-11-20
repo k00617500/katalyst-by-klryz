@@ -35,10 +35,7 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
 /** The red left-hand page, laid out for a square of side `size` whose top-left corner is the origin. */
 function drawNotePage(ctx: CanvasRenderingContext2D, size: number, options: CardImageOptions) {
   const k = size / 600;
-  const red = ctx.createLinearGradient(0, 0, size, size);
-  red.addColorStop(0, "#d1202f");
-  red.addColorStop(1, "#8f0d1b");
-  ctx.fillStyle = red;
+  ctx.fillStyle = "#1D4533";
   ctx.fillRect(0, 0, size, size);
   ctx.fillStyle = "rgba(255,255,255,0.05)";
   for (let y = 18 * k; y < size; y += 26 * k) for (let x = 18 * k; x < size; x += 26 * k) ctx.fillRect(x, y, 2 * k, 2 * k);
@@ -52,7 +49,7 @@ function drawNotePage(ctx: CanvasRenderingContext2D, size: number, options: Card
   const top = size * 0.34 - ((lines.length - 1) * 62 * k) / 2;
   lines.forEach((line, i) => ctx.fillText(line, 48 * k, top + i * 62 * k));
   ctx.font = `500 ${26 * k}px ${FONT}`;
-  ctx.fillStyle = "#ffd9d4";
+  ctx.fillStyle = "#cfe8d5";
   ctx.fillText("From The Katalyst by Klaryze!", 48 * k, top + lines.length * 62 * k + 18 * k);
   ctx.font = `600 ${15 * k}px ${FONT}`;
   ctx.fillStyle = "#ffffffaa";
@@ -70,10 +67,13 @@ function drawNotePage(ctx: CanvasRenderingContext2D, size: number, options: Card
   }
 }
 
-/** The right-hand page: the tree on black, with "Merry Christmas." in the corner. */
+/** The right-hand page: the tree on red, with "Merry Christmas." in the corner. */
 function drawTreePage(ctx: CanvasRenderingContext2D, size: number, options: CardImageOptions, t: number) {
   const k = size / 600;
-  ctx.fillStyle = "#0a0a0a";
+  const red = ctx.createLinearGradient(0, 0, size, size);
+  red.addColorStop(0, "#d1202f");
+  red.addColorStop(1, "#8f0d1b");
+  ctx.fillStyle = red;
   ctx.fillRect(0, 0, size, size);
   const treeHeight = size * 0.9;
   const treeWidth = treeHeight * TREE_ASPECT;
@@ -89,7 +89,7 @@ function drawTreePage(ctx: CanvasRenderingContext2D, size: number, options: Card
   ctx.fillText("Merry", 30 * k, 52 * k);
   ctx.fillText("Christmas", 30 * k, 84 * k);
   const dot = ctx.measureText("Christmas").width;
-  ctx.fillStyle = "#d8232a";
+  ctx.fillStyle = "#ffd9d4";
   ctx.fillText(".", 30 * k + dot, 84 * k);
 }
 
@@ -168,7 +168,7 @@ export function drawCard(ctx: CanvasRenderingContext2D, size: number, options: C
   ctx.fillStyle = PAGE_BG;
   ctx.fillRect(0, 0, width, size);
 
-  // The right-hand page stays put; the cover swings open on its left edge and the card slides to the middle.
+  // The right-hand (tree) page stays put; the cover swings open on its left edge and the card slides to the middle.
   const hinge = size / 2 + (open * size) / 2;
   ctx.save();
   ctx.translate(hinge, 0);
