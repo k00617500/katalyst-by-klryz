@@ -260,7 +260,7 @@ export async function savePng(options: CardImageOptions) {
  */
 export async function saveGif(options: CardImageOptions, onProgress: (value: number) => void) {
   await loadFonts();
-  const size = 440; // each page; the GIF is 880 x 440
+  const size = 1080; // each page: the GIF is 2160 x 1080, the same size as the PNG
   const fps = 10;
   const closedFrames = 9;
   const openingFrames = 10;
@@ -280,7 +280,10 @@ export async function saveGif(options: CardImageOptions, onProgress: (value: num
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawCard(ctx, size, options, t, open);
     const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const palette = quantize(data, 128);
+    // Build the palette from every 6th pixel (much faster, looks the same), then map every pixel to it.
+    const sample = new Uint8ClampedArray(Math.ceil(data.length / 6 / 4) * 4);
+    for (let from = 0, to = 0; from < data.length; from += 24, to += 4) sample.set(data.subarray(from, from + 4), to);
+    const palette = quantize(sample, 128);
     // Linger on the closed card, and on the first open frame, a little longer than a single tick.
     const frameDelay = i === closedFrames - 1 ? delay * 6 : i === closedFrames + openingFrames - 1 ? delay * 3 : delay;
     gif.writeFrame(applyPalette(data, palette), canvas.width, canvas.height, { palette, delay: frameDelay });
