@@ -50,7 +50,7 @@ export function ChristmasTree() {
   const [cover, setCover] = useState(0);
   const [hint, setHint] = useState("");
   // Random Christmas instrumentals start once the visitor begins decorating, and play while the card is shown.
-  const music = useChristmasMusic(active && (ornaments.length > 0 || cardOpen));
+  const music = useChristmasMusic(active && (ornaments.length > 0 || cardOpen), active);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);

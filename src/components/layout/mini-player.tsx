@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion, useDragControls, useReducedMotion } from "motion/react";
-import { ChevronRight, Music2, Pause, Play, Repeat, Shuffle, SkipBack, SkipForward } from "lucide-react";
+import { ChevronRight, Music2, Pause, Play, Repeat, Shuffle, SkipBack, SkipForward, X } from "lucide-react";
 import { useMusic } from "@/components/providers/music-provider";
 
 const COLLAPSED_WIDTH = 60;
@@ -31,7 +31,7 @@ const iconButton = "inline-flex size-9 items-center justify-center rounded-full 
 
 /** A small floating "now playing" card that follows visitors around the site while a song is going. */
 export function MiniPlayer({ visible }: { visible: boolean }) {
-  const { song, started, miniCollapsed: collapsed, setMiniCollapsed: updateCollapsed, isPlaying, positionMs, durationMs, loop, shuffle, togglePlay, skipSong, seekToRatio, toggleLoop, toggleShuffle } = useMusic();
+  const { song, started, miniCollapsed: collapsed, setMiniCollapsed: updateCollapsed, isPlaying, positionMs, durationMs, loop, shuffle, togglePlay, dismissPlayer, skipSong, seekToRatio, toggleLoop, toggleShuffle } = useMusic();
   const reduced = useReducedMotion();
   const dragControls = useDragControls();
   const barRef = useRef<HTMLDivElement>(null);
@@ -111,9 +111,21 @@ export function MiniPlayer({ visible }: { visible: boolean }) {
         borderBottomLeftRadius: 12,
       }}
             transition={transition}
-      className="fixed bottom-4 z-[60] overflow-hidden rounded-xl border border-white/30 bg-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl backdrop-saturate-[1.8] backdrop-brightness-110 dark:border-white/15 dark:bg-white/[0.06]"
+      className="group fixed bottom-4 z-[60] overflow-hidden rounded-xl border border-white/30 bg-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl backdrop-saturate-[1.8] backdrop-brightness-110 dark:border-white/15 dark:bg-white/[0.06]"
       style={{ pointerEvents: visible ? "auto" : "none" }}
     >
+      {collapsed && (
+        <button
+          type="button"
+          aria-label="Close the player and stop the music"
+          title="Close and stop the music"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => { event.stopPropagation(); dismissPlayer(); }}
+          className="absolute top-1 right-1 z-10 grid size-5 place-items-center rounded-full bg-black/75 text-white opacity-0 transition-opacity hover:bg-black focus-visible:opacity-100 group-hover:opacity-100"
+        >
+          <X className="size-3" aria-hidden="true" />
+        </button>
+      )}
       <div className="p-2" style={{ width }}>
         <div className="flex items-center gap-3">
           {/* Collapsed, only this cover shows; pressing it opens the player. */}

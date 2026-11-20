@@ -80,6 +80,8 @@ interface MusicContextValue {
   shuffle: boolean;
   playlistApi: SpotifyIframeApi | undefined;
   togglePlay: () => void;
+  /** Stops the music and removes the floating player until something is played again. */
+  dismissPlayer: () => void;
   skipSong: (direction: 1 | -1) => void;
   seekToRatio: (ratio: number) => void;
   toggleLoop: () => void;
@@ -335,6 +337,14 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     }
   }, [requestPlayback]);
 
+  const dismissPlayer = useCallback(() => {
+    playRequestedRef.current = false;
+    resumeAfterUnmute.current = false;
+    resetPlayback();
+    controllerRef.current?.pause();
+    setStarted(false);
+  }, [resetPlayback]);
+
   const togglePlay = useCallback(() => {
     if (playingRef.current) {
       playRequestedRef.current = false;
@@ -431,10 +441,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<MusicContextValue>(() => ({
     songs, song, currentSongIndex, isPlaying, started, miniCollapsed, setMiniCollapsed, positionMs, durationMs, loop, shuffle, playlistApi,
-    togglePlay, skipSong, seekToRatio, toggleLoop, toggleShuffle, pickSong, pickSpotifyTrack, setPanelVisible,
+    togglePlay, dismissPlayer, skipSong, seekToRatio, toggleLoop, toggleShuffle, pickSong, pickSpotifyTrack, setPanelVisible,
     hooksRef, lastPlaybackRef, playingRef, playRequestedRef,
   }), [songs, song, currentSongIndex, isPlaying, started, miniCollapsed, setMiniCollapsed, positionMs, durationMs, loop, shuffle, playlistApi,
-    togglePlay, skipSong, seekToRatio, toggleLoop, toggleShuffle, pickSong, pickSpotifyTrack]);
+    togglePlay, dismissPlayer, skipSong, seekToRatio, toggleLoop, toggleShuffle, pickSong, pickSpotifyTrack]);
 
   return (
     <MusicContext.Provider value={value}>
