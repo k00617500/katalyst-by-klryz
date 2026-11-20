@@ -26,7 +26,7 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
   const key = new THREE.DirectionalLight(0xffffff, 5);
   key.position.set(-3, 5, 6);
   scene.add(key);
-  const rim = new THREE.PointLight(0xb695ff, 35);
+  const rim = new THREE.PointLight(0xa3e635, 35);
   rim.position.set(3, 1, 2);
   scene.add(rim);
 
@@ -39,8 +39,10 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
   const chrome = new THREE.MeshStandardMaterial({ color: 0xdfe2e6, metalness: 1, roughness: 0.16 });
   const dark = new THREE.MeshPhysicalMaterial({ color: 0x101214, metalness: 0.5, roughness: 0.26, clearcoat: 1 });
   const glass = new THREE.MeshPhysicalMaterial({ color: 0x0b1424, metalness: 0.85, roughness: 0.05, clearcoat: 1 });
-  const mouseShell = new THREE.MeshPhysicalMaterial({ color: 0xffffff, vertexColors: true, metalness: 0.1, roughness: 0.36, clearcoat: 0.5, clearcoatRoughness: 0.3 });
-  const materials = [graphite, navy, ivory, chrome, dark, glass, mouseShell];
+  const mouseShell = new THREE.MeshPhysicalMaterial({ color: 0x0e0f12, metalness: 0.15, roughness: 0.3, clearcoat: 0.9, clearcoatRoughness: 0.18 });
+  const onyx = new THREE.MeshPhysicalMaterial({ color: 0x0a0b0d, metalness: 0.1, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.12 });
+  const seamGrey = new THREE.MeshStandardMaterial({ color: 0x4a4d54, metalness: 0.3, roughness: 0.5 });
+  const materials = [graphite, navy, ivory, chrome, dark, glass, mouseShell, onyx, seamGrey];
 
   // ---- Computer mouse -------------------------------------------------------------------------------------------
   // An ergonomic shell: squarer in plan, narrower at the front, with a palm hump at the back, a flat base,
@@ -74,10 +76,11 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
   for (let i = 0; i < shellPositions.count; i++) {
     const height = original.getY(i);
     const blend = THREE.MathUtils.smoothstep(height, 0.1, 0.22);
-    const tone = 0.16 + 0.8 * blend;
+    const tone = 0.07 + 0.1 * blend;
     shellColours.set([tone, tone, tone * 1.02], i * 3);
   }
   shellGeometry.setAttribute("color", new THREE.BufferAttribute(shellColours, 3));
+  shellGeometry.deleteAttribute("color");
   mouse.add(new THREE.Mesh(shellGeometry, mouseShell));
   const baseGeometry = new THREE.CircleGeometry(1, 72);
   baseGeometry.rotateX(Math.PI / 2);
@@ -96,12 +99,12 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
   };
   // Seam between the left and right buttons, and the line separating the buttons from the palm rest.
   const seamFront = Array.from({ length: 16 }, (_, i) => surface(0, -0.2 - i * 0.05));
-  mouse.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(seamFront), 40, 0.02, 8), dark));
+  mouse.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(seamFront), 40, 0.02, 8), seamGrey));
   const seamAcross = Array.from({ length: 21 }, (_, i) => surface(-0.78 + i * 0.078, -0.2));
-  mouse.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(seamAcross), 50, 0.016, 8), dark));
+  mouse.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(seamAcross), 50, 0.016, 8), seamGrey));
   // Scroll wheel: a ridged rubber roller sitting in the seam.
   const wheelBase = surface(0, -0.52);
-  const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.22, 32), dark);
+  const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.22, 32), seamGrey);
   wheel.rotation.z = Math.PI / 2;
   wheel.position.copy(wheelBase).add(new THREE.Vector3(0, 0.035, 0));
   mouse.add(wheel);
@@ -116,7 +119,7 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
     new THREE.Vector3(-0.1, 0.04, -2.55),
   ];
   mouse.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(cablePoints), 40, 0.035, 8), dark));
-  mouse.scale.setScalar(0.8);
+  mouse.scale.setScalar(0.95);
 
   // ---- Chess pawn -----------------------------------------------------------------------------------------------
   const pawn = new THREE.Group();
@@ -124,12 +127,12 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
     [0, 0], [0.6, 0], [0.64, 0.07], [0.58, 0.15], [0.42, 0.24], [0.27, 0.42], [0.2, 0.78], [0.22, 0.92],
     [0.4, 0.99], [0.42, 1.08], [0.27, 1.12], [0.22, 1.18], [0, 1.2],
   ].map(([x, y]) => new THREE.Vector2(x, y));
-  pawn.add(new THREE.Mesh(new THREE.LatheGeometry(profile, 56), ivory));
-  const pawnHead = new THREE.Mesh(new THREE.SphereGeometry(0.4, 40, 28), ivory);
+  pawn.add(new THREE.Mesh(new THREE.LatheGeometry(profile, 56), onyx));
+  const pawnHead = new THREE.Mesh(new THREE.SphereGeometry(0.4, 40, 28), onyx);
   pawnHead.position.y = 1.5;
   pawn.add(pawnHead);
   pawn.position.y = -0.7;
-  pawn.scale.setScalar(1.1);
+  pawn.scale.setScalar(1.25);
   const pawnHolder = new THREE.Group();
   pawnHolder.add(pawn);
 
@@ -155,7 +158,7 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
   const penClip = new THREE.Mesh(new RoundedBoxGeometry(0.05, 0.9, 0.08, 3, 0.02), chrome);
   penClip.position.set(0.16, 1.1, 0);
   pen.add(penClip);
-  pen.scale.setScalar(1.1);
+  pen.scale.setScalar(1.25);
 
   // ---- Camera ---------------------------------------------------------------------------------------------------
   const cam = new THREE.Group();
@@ -183,14 +186,14 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
   lensGlass.rotation.x = Math.PI / 2;
   lensGlass.position.set(-0.1, -0.02, 0.9);
   cam.add(lensGlass);
-  cam.scale.setScalar(0.92);
+  cam.scale.setScalar(1.05);
 
   // Slots the props rest in; Remix deals the props into the next slot.
   const slots = [
-    new THREE.Vector3(-0.45, 0.55, 0),
-    new THREE.Vector3(0.8, -0.4, 0.4),
-    new THREE.Vector3(-1.3, -1.05, 0.5),
-    new THREE.Vector3(0.95, 1.15, -0.3),
+    new THREE.Vector3(-0.55, 0.95, 0),
+    new THREE.Vector3(1.6, -1.5, 0.3),
+    new THREE.Vector3(-2.0, -1.7, 0.4),
+    new THREE.Vector3(2.0, 1.55, -0.5),
   ];
   const props = [
     { object: cam, rotation: new THREE.Euler(0.2, -0.45, 0.06), spin: 0.5 },
