@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import { MiniPlayer } from "@/components/layout/mini-player";
+import { useSound } from "@/components/providers/sound-provider";
 import { createToolkitSong, toolkitSongs, type ToolkitSong } from "@/data/toolkit-songs";
 
 export interface SpotifyPlaybackState {
@@ -103,6 +104,10 @@ export function useMusic() {
  * The embed lives in a hidden-but-rendered container; the Toolkit panel and the floating mini player are just views.
  */
 export function MusicProvider({ children }: { children: React.ReactNode }) {
+  // The navbar sound switch is the master switch: muting it silences the Toolkit music too.
+  const { enabled: soundEnabled, toggle: toggleSound } = useSound();
+  const soundEnabledRef = useRef(soundEnabled);
+  const resumeAfterUnmute = useRef(false);
   const [songs, setSongs] = useState(toolkitSongs);
   const [playlistApi, setPlaylistApi] = useState<SpotifyIframeApi>();
   const [currentSongIndex, setCurrentSongIndex] = useState(0);
@@ -152,6 +157,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   }, [resetPlayback]);
 
   const loadSong = useCallback((index: number) => {
+    if (!soundEnabledRef.current) { resumeAfterUnmute.current = false; toggleSound(); }
     const previousUri = songsRef.current[songIndexRef.current].uri;
     const { uri } = songsRef.current[index];
     songIndexRef.current = index;
@@ -169,7 +175,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     } else if (readyRef.current) {
       controller.restart();
     }
-  }, [requestPlayback]);
+  }, [requestPlayback, toggleSound]);
 
   const skipSong = useCallback((direction: 1 | -1) => {
     const order = shuffleOrderRef.current;
@@ -306,21 +312,42 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     return () => { cancelled = true; clearInterval(timer); document.removeEventListener("visibilitychange", onVisible); };
   }, []);
 
-  const togglePlay = useCallback(() => {
+  const startPlayback = useCallback(() => {
     const controller = controllerRef.current;
-    if (playingRef.current) {
-      playRequestedRef.current = false;
-      resetPlayback();
-      controller?.pause();
-      return;
-    }
     const position = lastPlaybackRef.current?.position ?? 0;
     requestPlayback();
     if (controller && readyRef.current) {
       if (position > 0) controller.resume();
       else controller.play();
     }
-  }, [requestPlayback, resetPlayback]);
+  }, [requestPlayback]);
+
+  const togglePlay = useCallback(() => {
+    if (playingRef.current) {
+      playRequestedRef.current = false;
+      resetPlayback();
+      controllerRef.current?.pause();
+      return;
+    }
+    if (!soundEnabledRef.current) { resumeAfterUnmute.current = false; toggleSound(); }
+    startPlayback();
+  }, [resetPlayback, startPlayback, toggleSound]);
+
+  // Sound switched off in the navbar: pause the music. Switched back on: pick up where it left off.
+  useEffect(() => {
+    soundEnabledRef.current = soundEnabled;
+    if (!soundEnabled) {
+      if (playingRef.current || playRequestedRef.current) {
+        resumeAfterUnmute.current = true;
+        playRequestedRef.current = false;
+        resetPlayback();
+        controllerRef.current?.pause();
+      }
+    } else if (resumeAfterUnmute.current) {
+      resumeAfterUnmute.current = false;
+      startPlayback();
+    }
+  }, [soundEnabled, resetPlayback, startPlayback]);
 
   const seekToRatio = useCallback((ratio: number) => {
     const controller = controllerRef.current;
