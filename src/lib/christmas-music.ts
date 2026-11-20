@@ -15,7 +15,7 @@ export interface Song {
   feel: "ballad" | "hymn" | "pop" | "swing" | "bounce";
   /** One entry per bar; two chords in a bar share it. */
   bars: string[][];
-  /** Optional melody as [midi note, beats], covering the bars from the start. */
+  /** Optional melody as [midi note, beats], covering the bars from the start. Songs without one play their chords only. */
   melody?: [number, number][];
 }
 
@@ -27,7 +27,15 @@ export const SONGS: Song[] = [
   { id: "a-perfect-christmas", title: "A Perfect Christmas", filipino: false, bpm: 72, feel: "ballad", bars: [["F"], ["C/E"], ["Dm"], ["Am"], ["Bb"], ["F/A"], ["Gm7"], ["C7"]] },
   { id: "joy-to-the-world", title: "Joy to the World", filipino: false, bpm: 100, feel: "hymn", bars: [["D"], ["A"], ["D"], ["A7"], ["D"], ["G"], ["D/A", "A7"], ["D"]] },
   { id: "hark-the-herald", title: "Hark! The Herald Angels Sing", filipino: false, bpm: 96, feel: "hymn", bars: [["F"], ["C7"], ["F"], ["Bb"], ["F"], ["C7"], ["F/C", "C7"], ["F"]] },
-  { id: "jingle-bells", title: "Jingle Bells", filipino: false, bpm: 120, feel: "bounce", bars: [["G"], ["G"], ["G"], ["G"], ["C"], ["C"], ["G"], ["D7"], ["G"]] },
+  {
+    // The traditional chorus (public domain) in G, so the notes are the real tune.
+    id: "jingle-bells", title: "Jingle Bells", filipino: false, bpm: 120, feel: "bounce",
+    bars: [["G"], ["G"], ["G"], ["G"], ["C"], ["C"], ["D7"], ["G"]],
+    melody: [
+      [71, 1], [71, 1], [71, 2], [71, 1], [71, 1], [71, 2], [71, 1], [74, 1], [67, 1.5], [69, 0.5], [71, 4],
+      [72, 1], [72, 1], [72, 1.5], [72, 0.5], [72, 1], [71, 1], [71, 1], [71, 0.5], [71, 0.5], [74, 1], [74, 1], [72, 1], [69, 1], [67, 4],
+    ],
+  },
   { id: "rockin-around", title: "Rockin' Around the Christmas Tree", filipino: false, bpm: 132, feel: "swing", bars: [["G"], ["E7"], ["Am"], ["D7"]] },
   { id: "let-it-snow", title: "Let It Snow!", filipino: false, bpm: 96, feel: "swing", bars: [["C"], ["Am"], ["Dm"], ["G7"]] },
   { id: "beginning-to-look", title: "It's Beginning to Look a Lot Like Christmas", filipino: false, bpm: 100, feel: "swing", bars: [["F"], ["D7"], ["Gm"], ["C7"]] },

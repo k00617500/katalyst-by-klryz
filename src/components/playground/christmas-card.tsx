@@ -166,7 +166,7 @@ export function ChristmasCard({ open, onOpenChange, image, name, cover, ornament
             </Button>
           </div>
           {music.playing && music.song && (
-            <p className="relative z-10 text-xs text-white/70" aria-live="polite">♪ {music.song.title} (instrumental)</p>
+            <p className="relative z-10 text-xs text-white/70" aria-live="polite">♪ {music.song.title} {music.song.melody ? "(instrumental)" : "(chords only, from the songbook)"}</p>
           )}
           <p className="relative z-10 max-w-sm text-center text-xs text-white/60">Your card is made in this browser tab only. Nothing is saved or sent anywhere.</p>
 
