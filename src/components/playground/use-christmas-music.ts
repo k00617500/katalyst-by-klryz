@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSound } from "@/components/providers/sound-provider";
 import { useMusic, type SpotifyEmbedController } from "@/components/providers/music-provider";
-import { CHRISTMAS_TRACKS, type ChristmasTrack } from "@/data/christmas-songs";
+import { CHRISTMAS_TRACKS, TIER_SHARE, type ChristmasTier, type ChristmasTrack } from "@/data/christmas-songs";
 import { pickSong, playSong, type Playing } from "@/lib/christmas-music";
 
 export interface NowPlaying {
@@ -30,13 +30,21 @@ export interface ChristmasMusic {
 
 const PREVIEW_MS = 31000; // Spotify's logged-out previews run about 30 seconds.
 
+/** A random song: Jose Mari Chan about 45% of the time, popular Christmas songs 35%, other Filipino songs 20%. */
 function randomTrack(previous?: string): ChristmasTrack {
-  const pool = CHRISTMAS_TRACKS.filter((track) => track.id !== previous);
-  return pool[Math.floor(Math.random() * pool.length)];
+  let roll = Math.random();
+  let tier: ChristmasTier = "opm";
+  for (const candidate of ["jmc", "hits", "opm"] as const) {
+    roll -= TIER_SHARE[candidate];
+    if (roll <= 0) { tier = candidate; break; }
+  }
+  const pool = CHRISTMAS_TRACKS.filter((track) => track.tier === tier && track.id !== previous);
+  const options = pool.length ? pool : CHRISTMAS_TRACKS.filter((track) => track.id !== previous);
+  return options[Math.floor(Math.random() * options.length)];
 }
 
 /**
- * Random Filipino Christmas songs, played through Spotify's official embed, while `wanted` is true: when a visitor
+ * Random Christmas songs (Jose Mari Chan and the popular classics first), played through Spotify's official embed, while `wanted` is true: when a visitor
  * starts decorating the tree and while the card is on screen. A different random song follows each one. Muting the site
  * with the navbar sound switch stops it at once, and it stays quiet while the Toolkit's Spotify player is playing.
  * If the Spotify player can't load, soft synthesised chords are used instead (and labelled as such).
