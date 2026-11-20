@@ -7,7 +7,7 @@ import { ArrowLeft, ArrowRight, Download, Loader2, RotateCcw, ShieldCheck, Uploa
 import { Button } from "@/components/ui/button";
 import { VibeKpis } from "@/components/playground/vibe-kpis";
 import { DEFAULT_RATING, MAX_MOODS, MIN_MOODS, MOOD_OPTIONS, memojiSrc, vibeMemojis } from "@/data/vibe-check";
-import { POSTER_H, POSTER_W, colorsForBackground, describeVibe, drawPoster, overallReview, type PosterColors } from "@/lib/vibe-poster";
+import { DEFAULT_GLOW, POSTER_H, POSTER_W, describeVibe, drawPoster, overallReview, type PosterColors } from "@/lib/vibe-poster";
 
 type Step = "name" | "face" | "moods" | "rate" | "loading" | "result";
 type Selection = { kind: "memoji"; id: string } | { kind: "upload"; file: File; previewUrl: string };
@@ -25,15 +25,15 @@ const LOADING_LINES = [
 ];
 const MIN_LOADING_MS = 2600;
 const RATING_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-const BACKGROUNDS = [
+const GLOWS = [
+  { value: DEFAULT_GLOW, label: "Neon green" },
+  { value: "#5ec8ff", label: "Sky" },
+  { value: "#34d399", label: "Mint" },
+  { value: "#ffc24a", label: "Amber" },
+  { value: "#ff7ab6", label: "Pink" },
+  { value: "#ff6b6b", label: "Coral" },
+  { value: "#a78bfa", label: "Violet" },
   { value: "#ffffff", label: "White" },
-  { value: "#f5efe3", label: "Cream" },
-  { value: "#cfe8ff", label: "Sky" },
-  { value: "#d8f5e4", label: "Mint" },
-  { value: "#ffd9e2", label: "Blush" },
-  { value: "#e3d9ff", label: "Lilac" },
-  { value: "#ffeaa7", label: "Sunny" },
-  { value: "#0b0b0c", label: "Ink" },
 ];
 
 interface Sized {
@@ -58,9 +58,8 @@ function loadImage(src: string) {
   return cached;
 }
 
-function readColors(background: string | null = null): PosterColors {
-  const base = readThemeColors();
-  return background ? colorsForBackground(background, base) : base;
+function readColors(): PosterColors {
+  return readThemeColors();
 }
 
 function readThemeColors(): PosterColors {
@@ -172,7 +171,7 @@ function cropToHead(canvas: HTMLCanvasElement, box: number[] | null): Sized {
   return { source: result, w: out, h: out };
 }
 
-function PosterCanvas({ face, username, labels, values, blurb, review, placeholder, resetKey, background }: {
+function PosterCanvas({ face, username, labels, values, blurb, review, placeholder, resetKey, glow }: {
   face: Sized | null;
   username: string;
   labels: string[];
@@ -181,11 +180,11 @@ function PosterCanvas({ face, username, labels, values, blurb, review, placehold
   review: string;
   placeholder?: string;
   resetKey: number;
-  background: string | null;
+  glow: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const current = useRef<number[]>([...values]);
-  const latest = useRef({ face, username, labels, values, blurb, review, placeholder, background });
+  const latest = useRef({ face, username, labels, values, blurb, review, placeholder, glow });
   const frame = useRef(0);
   const lastReset = useRef(resetKey);
 
@@ -193,7 +192,7 @@ function PosterCanvas({ face, username, labels, values, blurb, review, placehold
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
-    const { face: faceNow, username: name, labels: axes, blurb: text, review: verdict, placeholder: hint, background: bg } = latest.current;
+    const { face: faceNow, username: name, labels: axes, blurb: text, review: verdict, placeholder: hint, glow: glowNow } = latest.current;
     const scale = canvas.width / POSTER_W;
     ctx.setTransform(scale, 0, 0, scale, 0, 0);
     drawPoster(ctx, {
@@ -206,7 +205,8 @@ function PosterCanvas({ face, username, labels, values, blurb, review, placehold
       review: verdict,
       username: name,
       blurb: text,
-      colors: readColors(bg),
+      colors: readColors(),
+      glow: glowNow,
       fontFamily: posterFont(),
       placeholder: hint,
     });
@@ -233,7 +233,7 @@ function PosterCanvas({ face, username, labels, values, blurb, review, placehold
 
   const valuesKey = `${labels.join("|")}#${values.join()}`;
   useEffect(() => {
-    latest.current = { face, username, labels, values, blurb, review, placeholder, background };
+    latest.current = { face, username, labels, values, blurb, review, placeholder, glow };
     if (lastReset.current !== resetKey) {
       lastReset.current = resetKey;
       current.current = values.map(() => 0.4);
@@ -264,7 +264,7 @@ function PosterCanvas({ face, username, labels, values, blurb, review, placehold
     step(last);
     return () => cancelAnimationFrame(frame.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [face, username, valuesKey, blurb, review, placeholder, resetKey, background, draw]);
+  }, [face, username, valuesKey, blurb, review, placeholder, resetKey, glow, draw]);
 
   useEffect(() => {
     const observer = new MutationObserver(() => draw());
@@ -315,7 +315,7 @@ export function VibeCheck() {
   const [picked, setPicked] = useState<string[]>([]);
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [moodHint, setMoodHint] = useState("");
-  const [background, setBackground] = useState<string | null>(null);
+  const [glow, setGlow] = useState(DEFAULT_GLOW);
   const [kpiKey, setKpiKey] = useState(0);
   const submitted = useRef(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
@@ -458,7 +458,7 @@ export function VibeCheck() {
     setMemojiFace(null);
     setPicked([]);
     setRatings({});
-    setBackground(null);
+    setGlow(DEFAULT_GLOW);
     submitted.current = false;
     setRemoval("idle");
     setError("");
@@ -483,7 +483,8 @@ export function VibeCheck() {
       review,
       username,
       blurb,
-      colors: readColors(background),
+      colors: readColors(),
+      glow,
       fontFamily: posterFont(),
     });
     const blob = await toBlob(canvas, "image/png");
@@ -631,18 +632,16 @@ export function VibeCheck() {
                 <p className="mx-auto mt-1.5 max-w-xs text-muted-foreground">Screenshot-worthy, if you ask me. Grab it or go again.</p>
               </div>
               <div className="flex flex-col items-center gap-2">
-                <span className="font-mono text-xs tracking-widest text-muted-foreground uppercase">Pick a background</span>
-                <div className="flex flex-wrap items-center justify-center gap-2" role="group" aria-label="Background colour">
-                  <button type="button" aria-label="Match the site theme" aria-pressed={background === null} title="Match the site theme" onClick={() => setBackground(null)}
-                    className={`grid size-8 place-items-center rounded-full border bg-background font-mono text-[10px] ring-2 ring-offset-2 ring-offset-card ${background === null ? "ring-brand" : "ring-transparent"} border-border`}>Auto</button>
-                  {BACKGROUNDS.map((swatch) => (
-                    <button key={swatch.value} type="button" aria-label={swatch.label} aria-pressed={background === swatch.value} title={swatch.label} onClick={() => setBackground(swatch.value)}
+                <span className="font-mono text-xs tracking-widest text-muted-foreground uppercase">Pick a gradient color</span>
+                <div className="flex flex-wrap items-center justify-center gap-2" role="group" aria-label="Gradient color">
+                  {GLOWS.map((swatch) => (
+                    <button key={swatch.value} type="button" aria-label={swatch.label} aria-pressed={glow === swatch.value} title={swatch.label} onClick={() => setGlow(swatch.value)}
                       style={{ backgroundColor: swatch.value }}
-                      className={`size-8 rounded-full border border-border ring-2 ring-offset-2 ring-offset-card ${background === swatch.value ? "ring-brand" : "ring-transparent"}`} />
+                      className={`size-8 rounded-full border border-border ring-2 ring-offset-2 ring-offset-card ${glow === swatch.value ? "ring-brand" : "ring-transparent"}`} />
                   ))}
-                  <label className="relative grid size-8 cursor-pointer place-items-center overflow-hidden rounded-full border border-border bg-[conic-gradient(red,yellow,lime,aqua,blue,magenta,red)]" title="Custom colour">
-                    <span className="sr-only">Custom colour</span>
-                    <input type="color" value={background ?? "#ffffff"} onChange={(event) => setBackground(event.target.value)} className="absolute inset-0 cursor-pointer opacity-0" />
+                  <label className="relative grid size-8 cursor-pointer place-items-center overflow-hidden rounded-full border border-border bg-[conic-gradient(red,yellow,lime,aqua,blue,magenta,red)]" title="Custom color">
+                    <span className="sr-only">Custom color</span>
+                    <input type="color" value={glow} onChange={(event) => setGlow(event.target.value)} className="absolute inset-0 cursor-pointer opacity-0" />
                   </label>
                 </div>
               </div>
@@ -656,7 +655,7 @@ export function VibeCheck() {
         </div>
 
         <div className="relative aspect-square overflow-hidden rounded-3xl border border-border bg-background">
-          <PosterCanvas face={face} username={username} labels={labels} values={values} blurb={blurb} review={review} placeholder={placeholder} resetKey={resetKey} background={background} />
+          <PosterCanvas face={face} username={username} labels={labels} values={values} blurb={blurb} review={review} placeholder={placeholder} resetKey={resetKey} glow={glow} />
           {step === "loading" && (
             <div className="absolute inset-0 grid place-items-center bg-background/80" aria-hidden="true">
               <Loader2 className="size-9 animate-spin text-brand-ink" />

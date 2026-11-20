@@ -32,6 +32,8 @@ export interface PosterOptions {
   thumb: CanvasImageSource | null;
   thumbSize: { w: number; h: number };
   colors: PosterColors;
+  /** Hex colour of the corner gradient. */
+  glow: string;
   fontFamily: string;
   /** Text shown in the middle while there is nothing to warp yet. */
   placeholder?: string;
@@ -132,7 +134,7 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
 
 // One colour, spread unevenly: each corner gets its own reach and strength so the touch of colour never looks stamped.
 // It stays tucked into the corners and never reaches the chart.
-const GLOW_RGB = "164,221,0";
+export const DEFAULT_GLOW = "#a4dd00";
 const CORNER_GLOWS: Array<{ x: number; y: number; rx: number; ry: number; alpha: number }> = [
   { x: 0, y: 0, rx: 300, ry: 210, alpha: 0.34 },
   { x: POSTER_W, y: 0, rx: 170, ry: 250, alpha: 0.2 },
@@ -140,7 +142,13 @@ const CORNER_GLOWS: Array<{ x: number; y: number; rx: number; ry: number; alpha:
   { x: POSTER_W, y: POSTER_H, rx: 270, ry: 290, alpha: 0.3 },
 ];
 
-function drawCornerGlows(ctx: CanvasRenderingContext2D) {
+function hexToRgb(hex: string) {
+  const match = /^#([0-9a-f]{6})$/i.exec(hex) ?? /^#([0-9a-f]{6})$/i.exec(DEFAULT_GLOW)!;
+  return [0, 2, 4].map((i) => parseInt(match[1].slice(i, i + 2), 16)).join(",");
+}
+
+function drawCornerGlows(ctx: CanvasRenderingContext2D, color: string) {
+  const rgb = hexToRgb(color);
   for (const glow of CORNER_GLOWS) {
     ctx.save();
     ctx.beginPath();
@@ -150,23 +158,13 @@ function drawCornerGlows(ctx: CanvasRenderingContext2D) {
     ctx.translate(glow.x, glow.y);
     ctx.scale(glow.rx, glow.ry);
     const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
-    gradient.addColorStop(0, `rgba(${GLOW_RGB},${glow.alpha})`);
-    gradient.addColorStop(0.55, `rgba(${GLOW_RGB},${glow.alpha * 0.36})`);
-    gradient.addColorStop(1, `rgba(${GLOW_RGB},0)`);
+    gradient.addColorStop(0, `rgba(${rgb},${glow.alpha})`);
+    gradient.addColorStop(0.55, `rgba(${rgb},${glow.alpha * 0.36})`);
+    gradient.addColorStop(1, `rgba(${rgb},0)`);
     ctx.fillStyle = gradient;
     ctx.fillRect(-1.2, -1.2, 2.4, 2.4);
     ctx.restore();
   }
-}
-
-/** Readable text colours for any chosen background. */
-export function colorsForBackground(background: string, fallback: PosterColors): PosterColors {
-  const match = /^#([0-9a-f]{6})$/i.exec(background);
-  if (!match) return fallback;
-  const [r, g, b] = [0, 2, 4].map((i) => parseInt(match[1].slice(i, i + 2), 16));
-  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-  const dark = luminance > 0.55;
-  return { bg: background, fg: dark ? "#111111" : "#f5f5f5", muted: dark ? "#6b6b6b" : "#9a9a9a" };
 }
 
 export function drawPoster(ctx: CanvasRenderingContext2D, options: PosterOptions) {
@@ -175,7 +173,7 @@ export function drawPoster(ctx: CanvasRenderingContext2D, options: PosterOptions
   ctx.clearRect(0, 0, POSTER_W, POSTER_H);
   ctx.fillStyle = colors.bg;
   ctx.fillRect(0, 0, POSTER_W, POSTER_H);
-  drawCornerGlows(ctx);
+  drawCornerGlows(ctx, options.glow);
   ctx.textBaseline = "alphabetic";
 
   // Chart frame: three rings, five axes.
