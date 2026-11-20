@@ -43,13 +43,15 @@ function randomTrack(previous?: string): ChristmasTrack {
  */
 export function useChristmasMusic(wanted: boolean, prepare = wanted): ChristmasMusic {
   const { enabled: siteSound } = useSound();
-  const { isPlaying: toolkitPlaying, playlistApi } = useMusic();
+  const { isPlaying: toolkitPlaying, togglePlay: toggleToolkit, playlistApi } = useMusic();
   const [choice, setChoice] = useState(true);
+  // True once the visitor starts the Toolkit's own player while Christmas music is going: Christmas steps aside.
+  const [yielded, setYielded] = useState(false);
   const [song, setSong] = useState<NowPlaying | null>(null);
   const [sounding, setSounding] = useState(false);
   const [blocked, setBlocked] = useState(false);
 
-  const shouldPlay = wanted && siteSound && choice && !toolkitPlaying;
+  const shouldPlay = wanted && siteSound && choice && !yielded;
 
   const controller = useRef<SpotifyEmbedController | null>(null);
   const host = useRef<HTMLDivElement | null>(null);
@@ -59,6 +61,8 @@ export function useChristmasMusic(wanted: boolean, prepare = wanted): ChristmasM
   const wantRef = useRef(false);
   const advanceRef = useRef<() => void>(() => {});
   const soundingRef = useRef(false);
+  const toolkitPlayingRef = useRef(false);
+  const pausedToolkit = useRef(false);
   const audio = useRef<AudioContext | null>(null);
 
   // A hidden Spotify player, loaded as soon as the section is on screen so it is ready when the first ornament goes up.
@@ -98,6 +102,13 @@ export function useChristmasMusic(wanted: boolean, prepare = wanted): ChristmasM
 
   useEffect(() => { soundingRef.current = sounding; }, [sounding]);
 
+  // Decorating takes over from the Toolkit's player; if the visitor presses play there afterwards, Christmas steps aside.
+  useEffect(() => {
+    toolkitPlayingRef.current = toolkitPlaying;
+    if (!toolkitPlaying) { pausedToolkit.current = false; return; }
+    if (wantRef.current && !pausedToolkit.current) setYielded(true);
+  }, [toolkitPlaying]);
+
   useEffect(() => {
     wantRef.current = shouldPlay;
     if (!shouldPlay) {
@@ -107,6 +118,7 @@ export function useChristmasMusic(wanted: boolean, prepare = wanted): ChristmasM
     let cancelled = false;
     let watchdog = 0;
     let synth: Playing | null = null;
+    if (toolkitPlayingRef.current) { pausedToolkit.current = true; toggleToolkit(); }
 
     const playSynthFallback = () => {
       try {
@@ -156,7 +168,7 @@ export function useChristmasMusic(wanted: boolean, prepare = wanted): ChristmasM
       setSounding(false);
       setSong(null);
     };
-  }, [shouldPlay]);
+  }, [shouldPlay, toggleToolkit]);
 
   useEffect(() => () => { if (audio.current) void audio.current.close(); audio.current = null; }, []);
 
@@ -166,13 +178,16 @@ export function useChristmasMusic(wanted: boolean, prepare = wanted): ChristmasM
     if (wantRef.current && !soundingRef.current) advanceRef.current();
     try { if (audio.current?.state === "suspended") void audio.current.resume(); } catch { /* none */ }
   }, []);
-  const toggle = useCallback(() => { unlock(); setChoice((value) => !value); }, [unlock]);
+  const toggle = useCallback(() => {
+    unlock();
+    if (yielded) { setYielded(false); setChoice(true); } else setChoice((value) => !value);
+  }, [unlock, yielded]);
 
   return {
     playing: shouldPlay && song !== null && sounding,
     song,
     siteMuted: !siteSound,
-    on: choice,
+    on: choice && !yielded,
     blocked: shouldPlay && song !== null && blocked && !sounding,
     unlock,
     toggle,

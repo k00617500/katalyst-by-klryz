@@ -50,7 +50,9 @@ export function ChristmasTree() {
   const [cover, setCover] = useState(0);
   const [hint, setHint] = useState("");
   // Random Christmas instrumentals start once the visitor begins decorating, and play while the card is shown.
-  const music = useChristmasMusic(active && (ornaments.length > 0 || cardOpen), active);
+  const sectionRef = useRef<HTMLElement>(null);
+  const [inSection, setInSection] = useState(false);
+  const music = useChristmasMusic(active && (cardOpen || (inSection && ornaments.length > 0)), active);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
@@ -65,6 +67,15 @@ export function ChristmasTree() {
     void resolveChristmas().then((value) => { if (!cancelled) setActive(value); });
     return () => { cancelled = true; };
   }, []);
+
+  // The music only runs while the tree section is on screen (or its card is open).
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!active || !section) return;
+    const observer = new IntersectionObserver(([entry]) => setInSection(entry.isIntersecting), { threshold: 0.15 });
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, [active]);
 
   useEffect(() => {
     const box = boxRef.current;
@@ -192,7 +203,7 @@ export function ChristmasTree() {
   if (!active) return null;
 
   return (
-    <section id="christmas-tree" className="container-page section-y scroll-mt-24 border-t border-border/60 text-center">
+    <section ref={sectionRef} id="christmas-tree" className="container-page section-y scroll-mt-24 border-t border-border/60 text-center">
       <SectionHeading
         align="center"
         eyebrow="Christmas"
