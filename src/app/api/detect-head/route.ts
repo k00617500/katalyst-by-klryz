@@ -46,30 +46,28 @@ export async function POST(request: NextRequest) {
     generationConfig: { responseMimeType: "application/json", temperature: 0 },
   });
 
-  for (const model of MODELS) {
-    for (let attempt = 0; attempt < 1; attempt++) {
-      try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-goog-api-key": apiKey },
-          body,
-          signal: AbortSignal.timeout(model === MODELS[0] ? 4_000 : 3_000),
-        });
-        if (response.status === 503 || response.status === 429) continue;
-        if (!response.ok) break;
-        const payload = await response.json();
-        const text: string | undefined = payload?.candidates?.[0]?.content?.parts?.[0]?.text;
-        const box = text ? JSON.parse(text)?.box_2d : null;
-        const valid =
-          Array.isArray(box) && box.length === 4 && box.every((value) => Number.isFinite(value) && value >= 0 && value <= 1000) &&
-          box[2] > box[0] && box[3] > box[1];
-        return NextResponse.json({ box: valid ? box : null });
-      } catch (reason) {
-        console.warn("[detect-head]", model, reason instanceof Error ? reason.message : reason);
-        break;
-      }
-    }
+  // Gemini is often busy, so ask every model at the same time and take the first valid box.
+  const ask = async (model: string) => {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-goog-api-key": apiKey },
+      body,
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!response.ok) throw new Error(`status ${response.status}`);
+    const payload = await response.json();
+    const text: string | undefined = payload?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const box = text ? JSON.parse(text)?.box_2d : null;
+    const valid =
+      Array.isArray(box) && box.length === 4 && box.every((value) => Number.isFinite(value) && value >= 0 && value <= 1000) &&
+      box[2] > box[0] && box[3] > box[1];
+    if (!valid) throw new Error("no box");
+    return box as number[];
+  };
+  try {
+    return NextResponse.json({ box: await Promise.any(MODELS.map(ask)) });
+  } catch {
+    // Detection is a nicety: without it the client falls back to a head-first crop of the cut-out.
+    return NextResponse.json({ box: null });
   }
-  // Detection is a nicety: without it the client falls back to a head-first crop of the cut-out.
-  return NextResponse.json({ box: null });
 }

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Dialog } from "radix-ui";
-import { ArrowLeft, ArrowRight, Check, Download, Loader2, RotateCcw, ShieldCheck, Upload } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Download, Loader2, RotateCcw, ShieldCheck, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VibeKpis } from "@/components/playground/vibe-kpis";
 import { DEFAULT_RATING, MAX_MOODS, MAX_RATING, MIN_MOODS, MOOD_OPTIONS, memojiSrc, vibeMemojis } from "@/data/vibe-check";
@@ -37,6 +37,8 @@ const GLOWS = [
 ];
 
 interface Sized {
+  /** True when the head came out small or soft, so the result will look soft too. */
+  lowQuality?: boolean;
   source: CanvasImageSource;
   w: number;
   h: number;
@@ -140,9 +142,50 @@ function visibleBounds(canvas: HTMLCanvasElement) {
   return x1 > x0 && y1 > y0 ? { x0, y0, x1, y1 } : { x0: 0, y0: 0, x1: width, y1: height };
 }
 
+/** Mean x of the visible pixels inside a horizontal band, i.e. where the head sits across the photo. */
+function bandCentre(canvas: HTMLCanvasElement, top: number, bottom: number, fallback: number) {
+  const y0 = Math.max(0, Math.floor(top));
+  const rows = Math.max(1, Math.min(canvas.height, Math.ceil(bottom)) - y0);
+  const data = canvas.getContext("2d")!.getImageData(0, y0, canvas.width, rows).data;
+  let sum = 0;
+  let count = 0;
+  for (let y = 0; y < rows; y += 2) {
+    for (let x = 0; x < canvas.width; x += 2) {
+      if (data[(y * canvas.width + x) * 4 + 3] > 24) { sum += x; count++; }
+    }
+  }
+  return count ? sum / count : fallback;
+}
+
+/** Laplacian variance of the head crop: low means soft or blurry. */
+function sharpnessOf(source: HTMLCanvasElement) {
+  const n = 96;
+  const probe = document.createElement("canvas");
+  probe.width = probe.height = n;
+  const ctx = probe.getContext("2d")!;
+  ctx.drawImage(source, 0, 0, n, n);
+  const { data } = ctx.getImageData(0, 0, n, n);
+  const gray = (i: number) => data[i * 4] * 0.299 + data[i * 4 + 1] * 0.587 + data[i * 4 + 2] * 0.114;
+  let sum = 0;
+  let sumSq = 0;
+  let count = 0;
+  for (let y = 1; y < n - 1; y++) {
+    for (let x = 1; x < n - 1; x++) {
+      const i = y * n + x;
+      if (data[i * 4 + 3] < 220) continue;
+      const lap = gray(i - 1) + gray(i + 1) + gray(i - n) + gray(i + n) - 4 * gray(i);
+      sum += lap; sumSq += lap * lap; count++;
+    }
+  }
+  if (count < 200) return 0;
+  const mean = sum / count;
+  return sumSq / count - mean * mean;
+}
+
 /**
- * Crops the cut-out to the head: Gemini's box ([ymin, xmin, ymax, xmax] on a 0-1000 scale) when we have one,
- * otherwise the top of the visible subject, which is where the head is in a single-subject photo.
+ * Crops the cut-out to the head only. Uses Gemini's box ([ymin, xmin, ymax, xmax] on a 0-1000 scale) when we have
+ * one; otherwise estimates the head from the top of the visible subject (smaller for full-body shots) so the
+ * crop is the head, never the upper body.
  */
 function cropToHead(canvas: HTMLCanvasElement, box: number[] | null): Sized {
   let left: number, top: number, headW: number, headH: number;
@@ -155,20 +198,23 @@ function cropToHead(canvas: HTMLCanvasElement, box: number[] | null): Sized {
     const bounds = visibleBounds(canvas);
     const width = bounds.x1 - bounds.x0;
     const height = bounds.y1 - bounds.y0;
-    headW = Math.min(width, height * 0.5);
-    headH = headW * 1.15;
-    left = bounds.x0 + (width - headW) / 2;
+    const ratio = height / Math.max(1, width);
+    const fraction = ratio >= 2.2 ? 0.14 : ratio >= 1.5 ? 0.19 : ratio >= 1 ? 0.26 : 0.4;
+    headH = height * fraction;
+    headW = headH * 0.85;
     top = bounds.y0;
+    left = bandCentre(canvas, bounds.y0, bounds.y0 + headH, bounds.x0 + width / 2) - headW / 2;
   }
-  const side = Math.max(headW, headH) * 1.45;
+  const side = Math.max(headW, headH) * 1.18;
   const x = left + headW / 2 - side / 2;
   const y = top + headH / 2 - side / 2 - headH * 0.04;
-  const out = Math.min(900, Math.round(side));
+  const out = Math.min(900, Math.max(64, Math.round(side)));
   const scale = out / side;
   const result = document.createElement("canvas");
   result.width = result.height = out;
   result.getContext("2d")!.drawImage(canvas, -x * scale, -y * scale, canvas.width * scale, canvas.height * scale);
-  return { source: result, w: out, h: out };
+  const lowQuality = side < 220 || sharpnessOf(result) < 8;
+  return { source: result, w: out, h: out, lowQuality };
 }
 
 const QR_SRC = "/images/the-katalyst-back.png";
@@ -417,7 +463,7 @@ export function VibeCheck() {
         }
         const placement = await cutoutToCanvas(await response.blob());
         setRemoval("finding");
-        const box = await Promise.race([detectPromise, new Promise<null>((resolve) => setTimeout(() => resolve(null), 900))]);
+        const box = await Promise.race([detectPromise, new Promise<null>((resolve) => setTimeout(() => resolve(null), 3500))]);
         setCutout(cropToHead(placement.canvas, box ? boxOnCanvas(box, placement) : null));
         setRemoval("done");
         return true;
@@ -430,6 +476,14 @@ export function VibeCheck() {
       }
     })();
     removalPromise.current = job;
+  };
+
+  const clearUpload = () => {
+    removalPromise.current = null;
+    setSelection(null);
+    setCutout(null);
+    setRemoval("idle");
+    setError("");
   };
 
   const pickFile = (file: File | undefined) => {
@@ -569,21 +623,34 @@ export function VibeCheck() {
                     </button>
                   );
                 })}
-                <button type="button" onClick={chooseFile} aria-pressed={selection?.kind === "upload"} className="group flex min-h-0 flex-col items-center gap-1">
-                  <span className="relative aspect-square w-full lg:min-h-0 lg:flex-1">
+                <div className="flex min-h-0 flex-col items-center gap-1">
+                  <button type="button" onClick={chooseFile} aria-label={selection?.kind === "upload" ? "Choose a different photo" : "Upload photo"} aria-pressed={selection?.kind === "upload"} className="group relative aspect-square w-full lg:min-h-0 lg:flex-1">
                     <span className={`absolute inset-y-0 left-1/2 grid aspect-square h-full -translate-x-1/2 place-items-center overflow-hidden rounded-2xl border-2 border-dashed bg-muted/50 text-muted-foreground ring-2 transition-transform group-hover:-translate-y-0.5 ${selection?.kind === "upload" ? "border-transparent ring-brand" : "border-border ring-transparent"}`}>
                       {selection?.kind === "upload"
                         ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={selection.previewUrl} alt="" className="size-full object-cover" />
                         : <Upload className="size-5" aria-hidden="true" />}
                     </span>
+                  </button>
+                  <span className="flex items-center gap-1.5">
+                    <span className={`font-mono text-[10px] ${selection?.kind === "upload" ? "text-foreground" : "text-muted-foreground"}`}>{selection?.kind === "upload" ? "Your photo" : "Upload photo"}</span>
+                    {selection?.kind === "upload" && (
+                      <button type="button" aria-label="Delete this photo" title="Delete photo" onClick={clearUpload}
+                        className="inline-flex size-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive">
+                        <Trash2 className="size-3" aria-hidden="true" />
+                      </button>
+                    )}
                   </span>
-                  <span className={`font-mono text-[10px] ${selection?.kind === "upload" ? "text-foreground" : "text-muted-foreground"}`}>{selection?.kind === "upload" ? "Your photo" : "Upload photo"}</span>
-                </button>
+                </div>
               </div>
               <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" tabIndex={-1}
                 onChange={(event) => { pickFile(event.target.files?.[0]); event.target.value = ""; }} />
               {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
               {processing && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" />{busyText}</p>}
+              {selection?.kind === "upload" && removal === "done" && cutout?.lowQuality && (
+                <p role="status" className="text-center text-sm text-amber-600 dark:text-amber-400">
+                  This photo looks small or blurry, so your result may too. Try a sharper, closer photo of one face.
+                </p>
+              )}
               <StepNav onPrev={() => setStep("name")} onNext={() => setStep("moods")} nextDisabled={!selection} />
             </div>
           )}

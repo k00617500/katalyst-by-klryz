@@ -41,9 +41,9 @@ const FRAMES: Record<PosterLayout, Frame> = {
   },
   // Instagram keeps roughly the top and bottom 250px free of content, so everything sits inside 250 - 1670.
   story: {
-    w: STORY_W, h: STORY_H, cx: 540, cy: 740, outer: 380, face: 372, labelFont: 34, labelOffset: 54, axisExtra: 40,
-    footer: "center", nameY: 1236, nameFont: 78, resultsY: 1300, resultsFont: 38, blurbY: 1364, blurbFont: 32, blurbLine: 42, blurbWidth: 860,
-    tile: 176, tilesY: 1470, glowScale: 1.6,
+    w: STORY_W, h: STORY_H, cx: 540, cy: 800, outer: 330, face: 322, labelFont: 32, labelOffset: 30, axisExtra: 14,
+    footer: "center", nameY: 1310, nameFont: 76, resultsY: 1372, resultsFont: 36, blurbY: 1436, blurbFont: 31, blurbLine: 42, blurbWidth: 860,
+    tile: 150, tilesY: 1540, glowScale: 1.6,
   },
 };
 
