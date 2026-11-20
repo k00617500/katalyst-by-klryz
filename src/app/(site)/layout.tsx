@@ -7,6 +7,7 @@ import { Preloader } from "@/components/animations/preloader";
 import { BackToTop } from "@/components/layout/back-to-top";
 import { CursorStamps } from "@/components/animations/cursor-stamps";
 import { SiteParallax } from "@/components/animations/site-parallax";
+import { Snowfall } from "@/components/animations/snowfall";
 import { PageViewTracker } from "@/components/analytics/page-view-tracker";
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
@@ -22,6 +23,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
       <BackToTop />
       <CursorStamps />
       <SiteParallax />
+      <Snowfall />
       </MusicProvider>
     </TooltipProvider>
   );
