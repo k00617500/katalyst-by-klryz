@@ -188,7 +188,10 @@ function playBar(ctx: AudioContext, out: AudioNode, song: Song, bar: number, sta
   }
 }
 
-export interface Playing { stop: () => void }
+export interface Playing {
+  /** Fades the music out over `fadeSeconds` (a short one for mute, a long one when scrolling away). */
+  stop: (fadeSeconds?: number) => void;
+}
 
 const BARS_PER_PLAY = 16;
 
@@ -243,14 +246,14 @@ export function playSong(ctx: AudioContext, song: Song, onEnd: () => void): Play
   pump();
 
   return {
-    stop() {
+    stop(fadeSeconds = 0.3) {
       stopped = true;
       window.clearTimeout(timer);
       const now = ctx.currentTime;
       master.gain.cancelScheduledValues(now);
       master.gain.setValueAtTime(Math.max(master.gain.value, 0.0001), now);
-      master.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
-      window.setTimeout(() => { try { master.disconnect(); echo.disconnect(); echoGain.disconnect(); } catch { /* already gone */ } }, 500);
+      master.gain.exponentialRampToValueAtTime(0.0001, now + fadeSeconds);
+      window.setTimeout(() => { try { master.disconnect(); echo.disconnect(); echoGain.disconnect(); } catch { /* already gone */ } }, fadeSeconds * 1000 + 300);
     },
   };
 }

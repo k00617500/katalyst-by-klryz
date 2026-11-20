@@ -60,6 +60,7 @@ export function useChristmasMusic(wanted: boolean, prepare = wanted): ChristmasM
   const [blocked, setBlocked] = useState(false);
 
   const shouldPlay = wanted && siteSound && choice && !yielded;
+  useEffect(() => { stayOnRef.current = siteSound && choice && !yielded; }, [siteSound, choice, yielded]);
 
   const controller = useRef<SpotifyEmbedController | null>(null);
   const host = useRef<HTMLDivElement | null>(null);
@@ -69,6 +70,7 @@ export function useChristmasMusic(wanted: boolean, prepare = wanted): ChristmasM
   const wantRef = useRef(false);
   const advanceRef = useRef<() => void>(() => {});
   const soundingRef = useRef(false);
+  const stayOnRef = useRef(true); // sound on, music on, not yielded: leaving the section should then fade out
   const toolkitPlayingRef = useRef(false);
   const pausedToolkit = useRef(false);
   // The first song is loaded into the hidden player ahead of time, so the very first ornament starts it instantly.
@@ -192,7 +194,8 @@ export function useChristmasMusic(wanted: boolean, prepare = wanted): ChristmasM
       window.clearTimeout(watchdog);
       window.removeEventListener("pointerdown", release);
       window.removeEventListener("keydown", release);
-      synth?.stop();
+      // Scrolling away fades the (synthesised) music out; muting or turning it off stops it quickly.
+      synth?.stop(stayOnRef.current ? 2.5 : 0.3);
       try { controller.current?.pause(); } catch { /* player not ready */ }
       setSounding(false);
       setSong(null);
