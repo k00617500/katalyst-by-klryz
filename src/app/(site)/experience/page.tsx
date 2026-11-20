@@ -9,7 +9,7 @@ import { experienceEntries } from "@/data/experience";
 import { profile } from "@/data/profile";
 import { attendedSessions } from "@/data/participation";
 import { tourDates, tourVisits } from "@/data/educational-tour";
-import { Bus, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Experience",
@@ -132,10 +132,9 @@ export default function ExperiencePage() {
           </article>)}
         </div>
       </section>
-      <section className="container-page border-t border-border/60 py-10 md:py-12">
-        <p className="flex items-center gap-2 font-mono text-xs tracking-[0.2em] text-muted-foreground uppercase"><Bus className="size-3.5" aria-hidden="true" />Educational tour · {tourDates}</p>
-        <h2 className="mt-2 text-lg font-medium tracking-tight">Companies visited</h2>
-        <ul className="mt-4 max-w-3xl divide-y divide-border border-y border-border">
+      <section className="container-page section-y border-t border-border/60">
+        <SectionHeading eyebrow="Educational tour" title="Companies visited" description={`Learning journal · ${tourDates}`} className="mb-10" />
+        <ul className="divide-y divide-border border-y border-border">
           {tourVisits.map((visit) => (
             <li key={visit.company}>
               <details className="group">
