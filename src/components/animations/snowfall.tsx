@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { resolveChristmas } from "@/lib/christmas";
 
 /**
@@ -140,6 +141,11 @@ function crystalSprite(design: number, color: string): HTMLCanvasElement {
 
 export function Snowfall() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const showerRef = useRef<(() => void) | null>(null);
+  const pathname = usePathname();
+
+  // Moving to another page of the site starts a fresh shower too (the first page load is covered by start()).
+  useEffect(() => { showerRef.current?.(); }, [pathname]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -149,18 +155,21 @@ export function Snowfall() {
     let stop = () => {};
     let cancelled = false;
     void resolveChristmas().then((christmas) => {
-      if (!cancelled && christmas) stop = start(canvas);
+      if (cancelled || !christmas) return;
+      const snow = start(canvas);
+      stop = snow.stop;
+      showerRef.current = snow.shower;
     });
-    return () => { cancelled = true; stop(); };
+    return () => { cancelled = true; showerRef.current = null; stop(); };
   }, []);
 
   return <canvas ref={canvasRef} aria-hidden="true" className="pointer-events-none fixed inset-0 z-40 size-full" />;
 }
 
-/** Runs the snowfall on the canvas; returns a function that stops it. */
-function start(canvas: HTMLCanvasElement): () => void {
+/** Runs the snowfall on the canvas; `shower` starts a new one (ignored while one is already falling in), `stop` ends it all. */
+function start(canvas: HTMLCanvasElement): { stop: () => void; shower: () => void } {
   const ctx = canvas.getContext("2d");
-  if (!ctx) return () => {};
+  if (!ctx) return { stop: () => {}, shower: () => {} };
 
   let width = 0;
   let height = 0;
@@ -186,6 +195,12 @@ function start(canvas: HTMLCanvasElement): () => void {
   let spawnLeft = 0;
   let spawnDebt = 0;
   let endedAt = -1;
+  let showerLength = SPAWN_FOR_S;
+  let strength = 1;
+  let scrollDelta = 0;
+  let scrollSinceFlurry = 0;
+  let lastFlurryAt = -1e9;
+  let lastScrollY = window.scrollY;
 
   const spawn = () => {
     const depth = Math.random();
@@ -220,9 +235,9 @@ function start(canvas: HTMLCanvasElement): () => void {
       if (spawnLeft <= 0) endedAt = clock;
       const density = Math.max(8, Math.min(18, width / 80)); // flakes per second
       // The shower swells in and thins out instead of switching on and off.
-      const progress = 1 - spawnLeft / SPAWN_FOR_S;
+      const progress = 1 - spawnLeft / showerLength;
       const shape = Math.sin(Math.min(1, Math.max(0, progress)) * Math.PI);
-      spawnDebt += dt * density * (0.2 + 0.8 * shape);
+      spawnDebt += dt * density * strength * (0.2 + 0.8 * shape);
       while (spawnDebt >= 1) { spawnDebt -= 1; spawn(); }
     }
 
@@ -238,7 +253,8 @@ function start(canvas: HTMLCanvasElement): () => void {
     for (let i = flakes.length - 1; i >= 0; i--) {
       const flake = flakes[i];
       const age = clock - flake.born;
-      flake.y += flake.speed * dt;
+      // Scrolling the page carries the snow along a little: near flakes more, far flakes less.
+      flake.y += flake.speed * dt - scrollDelta * (0.12 + flake.depth * 0.4);
       flake.x += gust * (0.35 + flake.depth * 0.65) * dt;
       // A lazy figure-of-eight drift: wider side to side than up and down.
       let x = flake.x + Math.sin(age * flake.swayRate + flake.phase) * flake.sway;
@@ -275,18 +291,37 @@ function start(canvas: HTMLCanvasElement): () => void {
       ctx.restore();
     }
     ctx.globalAlpha = 1;
+    scrollDelta = 0;
 
     raf = flakes.length || spawnLeft > 0 ? requestAnimationFrame(frame) : 0;
   };
 
-  const shower = () => {
-    spawnLeft = SPAWN_FOR_S;
+  const shower = (length = SPAWN_FOR_S, power = 1) => {
+    if (spawnLeft > 0) return;
+    showerLength = length;
+    strength = power;
+    spawnLeft = length;
     spawnDebt = 0;
     endedAt = -1;
+    scrollDelta = 0;
     if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); }
   };
 
-  const first = window.setTimeout(shower, 1400);
+  // Scrolling a good distance sets off a short flurry (not more often than every few seconds).
+  const onScroll = () => {
+    const y = window.scrollY;
+    scrollDelta += y - lastScrollY;
+    scrollSinceFlurry += Math.abs(y - lastScrollY);
+    lastScrollY = y;
+    if (scrollSinceFlurry >= height * 0.5 && spawnLeft <= 0 && performance.now() - lastFlurryAt > 4000) {
+      scrollSinceFlurry = 0;
+      lastFlurryAt = performance.now();
+      shower(3.5, 0.7);
+    }
+  };
+  window.addEventListener("scroll", onScroll, { passive: true });
+
+  const first = window.setTimeout(() => shower(), 1400);
   let visibleSeconds = 0;
   const ticker = window.setInterval(() => {
     if (document.visibilityState !== "visible") return;
@@ -294,11 +329,15 @@ function start(canvas: HTMLCanvasElement): () => void {
     if (visibleSeconds % SHOWER_EVERY_S === 0) shower();
   }, 1000);
 
-  return () => {
-    window.clearTimeout(first);
-    window.clearInterval(ticker);
-    cancelAnimationFrame(raf);
-    window.removeEventListener("resize", resize);
-    window.removeEventListener("pointermove", onPointer);
+  return {
+    shower: () => shower(),
+    stop: () => {
+      window.clearTimeout(first);
+      window.clearInterval(ticker);
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", resize);
+      window.removeEventListener("pointermove", onPointer);
+      window.removeEventListener("scroll", onScroll);
+    },
   };
 }
