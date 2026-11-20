@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image, { getImageProps } from "next/image";
 import { motion, useAnimationFrame, useMotionValue, useReducedMotion, useSpring, useTransform, type MotionValue } from "motion/react";
 import { Dialog } from "radix-ui";
-import { ArrowLeft, ArrowRight, Expand, LayoutGrid, Layers, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Expand, LayoutGrid, Layers, Shrink, X } from "lucide-react";
 import type { PlaygroundItem } from "@/data/playground";
 
 const SPEEDS = [0.5, 1, 1.5, 2, 2.5, 3] as const; // playback multiplier: 3x is the fastest
@@ -104,8 +104,8 @@ function GridView({ items, cols, page, onOpen, onWarm }: {
     if (reducedMotion) return;
     const cell = event.currentTarget;
     const clamp = (value: number, limit: number) => Math.max(-limit, Math.min(limit, value));
-    const vx = (Number(cell.dataset.vx) || 0) * 0.6 + event.movementX * 0.4;
-    const vy = (Number(cell.dataset.vy) || 0) * 0.6 + event.movementY * 0.4;
+    const vx = (Number(cell.dataset.vx) || 0) * 0.8 + event.movementX * 0.2;
+    const vy = (Number(cell.dataset.vy) || 0) * 0.8 + event.movementY * 0.2;
     cell.dataset.vx = String(vx);
     cell.dataset.vy = String(vy);
     cell.style.setProperty("--mx", `${clamp(-vx * 1.1, 11)}px`);
@@ -113,7 +113,7 @@ function GridView({ items, cols, page, onOpen, onWarm }: {
     cell.style.setProperty("--fx", `${clamp(vx * 0.7, 9)}px`);
     cell.style.setProperty("--fy", `${clamp(vy * 0.7, 9)}px`);
     window.clearTimeout(settleTimers.current.get(cell));
-    settleTimers.current.set(cell, window.setTimeout(() => settle(cell), 120));
+    settleTimers.current.set(cell, window.setTimeout(() => settle(cell), 180));
   };
   return (
     <div key={page} className="playground-grid" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)` }}>
@@ -156,6 +156,11 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
   const [index, setIndex] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [open, setOpen] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+  // True fullscreen where the browser allows it; a full-window layout on devices that don't (e.g. iPhone Safari).
+  const [pseudoFullscreen, setPseudoFullscreen] = useState(false);
+  const expanded = fullscreen || pseudoFullscreen;
   const [speed, setSpeed] = useState<number>(DEFAULT_SPEED);
   const [view, setView] = useState<View>("grid");
   const [cols, setCols] = useState(6);
@@ -204,6 +209,33 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
     }
   });
 
+  useEffect(() => {
+    const onChange = () => setFullscreen(document.fullscreenElement === sectionRef.current);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+  useEffect(() => {
+    if (!pseudoFullscreen) return;
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape" && !open) setPseudoFullscreen(false); };
+    document.addEventListener("keydown", onKey);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = previous; };
+  }, [pseudoFullscreen, open]);
+
+  const toggleFullscreen = async () => {
+    const section = sectionRef.current;
+    if (!section) return;
+    if (pseudoFullscreen) { setPseudoFullscreen(false); return; }
+    if (document.fullscreenElement) { await document.exitFullscreen().catch(() => {}); return; }
+    try {
+      if (!section.requestFullscreen) throw new Error("unsupported");
+      await section.requestFullscreen();
+    } catch {
+      setPseudoFullscreen(true);
+    }
+  };
+
   if (!items.length) return null;
   const active = items[index];
   const select = (next: number) => {
@@ -233,7 +265,7 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
   };
 
   return (
-    <section id="playground-gallery" className="playground-experience" aria-label="Photography playground" aria-roledescription="carousel" onKeyDown={handleKeys}>
+    <section id="playground-gallery" ref={sectionRef} className={`playground-experience${pseudoFullscreen ? " is-pseudo-fullscreen" : ""}`} aria-label="Photography playground" aria-roledescription="carousel" onKeyDown={handleKeys}>
       <h2 className="sr-only">Explore the Playground collection</h2>
       {view === "tile" && (
       <div className="playground-rail cursor-grab touch-pan-y select-none active:cursor-grabbing"
@@ -283,7 +315,7 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
         <div className="flex items-center gap-2">
           <button type="button" className="showcase-control size-10" aria-label={view === "grid" ? "Previous page" : "Previous photograph"} onClick={() => (view === "grid" ? turnPage(-1) : navigate(-1))}><ArrowLeft className="size-4" /></button>
           <button type="button" className="showcase-control size-10" aria-label={view === "grid" ? "Next page" : "Next photograph"} onClick={() => (view === "grid" ? turnPage(1) : navigate(1))}><ArrowRight className="size-4" /></button>
-          <button type="button" className="showcase-control size-10" aria-label="Open selected photograph preview" onClick={() => setOpen(true)}><Expand className="size-4" /></button>
+          <button type="button" className="showcase-control size-10" aria-label={expanded ? "Exit full screen" : "View the gallery full screen"} aria-pressed={expanded} onClick={() => void toggleFullscreen()}>{expanded ? <Shrink className="size-4" /> : <Expand className="size-4" />}</button>
         </div>
         <div className="playground-speed" role="group" aria-label="View">
           <button type="button" aria-pressed={view === "grid"} aria-label="Grid view" title="Grid view" onClick={() => { setHovered(false); setView("grid"); }}><LayoutGrid className="mx-auto size-4" /></button>
@@ -304,7 +336,7 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
         ) : null}
       </div>
       <Dialog.Root open={open} onOpenChange={(value) => { setOpen(value); if (!value) setHovered(false); }}>
-        <Dialog.Portal>
+        <Dialog.Portal container={expanded ? sectionRef.current : undefined}>
           <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/95" />
           <Dialog.Content className="fixed inset-0 z-[101] flex flex-col items-center justify-center px-14 py-20 outline-none sm:px-24" onKeyDown={handleKeys}>
             <Dialog.Title className="sr-only">{active.title}</Dialog.Title>

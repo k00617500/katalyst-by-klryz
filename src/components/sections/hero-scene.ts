@@ -279,17 +279,17 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
   }
   function up() { dragging = false; }
   // Double-click: the whole desk and every prop spin fast in random directions (and tumble on random axes), then settle.
+  // Spins are whole revolutions, so every prop (and the desk) settles back upright, never flipped or sideways.
   const randomSign = () => (Math.random() < 0.5 ? -1 : 1);
-  const randomTurns = (min: number, max: number) => randomSign() * (min + Math.random() * (max - min)) * Math.PI;
+  const revolutions = (min: number, max: number) => randomSign() * (min + Math.floor(Math.random() * (max - min + 1))) * Math.PI * 2;
   function spinFast() {
     if (reduced) return;
     spinUntil = time + 1.6;
-    turn += randomTurns(2, 4);
-    tilt = THREE.MathUtils.clamp(tilt + (Math.random() - 0.5) * 0.8, -0.7, 0.7);
+    turn += revolutions(1, 2);
     propTurn.forEach(state => {
-      state.target.y += randomTurns(2, 5);
-      state.target.x += Math.random() < 0.6 ? randomTurns(0, 3) : 0;
-      state.target.z += Math.random() < 0.4 ? randomTurns(0, 2) : 0;
+      state.target.y += revolutions(1, 3);
+      if (Math.random() < 0.4) state.target.x += revolutions(1, 2);
+      if (Math.random() < 0.3) state.target.z += revolutions(1, 1);
     });
     if (paused) render(performance.now());
   }
