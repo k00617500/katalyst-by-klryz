@@ -11,8 +11,16 @@ import { Button } from "@/components/ui/button";
 import { ProjectCard } from "@/components/projects/project-card";
 import { getProjectBySlug, projects } from "@/data/projects";
 
-// Beta/open-source projects that spectators can try live via a QR code.
+// Beta/open-source projects that spectators can try live via a QR code, and the beta-tester call-out that goes with it.
 const betaProjects = new Set(["merkaventures", "dwellr"]);
+
+// Every project with a live link shows a QR code. Projects that aren't open for beta testing say who they are for instead.
+const liveAccessCopy: Record<string, { eyebrow: string; body: string }> = {
+  asenxo: {
+    eyebrow: "DOST SETUP 4.0 · WVSU CICT · Live",
+    body: "Scan the QR code or use the link to open the running system. ASENXO is built for the DOST SETUP 4.0 iFund Program and the WVSU College of Information and Communications Technology, so it isn\u2019t open for beta testing.",
+  },
+};
 
 async function getManualUrl(slug: string) {
   const filename = `${slug}-user-manual.pdf`;
@@ -72,7 +80,9 @@ export default async function ProjectPage({
   if (!project) notFound();
 
   const manualUrl = await getManualUrl(project.slug);
-  const showLiveAccess = betaProjects.has(project.slug) && !!project.liveUrl;
+  const showLiveAccess = !!project.liveUrl;
+  const isBeta = betaProjects.has(project.slug);
+  const customCopy = liveAccessCopy[project.slug];
   const cs = project.caseStudy;
   const related = projects.filter((p) => p.slug !== project.slug).slice(0, 2);
 
@@ -151,15 +161,17 @@ export default async function ProjectPage({
             />
             <div className="text-center sm:text-left">
               <p className="font-mono text-xs tracking-wide text-muted-foreground uppercase">
-                Open source &middot; Live &middot; Beta
+                {customCopy ? customCopy.eyebrow : isBeta ? "Open source \u00b7 Live \u00b7 Beta" : "Live"}
               </p>
               <h2 id="try-it-live-title" className="mt-2 text-xl font-medium tracking-tight md:text-2xl">
                 Try {project.title} live
               </h2>
               <p className="mt-3 font-space text-sm leading-relaxed text-muted-foreground md:text-base">
-                Scan the QR code or use the link to open the running app. This is an open-source
-                project, and I&apos;d be glad to have beta-testers &mdash; try it out and tell me
-                what you think.
+                {customCopy
+                  ? customCopy.body
+                  : isBeta
+                    ? "Scan the QR code or use the link to open the running app. This is an open-source project, and I\u2019d be glad to have beta-testers \u2014 try it out and tell me what you think."
+                    : "Scan the QR code or use the link to open the running app."}
               </p>
               <a
                 href={project.liveUrl}
@@ -176,9 +188,11 @@ export default async function ProjectPage({
                     <ArrowUpRight aria-hidden="true" />
                   </a>
                 </Button>
-                <Button asChild variant="outline" className="rounded-full">
-                  <Link href="/contact">Become a Beta-Tester</Link>
-                </Button>
+                {isBeta && (
+                  <Button asChild variant="outline" className="rounded-full">
+                    <Link href="/contact">Become a Beta-Tester</Link>
+                  </Button>
+                )}
               </div>
             </div>
           </div>
