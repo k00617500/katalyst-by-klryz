@@ -150,7 +150,7 @@ export default function ExperiencePage() {
                     Insights<ChevronDown className="size-3.5 transition-transform group-open:rotate-180" aria-hidden="true" />
                   </span>
                 </summary>
-                <p className="max-w-2xl pb-4 text-sm leading-relaxed text-muted-foreground">{visit.insight}</p>
+                <p className="max-w-2xl pb-4 text-sm leading-[1.9]"><span className="bg-brand px-1.5 py-0.5 text-black [box-decoration-break:clone] [-webkit-box-decoration-break:clone]">{visit.insight}</span></p>
               </details>
             </li>
           ))}
