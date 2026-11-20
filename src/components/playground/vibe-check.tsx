@@ -77,7 +77,9 @@ function readThemeColors(): PosterColors {
   return { fg: read("--foreground"), bg: read("--background"), muted: read("--muted-foreground") };
 }
 
-const posterFont = () => getComputedStyle(document.body).fontFamily;
+/** The poster is always set in Geist. */
+const posterFont = () => getComputedStyle(document.documentElement).getPropertyValue("--font-geist-sans").trim() || "Geist, system-ui, sans-serif";
+const loadPosterFont = () => Promise.all(["400", "500", "700"].map((weight) => document.fonts?.load(`${weight} 32px ${posterFont()}`))).catch(() => []);
 const toBlob = (canvas: HTMLCanvasElement, type: string, quality?: number) =>
   new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("encode"))), type, quality));
 
@@ -330,7 +332,7 @@ function PosterCanvas({ face, username, labels, values, blurb, review, placehold
   useEffect(() => {
     const observer = new MutationObserver(() => draw());
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-theme", "style"] });
-    void document.fonts?.ready.then(draw);
+    void loadPosterFont().then(draw);
     return () => observer.disconnect();
   }, [draw]);
 
@@ -538,6 +540,7 @@ export function VibeCheck() {
 
   const download = async () => {
     if (!face) return;
+    await loadPosterFont();
     const canvas = document.createElement("canvas");
     // Instagram story: 1080 x 1920 (9:16).
     canvas.width = STORY_W;

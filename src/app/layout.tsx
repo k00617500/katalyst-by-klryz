@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Space_Grotesk, DM_Sans, Inter } from "next/font/google";
+import { Geist, Geist_Mono, Space_Grotesk, DM_Sans, Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -7,6 +7,13 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import { SoundProvider } from "@/components/providers/sound-provider";
 import { profile } from "@/data/profile";
 import { cn } from "@/lib/utils";
+
+// Geist is used for the Vibe Check poster; the rest of the site keeps its own font stack.
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+});
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -78,6 +85,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={cn(
         "h-full",
         "antialiased",
+        geistSans.variable,
         geistMono.variable,
         spaceGrotesk.variable,
         dmSans.variable,
