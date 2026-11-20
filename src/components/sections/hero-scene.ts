@@ -39,7 +39,7 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
   const chrome = new THREE.MeshStandardMaterial({ color: 0xdfe2e6, metalness: 1, roughness: 0.16 });
   const dark = new THREE.MeshPhysicalMaterial({ color: 0x101214, metalness: 0.5, roughness: 0.26, clearcoat: 1 });
   const glass = new THREE.MeshPhysicalMaterial({ color: 0x0b1424, metalness: 0.85, roughness: 0.05, clearcoat: 1 });
-  const mouseShell = new THREE.MeshPhysicalMaterial({ color: 0xe4e6ea, metalness: 0.1, roughness: 0.34, clearcoat: 0.5, clearcoatRoughness: 0.3 });
+  const mouseShell = new THREE.MeshPhysicalMaterial({ color: 0xffffff, vertexColors: true, metalness: 0.1, roughness: 0.36, clearcoat: 0.5, clearcoatRoughness: 0.3 });
   const materials = [graphite, navy, ivory, chrome, dark, glass, mouseShell];
 
   // ---- Computer mouse -------------------------------------------------------------------------------------------
@@ -53,13 +53,13 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
     if (radius > 1e-6) {
       const dx = x / radius;
       const dz = z / radius;
-      const k = 1 / Math.pow(Math.pow(Math.abs(dx), 3) + Math.pow(Math.abs(dz), 3), 1 / 3);
+      const k = 1 / Math.pow(Math.pow(Math.abs(dx), 4) + Math.pow(Math.abs(dz), 4), 1 / 4);
       px = dx * radius * k;
       pz = dz * radius * k;
     }
     const back = (z + 1) / 2; // 0 at the front (buttons), 1 at the back (palm)
-    const widthFactor = 0.8 + 0.2 * back;
-    const heightFactor = 0.5 + 0.26 * back + 0.12 * Math.exp(-((z - 0.3) ** 2) / 0.2);
+    const widthFactor = 0.68 + 0.32 * back;
+    const heightFactor = 0.36 + 0.34 * back + 0.2 * Math.exp(-((z - 0.35) ** 2) / 0.16);
     return new THREE.Vector3(px * 0.95 * widthFactor, y * heightFactor, pz * 1.55);
   };
   const shellGeometry = new THREE.SphereGeometry(1, 72, 44, 0, Math.PI * 2, 0, Math.PI / 2);
@@ -69,6 +69,15 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
     shellPositions.setXYZ(i, point.x, point.y, point.z);
   }
   shellGeometry.computeVertexNormals();
+  const shellColours = new Float32Array(shellPositions.count * 3);
+  const original = new THREE.SphereGeometry(1, 72, 44, 0, Math.PI * 2, 0, Math.PI / 2).attributes.position;
+  for (let i = 0; i < shellPositions.count; i++) {
+    const height = original.getY(i);
+    const blend = THREE.MathUtils.smoothstep(height, 0.1, 0.22);
+    const tone = 0.16 + 0.8 * blend;
+    shellColours.set([tone, tone, tone * 1.02], i * 3);
+  }
+  shellGeometry.setAttribute("color", new THREE.BufferAttribute(shellColours, 3));
   mouse.add(new THREE.Mesh(shellGeometry, mouseShell));
   const baseGeometry = new THREE.CircleGeometry(1, 72);
   baseGeometry.rotateX(Math.PI / 2);
@@ -87,19 +96,26 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
   };
   // Seam between the left and right buttons, and the line separating the buttons from the palm rest.
   const seamFront = Array.from({ length: 16 }, (_, i) => surface(0, -0.2 - i * 0.05));
-  mouse.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(seamFront), 40, 0.011, 6), dark));
+  mouse.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(seamFront), 40, 0.02, 8), dark));
   const seamAcross = Array.from({ length: 21 }, (_, i) => surface(-0.78 + i * 0.078, -0.2));
-  mouse.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(seamAcross), 50, 0.009, 6), dark));
+  mouse.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(seamAcross), 50, 0.016, 8), dark));
   // Scroll wheel: a ridged rubber roller sitting in the seam.
   const wheelBase = surface(0, -0.52);
-  const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.085, 0.17, 28), dark);
+  const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.22, 32), dark);
   wheel.rotation.z = Math.PI / 2;
-  wheel.position.copy(wheelBase).add(new THREE.Vector3(0, 0.02, 0));
+  wheel.position.copy(wheelBase).add(new THREE.Vector3(0, 0.035, 0));
   mouse.add(wheel);
-  const wheelTrim = new THREE.Mesh(new THREE.TorusGeometry(0.087, 0.012, 8, 28), chrome);
+  const wheelTrim = new THREE.Mesh(new THREE.TorusGeometry(0.112, 0.016, 8, 32), chrome);
   wheelTrim.rotation.y = Math.PI / 2;
   wheelTrim.position.copy(wheel.position);
   mouse.add(wheelTrim);
+  const cablePoints = [
+    warpMouse(0, 0.06, -0.98),
+    new THREE.Vector3(0, 0.07, -1.75),
+    new THREE.Vector3(0.18, 0.05, -2.15),
+    new THREE.Vector3(-0.1, 0.04, -2.55),
+  ];
+  mouse.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(cablePoints), 40, 0.035, 8), dark));
   mouse.scale.setScalar(0.8);
 
   // ---- Chess pawn -----------------------------------------------------------------------------------------------
@@ -178,7 +194,7 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
   ];
   const props = [
     { object: cam, rotation: new THREE.Euler(0.2, -0.45, 0.06), spin: 0.5 },
-    { object: mouse, rotation: new THREE.Euler(0.9, 0.5, -0.15), spin: 0.35 },
+    { object: mouse, rotation: new THREE.Euler(1.1, 0.2, -0.1), spin: 0.3 },
     { object: pawnHolder, rotation: new THREE.Euler(0.05, 0.3, 0.12), spin: 0.9 },
     { object: pen, rotation: new THREE.Euler(0.15, 0.2, 0.75), spin: 0.4 },
   ];

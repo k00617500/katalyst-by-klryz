@@ -35,7 +35,7 @@ export function AdminSidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             The Katalyst
           </p>
-          <p className="mt-1 text-lg font-semibold text-foreground">Command Center</p>
+          <p className="mt-1 text-lg font-semibold text-foreground">Admin</p>
         </Link>
         <ThemeToggle />
       </div>

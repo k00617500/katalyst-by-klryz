@@ -29,7 +29,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <Button variant="ghost" size="icon-sm" onClick={() => setOpen(true)} aria-label="Open menu">
               <Menu className="size-5" />
             </Button>
-            <p className="text-sm font-medium text-foreground">Command Center</p>
+            <p className="text-sm font-medium text-foreground">Admin</p>
           </div>
           <ThemeToggle />
         </header>

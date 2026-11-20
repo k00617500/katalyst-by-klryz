@@ -103,14 +103,14 @@ function GridView({ items, cols, page, onOpen, onWarm }: {
         const ux = (toCenterX < 0 ? -1 : 1) * (0.35 + 0.65 * Math.abs(toCenterX) / halfCols);
         const uy = (toCenterY < 0 ? -1 : 1) * (0.35 + 0.65 * Math.abs(toCenterY) / halfRows);
         const distance = wave ? Math.hypot(col - (wave.origin % cols), row - Math.floor(wave.origin / cols)) : 0;
-        const amplitude = wave ? Math.max(0, 1 - distance * 0.17) : 0;
-        const waving = !!wave && !reducedMotion && amplitude > 0 && i !== wave.origin;
+        const amplitude = wave ? Math.max(0, 1 - distance * 0.14) * (reducedMotion ? 0.5 : 1) : 0;
+        const waving = !!wave && amplitude > 0 && i !== wave.origin;
         return (
           <div key={item.id} className={`playground-cell${waving ? " is-waving" : ""}`}
-            onMouseEnter={() => { if (!reducedMotion) setWave((previous) => ({ origin: i, id: (previous?.id ?? 0) + 1 })); }}
+            onMouseEnter={() => setWave((previous) => ({ origin: i, id: (previous?.id ?? 0) + 1 }))}
             style={{
               "--dx": `${ux * 17}px`, "--dy": `${uy * 11}px`,
-              "--wave-amp": amplitude, "--wave-delay": `${Math.round(distance * 70)}ms`,
+              "--wave-amp": amplitude, "--wave-delay": `${Math.round(distance * 60)}ms`,
               animationName: waving ? (wave!.id % 2 ? "playground-wave-a" : "playground-wave-b") : undefined,
             } as React.CSSProperties}>
             {[4, 3, 2, 1].map((n) => (
