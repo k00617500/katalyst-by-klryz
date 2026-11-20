@@ -469,7 +469,7 @@ export function VibeCheck() {
       <span className="font-mono text-xs tracking-[0.2em] text-brand-ink uppercase">Vibe check</span>
       <h2 className="mx-auto mt-4 max-w-2xl text-balance text-3xl font-medium tracking-tight md:text-5xl">How are you feeling in here?</h2>
       <p className="mx-auto mt-4 max-w-md text-balance text-base text-muted-foreground md:text-lg">
-        Be honest, the site won&apos;t judge. Pick a face, pick your moods, and watch it get weird.
+        Feeling a bit quirky? I won&apos;t judge. Pick a face, pick your moods, and watch it get weird.
       </p>
 
       <div className="mt-10 grid items-stretch gap-3 lg:grid-cols-2">
