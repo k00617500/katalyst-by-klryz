@@ -121,7 +121,7 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
   const [hovered, setHovered] = useState(false);
   const [open, setOpen] = useState(false);
   const [speed, setSpeed] = useState<number>(DEFAULT_SPEED);
-  const [view, setView] = useState<View>("tile");
+  const [view, setView] = useState<View>("grid");
   const [cols, setCols] = useState(6);
   const [page, setPage] = useState(0);
   const phase = useMotionValue(0);
@@ -250,8 +250,8 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
           <button type="button" className="showcase-control size-10" aria-label="Open selected photograph preview" onClick={() => setOpen(true)}><Expand className="size-4" /></button>
         </div>
         <div className="playground-speed" role="group" aria-label="View">
-          <button type="button" aria-pressed={view === "tile"} aria-label="Tile view" title="Tile view" onClick={() => { setHovered(false); setView("tile"); }}><Layers className="mx-auto size-4" /></button>
           <button type="button" aria-pressed={view === "grid"} aria-label="Grid view" title="Grid view" onClick={() => { setHovered(false); setView("grid"); }}><LayoutGrid className="mx-auto size-4" /></button>
+          <button type="button" aria-pressed={view === "tile"} aria-label="Tile view" title="Tile view" onClick={() => { setHovered(false); setView("tile"); }}><Layers className="mx-auto size-4" /></button>
         </div>
         {view === "tile" ? (
           <div className="playground-speed" role="group" aria-label="Playback speed">
