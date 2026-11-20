@@ -73,20 +73,44 @@ export function nearTree(u: number, v: number): boolean {
   return false;
 }
 
-interface Dot { x: number; y: number; a: number; shade: number }
+interface Dot { x: number; y: number; a: number; shade: number; z: number }
 let dots: Dot[] | null = null;
 
-/** Brightness 0..1: lit from the upper left, with the underside of each tier in shadow, so the tiers read as stacked. */
-function tierShade(u: number, v: number): number {
-  let shade = 0.82;
-  for (const [top, bottom] of TIERS) {
-    if (v < top || v > bottom) continue;
-    const local = (v - top) / (bottom - top);
-    const under = Math.max(0, (local - 0.72) / 0.28); // the lower edge of each tier curls away from the light
-    shade = Math.min(shade, 0.98 - 0.52 * under * under);
+/**
+ * Treats each tier as a rounded, domed cone lit from the upper left, and returns how bright a tile there is (shade)
+ * and how far it stands out from the tree (z). Tiers lower on the tree sit in front of the ones above, which also
+ * throw a shadow just under their edge.
+ */
+const LIGHT = (() => {
+  const length = Math.hypot(-0.5, -0.62, 0.65);
+  return [-0.5 / length, -0.62 / length, 0.65 / length];
+})();
+
+function relief(u: number, v: number): { shade: number; z: number } {
+  let tier = -1;
+  for (let i = 0; i < TIERS.length; i++) {
+    const [top, bottom, half] = TIERS[i];
+    if (v >= top && v <= bottom && Math.abs(u - 0.5) <= (half * (v - top)) / (bottom - top)) tier = i;
   }
-  shade += (0.5 - u) * 0.22; // lit from the left
-  return Math.min(1, Math.max(0.28, shade));
+  if (tier < 0) return { shade: 0.5, z: 0.35 }; // trunk and stray dots
+  const [top, bottom, half] = TIERS[tier];
+  const along = (v - top) / (bottom - top);
+  const width = Math.max(0.001, (half * (v - top)) / (bottom - top));
+  const x = Math.max(-1, Math.min(1, (u - 0.5) / width));
+  const dome = Math.sqrt(Math.max(0, 1 - x * x));
+  const nx = x * 0.85;
+  const ny = -(0.42 + along * 0.32);
+  const nz = Math.sqrt(Math.max(0.04, 1 - nx * nx - ny * ny));
+  let shade = Math.max(0, nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]);
+  // The lower rim of each tier curls away from the light.
+  if (along > 0.78) shade *= 1 - 0.5 * ((along - 0.78) / 0.22) ** 1.5;
+  // Shadow cast by the tier above, just under its lower edge.
+  if (tier > 0) {
+    const [aboveTop, aboveBottom] = TIERS[tier - 1];
+    const gap = v - aboveBottom;
+    if (v < aboveBottom + 0.07 && v > aboveTop && gap > -0.02) shade *= 0.55 + 0.45 * Math.min(1, Math.max(0, (gap + 0.02) / 0.09));
+  }
+  return { shade: Math.min(1, shade * 0.98 + 0.02), z: 0.35 + 0.65 * dome * (0.7 + 0.3 * (1 - along)) };
 }
 
 function treeDots(): Dot[] {
@@ -102,9 +126,9 @@ function treeDots(): Dot[] {
       if (inside) {
         // Edges stay mostly filled; the middle is patchy, like the printed reference.
         const keep = edge ? n > 0.03 : blotch(c, r) + (n - 0.5) * 0.9 > -0.5;
-        if (keep) list.push({ x: u, y: v, a: 0.8 + n * 0.2, shade: tierShade(u, v) });
+        if (keep) list.push({ x: u, y: v, a: 0.8 + n * 0.2, ...relief(u, v) });
       } else if (n > 0.985 && nearTree(u, v)) {
-        list.push({ x: u, y: v, a: 0.7, shade: 0.8 });
+        list.push({ x: u, y: v, a: 0.7, shade: 0.35, z: 0.1 });
       }
     }
   }
@@ -177,8 +201,6 @@ function ball(ctx: Ctx, x: number, y: number, r: number, colors: [string, string
 
 function star(ctx: Ctx, x: number, y: number, r: number) {
   ctx.save();
-  ctx.shadowColor = "#ffd54a";
-  ctx.shadowBlur = r * 0.8;
   ctx.beginPath();
   for (let k = 0; k < 10; k++) {
     const radius = k % 2 ? r * 0.5 : r * 1.25;
@@ -280,8 +302,6 @@ function star3d(ctx: Ctx, x: number, y: number, r: number) {
     ctx.closePath();
   };
   ctx.save();
-  ctx.shadowColor = "#ffd54a";
-  ctx.shadowBlur = r * 1.4;
   points(r, r * 0.46);
   const fill = ctx.createLinearGradient(x - r, y - r, x + r, y + r);
   fill.addColorStop(0, "#fff6c2");
@@ -311,25 +331,24 @@ const LIGHTS: { x: number; y: number }[] = (() => {
 })();
 const LIGHT_COLORS = ["#ff4d5a", "#ffd54a", "#4cc3ff", "#7dff9a", "#ffffff", "#ff9ad5"];
 
-/** Twinkling fairy lights over the tree. `t` is in seconds. */
+/** Fairy lights over the tree: small solid bulbs that brighten and dim. `t` is in seconds. */
 export function drawLights(ctx: Ctx, width: number, t: number) {
   const height = width / TREE_ASPECT;
-  const radius = width * 0.011;
+  const radius = width * 0.0105;
   LIGHTS.forEach((light, i) => {
     const color = LIGHT_COLORS[i % LIGHT_COLORS.length];
-    const pulse = 0.55 + 0.45 * Math.sin(t * 2.4 + i * 1.7);
+    const pulse = 0.5 + 0.5 * Math.sin(t * 2.4 + i * 1.7);
     const x = light.x * width;
     const y = light.y * height;
-    const glow = ctx.createRadialGradient(x, y, 0, x, y, radius * 4.5);
-    glow.addColorStop(0, color + "aa");
-    glow.addColorStop(1, color + "00");
-    ctx.globalAlpha = pulse;
-    ctx.fillStyle = glow;
-    ctx.fillRect(x - radius * 5, y - radius * 5, radius * 10, radius * 10);
-    ctx.globalAlpha = 0.65 + 0.35 * pulse;
+    ctx.globalAlpha = 0.55 + 0.45 * pulse;
     ctx.fillStyle = color;
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 0.5 * (0.55 + 0.45 * pulse);
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(x - radius * 0.3, y - radius * 0.35, radius * 0.35, 0, Math.PI * 2);
     ctx.fill();
   });
   ctx.globalAlpha = 1;
@@ -342,32 +361,56 @@ export function drawTree(ctx: Ctx, width: number, ornaments: Ornament[], backgro
     ctx.fillStyle = background;
     ctx.fillRect(0, 0, width, height);
   }
-  const glow = ctx.createRadialGradient(width / 2, height * 0.55, 0, width / 2, height * 0.55, width * 0.62);
-  glow.addColorStop(0, "rgba(255,230,190,0.16)");
-  glow.addColorStop(1, "rgba(255,230,190,0)");
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, width, height);
-
   const cell = width / COLS;
-  const side = cell * 0.7;
-  const lift = Math.max(1, cell * 0.16);
+  const side = cell * 0.6;
   const tiles = treeDots();
-  // Soft shadows first, so every tile looks raised off the tree.
-  ctx.fillStyle = "rgba(0,0,0,0.5)";
-  for (const dot of tiles) ctx.fillRect(dot.x * width - side / 2 + lift, dot.y * height - side / 2 + lift * 1.3, side, side);
-  for (const dot of tiles) {
+  const mix = (a: number[], b: number[], k: number) => a.map((value, i) => Math.round(value + (b[i] - value) * k));
+  const DEEP = [38, 60, 16];
+  const MID = [118, 152, 38]; // #769826
+  const LIGHT_GREEN = [161, 203, 53]; // #A1CB35
+  const SHINE = [214, 240, 130];
+  const colorFor = (shade: number) => (shade < 0.5
+    ? mix(DEEP, MID, shade / 0.5)
+    : shade < 0.85 ? mix(MID, LIGHT_GREEN, (shade - 0.5) / 0.35) : mix(LIGHT_GREEN, SHINE, (shade - 0.85) / 0.15));
+  const css = (rgb: number[], alpha = 1) => `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha})`;
+
+  // Each dot is a little block standing off the tree: taller toward the middle of every tier. Drawn from the top
+  // of the tree down so lower blocks overlap the ones above, like a real relief.
+  const ordered = [...tiles].sort((a, b) => a.y - b.y || a.x - b.x);
+  for (const dot of ordered) {
+    const depth = cell * (0.1 + 0.2 * dot.z);
     const x = dot.x * width - side / 2;
     const y = dot.y * height - side / 2;
-    const shade = dot.shade;
-    const body = Math.round(255 * shade * dot.a);
-    ctx.fillStyle = `rgb(${body},${body},${Math.min(255, body + 4)})`;
+    const face = colorFor(dot.shade);
+    const wall = mix(face, DEEP, 0.62);
+    // Cast shadow on the tree behind the block.
+    ctx.fillStyle = "rgba(0,0,0,0.42)";
+    ctx.fillRect(x + depth * 1.25, y + depth * 1.35, side, side);
+    // Side walls (right and bottom), away from the light.
+    ctx.fillStyle = css(wall);
+    ctx.beginPath();
+    ctx.moveTo(x + side, y);
+    ctx.lineTo(x + side + depth, y + depth);
+    ctx.lineTo(x + side + depth, y + side + depth);
+    ctx.lineTo(x + depth, y + side + depth);
+    ctx.lineTo(x, y + side);
+    ctx.lineTo(x + side, y + side);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = css(mix(wall, DEEP, 0.35));
+    ctx.beginPath();
+    ctx.moveTo(x, y + side);
+    ctx.lineTo(x + depth, y + side + depth);
+    ctx.lineTo(x + side + depth, y + side + depth);
+    ctx.lineTo(x + side, y + side);
+    ctx.closePath();
+    ctx.fill();
+    // The lit front face, brighter toward its top-left corner.
+    const front = ctx.createLinearGradient(x, y, x + side, y + side);
+    front.addColorStop(0, css(mix(face, SHINE, 0.35)));
+    front.addColorStop(1, css(mix(face, DEEP, 0.18)));
+    ctx.fillStyle = front;
     ctx.fillRect(x, y, side, side);
-    ctx.fillStyle = `rgba(255,255,255,${0.35 * shade})`; // lit top and left edges
-    ctx.fillRect(x, y, side, lift * 0.7);
-    ctx.fillRect(x, y, lift * 0.7, side);
-    ctx.fillStyle = `rgba(0,0,0,${0.32})`; // shaded bottom and right edges
-    ctx.fillRect(x, y + side - lift * 0.7, side, lift * 0.7);
-    ctx.fillRect(x + side - lift * 0.7, y, lift * 0.7, side);
   }
 
   star3d(ctx, width / 2, height * 0.072, width * 0.052);

@@ -19,12 +19,12 @@ const KEYS = [
   { glyph: "star", cap: 0xf3f3ef, ink: "#1b1b1b" },
 ] as const;
 
-// Tipped well forward so each key's printed top faces the viewer, like a row of keys tossed on a table.
+// Tipped far forward so each key's printed top almost faces the viewer and the legends read clearly.
 const BASE = [
-  { x: 0.78, y: 0.36, z: -0.36, lift: 0.0 },
-  { x: 0.7, y: -0.12, z: 0.14, lift: 0.42 },
-  { x: 0.8, y: 0.2, z: -0.1, lift: 0.04 },
-  { x: 0.72, y: -0.4, z: 0.3, lift: 0.3 },
+  { x: 1.12, y: 0.2, z: -0.2, lift: 0.0 },
+  { x: 1.06, y: -0.1, z: 0.08, lift: 0.3 },
+  { x: 1.14, y: 0.12, z: -0.06, lift: 0.02 },
+  { x: 1.08, y: -0.22, z: 0.18, lift: 0.22 },
 ];
 
 const SIZE = 1.5;

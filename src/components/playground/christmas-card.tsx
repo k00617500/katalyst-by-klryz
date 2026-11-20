@@ -106,7 +106,7 @@ export function ChristmasCard({ open, onOpenChange, image, name, cover, ornament
   const [busy, setBusy] = useState<null | "png" | "gif">(null);
   const [progress, setProgress] = useState(0);
   const label = name.trim();
-  const size = { "--w": "min(250px, 38vw)" } as CSSProperties;
+  const size = { "--w": "min(340px, 40vw, 44svh)" } as CSSProperties;
 
   const save = async (format: "png" | "gif") => {
     if (busy) return;
