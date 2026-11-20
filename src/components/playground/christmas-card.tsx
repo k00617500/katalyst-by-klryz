@@ -114,7 +114,7 @@ export function ChristmasCard({ open, onOpenChange, image, name, cover, ornament
     setProgress(0);
     try {
       const qr = await loadQr();
-      const options = { ornaments, name: label, qr };
+      const options = { ornaments, name: label, qr, cover };
       if (format === "png") await savePng(options);
       else await saveGif(options, setProgress);
     } finally {
