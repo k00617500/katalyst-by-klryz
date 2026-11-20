@@ -90,9 +90,31 @@ function GridView({ items, cols, page, onOpen, onWarm }: {
   const slice = items.slice(page * pageSize, (page + 1) * pageSize);
   const halfCols = (cols - 1) / 2;
   const halfRows = (GRID_ROWS - 1) / 2;
-  // Hovering a photo sends a ripple through the grid: neighbours rise and settle a beat later the farther they are.
-  const [wave, setWave] = useState<{ origin: number; id: number } | null>(null);
+  // Each hovered photo waves on its own: it rises and its stack of echoes ripples. Sweep across several and each one waves in turn.
+  const [waves, setWaves] = useState<Record<number, number>>({});
   const reducedMotion = useReducedMotion();
+  const settleTimers = useRef(new WeakMap<HTMLElement, number>());
+  // The photo leans with the cursor and its echoes trail behind the motion, easing back when the cursor stops.
+  const settle = (cell: HTMLElement) => {
+    for (const name of ["--mx", "--my", "--fx", "--fy"]) cell.style.setProperty(name, "0px");
+    cell.dataset.vx = "0";
+    cell.dataset.vy = "0";
+  };
+  const trackMotion = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (reducedMotion) return;
+    const cell = event.currentTarget;
+    const clamp = (value: number, limit: number) => Math.max(-limit, Math.min(limit, value));
+    const vx = (Number(cell.dataset.vx) || 0) * 0.6 + event.movementX * 0.4;
+    const vy = (Number(cell.dataset.vy) || 0) * 0.6 + event.movementY * 0.4;
+    cell.dataset.vx = String(vx);
+    cell.dataset.vy = String(vy);
+    cell.style.setProperty("--mx", `${clamp(-vx * 1.1, 11)}px`);
+    cell.style.setProperty("--my", `${clamp(-vy * 1.1, 9)}px`);
+    cell.style.setProperty("--fx", `${clamp(vx * 0.7, 9)}px`);
+    cell.style.setProperty("--fy", `${clamp(vy * 0.7, 9)}px`);
+    window.clearTimeout(settleTimers.current.get(cell));
+    settleTimers.current.set(cell, window.setTimeout(() => settle(cell), 120));
+  };
   return (
     <div key={page} className="playground-grid" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)` }}>
       {slice.map((item, i) => {
@@ -102,19 +124,21 @@ function GridView({ items, cols, page, onOpen, onWarm }: {
         const toCenterY = halfRows - row;
         const ux = (toCenterX < 0 ? -1 : 1) * (0.35 + 0.65 * Math.abs(toCenterX) / halfCols);
         const uy = (toCenterY < 0 ? -1 : 1) * (0.35 + 0.65 * Math.abs(toCenterY) / halfRows);
-        const distance = wave ? Math.hypot(col - (wave.origin % cols), row - Math.floor(wave.origin / cols)) : 0;
-        const amplitude = wave ? Math.max(0, 1 - distance * 0.14) * (reducedMotion ? 0.5 : 1) : 0;
-        const waving = !!wave && amplitude > 0 && i !== wave.origin;
+        const waveId = waves[i] ?? 0;
+        const waving = waveId > 0;
+        const parity = waveId % 2 ? "a" : "b";
         return (
           <div key={item.id} className={`playground-cell${waving ? " is-waving" : ""}`}
-            onMouseEnter={() => setWave((previous) => ({ origin: i, id: (previous?.id ?? 0) + 1 }))}
+            onMouseEnter={() => setWaves((previous) => ({ ...previous, [i]: (previous[i] ?? 0) + 1 }))}
+            onPointerMove={trackMotion}
+            onMouseLeave={(event) => settle(event.currentTarget)}
             style={{
               "--dx": `${ux * 17}px`, "--dy": `${uy * 11}px`,
-              "--wave-amp": amplitude, "--wave-delay": `${Math.round(distance * 60)}ms`,
-              animationName: waving ? (wave!.id % 2 ? "playground-wave-a" : "playground-wave-b") : undefined,
+              "--wave-amp": reducedMotion ? 0.5 : 1,
+              animationName: waving ? `playground-wave-${parity}` : undefined,
             } as React.CSSProperties}>
             {[4, 3, 2, 1].map((n) => (
-              <span key={n} aria-hidden className="grid-echo" style={{ "--n": n } as React.CSSProperties}>
+              <span key={n} aria-hidden className="grid-echo" style={{ "--n": n, animationName: waving ? `playground-echo-${parity}` : undefined } as React.CSSProperties}>
                 <Image src={item.image} alt="" fill sizes="(max-width: 640px) 30vw, 150px" draggable={false} className="object-cover" />
               </span>
             ))}
