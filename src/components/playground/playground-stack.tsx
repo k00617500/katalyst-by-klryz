@@ -4,11 +4,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image, { getImageProps } from "next/image";
 import { motion, useAnimationFrame, useMotionValue, useReducedMotion, useTransform, type MotionValue } from "motion/react";
 import { Dialog } from "radix-ui";
-import { ArrowLeft, ArrowRight, Expand, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Expand, LayoutGrid, Layers, X } from "lucide-react";
 import type { PlaygroundItem } from "@/data/playground";
 
 const SPEEDS = [0.5, 1, 1.5, 2, 2.5, 3] as const; // seconds each photo takes to move one slot
 const DEFAULT_SPEED = 1.5;
+const GRID_ROWS = 4;
+const MIN_TILE_SLOTS = 30; // keeps the diagonal row full and connected, however few photos there are
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 const wrap = (value: number, length: number) => ((value % length) + length) % length;
 const THUMB_SIZES = "(max-width: 640px) 40vw, 300px";
@@ -59,7 +61,7 @@ function GalleryPhoto({ item, itemIndex, count, phase, selected, onHover, onOpen
       tabIndex={selected ? 0 : -1}
       onMouseEnter={() => { onHover(true); onWarm(); }} onMouseLeave={() => onHover(false)}
       onClick={onOpen}
-      style={{ x, y, z, rotateY: -38, zIndex, pointerEvents, "--case-opacity": opacity } as never}>
+      style={{ x, y, z, rotateY: -28, zIndex, pointerEvents, "--case-opacity": opacity } as never}>
       <span className="case-face case-back" aria-hidden />
       <span className="case-face case-spine" aria-hidden />
       <span className="case-face case-right" aria-hidden />
@@ -70,11 +72,54 @@ function GalleryPhoto({ item, itemIndex, count, phase, selected, onHover, onOpen
   );
 }
 
+type View = "tile" | "grid";
+
+// Every photo sits in a grid cell with echoes of itself trailing behind it toward the centre of the grid.
+function GridView({ items, cols, page, onOpen, onWarm }: {
+  items: PlaygroundItem[];
+  cols: number;
+  page: number;
+  onOpen: (item: PlaygroundItem) => void;
+  onWarm: (item: PlaygroundItem) => void;
+}) {
+  const pageSize = cols * GRID_ROWS;
+  const slice = items.slice(page * pageSize, (page + 1) * pageSize);
+  const halfCols = (cols - 1) / 2;
+  const halfRows = (GRID_ROWS - 1) / 2;
+  return (
+    <div key={page} className="playground-grid" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)` }}>
+      {slice.map((item, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const toCenterX = halfCols - col;
+        const toCenterY = halfRows - row;
+        const ux = (toCenterX < 0 ? -1 : 1) * (0.35 + 0.65 * Math.abs(toCenterX) / halfCols);
+        const uy = (toCenterY < 0 ? -1 : 1) * (0.35 + 0.65 * Math.abs(toCenterY) / halfRows);
+        return (
+          <div key={item.id} className="playground-cell" style={{ "--dx": `${ux * 17}px`, "--dy": `${uy * 11}px` } as React.CSSProperties}>
+            {[4, 3, 2, 1].map((n) => (
+              <span key={n} aria-hidden className="grid-echo" style={{ "--n": n } as React.CSSProperties}>
+                <Image src={item.image} alt="" fill sizes="(max-width: 640px) 30vw, 150px" draggable={false} className="object-cover" />
+              </span>
+            ))}
+            <button type="button" className="grid-face" aria-label={`Preview ${item.title}`} onMouseEnter={() => onWarm(item)} onClick={() => onOpen(item)}>
+              <Image src={item.image} alt="" fill sizes="(max-width: 640px) 30vw, 150px" draggable={false} className="object-cover" />
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
   const [index, setIndex] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [open, setOpen] = useState(false);
   const [speed, setSpeed] = useState<number>(DEFAULT_SPEED);
+  const [view, setView] = useState<View>("tile");
+  const [cols, setCols] = useState(6);
+  const [page, setPage] = useState(0);
   const phase = useMotionValue(0);
   const indexRef = useRef(0);
   const dragRef = useRef<{ pointerId: number; x: number; y: number; phase: number; active: boolean } | null>(null);
@@ -88,7 +133,19 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
     image.src = previewSource(item);
   }, []);
   const reduced = useReducedMotion();
-  const running = !hovered && !open && !reduced && items.length > 1;
+  const running = view === "tile" && !hovered && !open && !reduced && items.length > 1;
+  const pageCount = Math.max(1, Math.ceil(items.length / (cols * GRID_ROWS)));
+  // Repeat the photos until the diagonal row has enough slots, so it is always one connected, endless loop.
+  const slotCount = items.length ? items.length * Math.ceil(MIN_TILE_SLOTS / items.length) : 0;
+
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 640px)");
+    const apply = () => setCols(query.matches ? 3 : 6);
+    apply();
+    query.addEventListener("change", apply);
+    return () => query.removeEventListener("change", apply);
+  }, []);
+  useEffect(() => { setPage((value) => Math.min(value, pageCount - 1)); }, [pageCount]);
 
   useEffect(() => {
     if (!items.length) return;
@@ -98,9 +155,9 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
   useAnimationFrame((_, delta) => {
     if (!running || dragRef.current) return;
     // Recycle only beyond the viewport; every card keeps moving through the seam.
-    const next = wrap(phase.get() + Math.min(delta, 64) / (speed * 1000), items.length);
+    const next = wrap(phase.get() + Math.min(delta, 64) / (speed * 1000), slotCount);
     phase.set(next);
-    const nextIndex = wrap(Math.round(next), items.length);
+    const nextIndex = wrap(Math.round(next), slotCount) % items.length;
     if (nextIndex !== indexRef.current) {
       indexRef.current = nextIndex;
       setIndex(nextIndex);
@@ -116,6 +173,7 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
     setIndex(selected);
   };
   const navigate = (delta: number) => select(index + delta);
+  const turnPage = (delta: number) => setPage((value) => wrap(value + delta, pageCount));
   const finishDrag = (event: React.PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
@@ -128,13 +186,16 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
     if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
       event.preventDefault();
       event.stopPropagation();
-      navigate(event.key === "ArrowLeft" ? -1 : 1);
+      const delta = event.key === "ArrowLeft" ? -1 : 1;
+      if (view === "grid" && !open) turnPage(delta);
+      else navigate(delta);
     }
   };
 
   return (
     <section className="playground-experience" aria-label="Photography playground" aria-roledescription="carousel" onKeyDown={handleKeys}>
       <h2 className="sr-only">Explore the Playground collection</h2>
+      {view === "tile" && (
       <div className="playground-rail cursor-grab touch-pan-y select-none active:cursor-grabbing"
         onMouseEnter={() => setHovered(true)} onMouseLeave={() => { if (!dragRef.current) setHovered(false); }}
         onPointerDown={(event) => {
@@ -154,9 +215,9 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
             event.currentTarget.setPointerCapture(event.pointerId);
           }
           const step = Math.max(110, Math.min(260, event.currentTarget.clientWidth * 0.2));
-          const next = wrap(drag.phase + (-dx + dy * 0.5) / step, items.length);
+          const next = wrap(drag.phase + (-dx + dy * 0.5) / step, slotCount);
           phase.set(next);
-          indexRef.current = wrap(Math.round(next), items.length);
+          indexRef.current = wrap(Math.round(next), slotCount) % items.length;
           setIndex(indexRef.current);
         }}
         onPointerUp={finishDrag} onPointerCancel={finishDrag} onLostPointerCapture={finishDrag}
@@ -164,25 +225,45 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
         onClickCapture={(event) => {
           if (suppressClick.current) { event.preventDefault(); event.stopPropagation(); }
         }}>
-        {items.map((item, itemIndex) => (
-          <GalleryPhoto key={item.id} item={item} itemIndex={itemIndex} count={items.length} phase={phase}
-            selected={index === itemIndex} onHover={() => {}}
-            onWarm={() => warmPreview(item)}
-            onOpen={() => { warmPreview(item); select(itemIndex); setOpen(true); }} />
-        ))}
+        {Array.from({ length: slotCount }, (_, slot) => {
+          const item = items[slot % items.length];
+          return (
+            <GalleryPhoto key={slot} item={item} itemIndex={slot} count={slotCount} phase={phase}
+              selected={index === slot % items.length} onHover={() => {}}
+              onWarm={() => warmPreview(item)}
+              onOpen={() => { warmPreview(item); select(slot % items.length); setOpen(true); }} />
+          );
+        })}
         <div aria-hidden className="pointer-events-none absolute inset-0 z-[300] bg-[radial-gradient(ellipse_22%_30%_at_88%_14%,#000_20%,transparent_75%)]" />
       </div>
+      )}
+      {view === "grid" && (
+        <GridView items={items} cols={cols} page={page} onWarm={warmPreview}
+          onOpen={(item) => { warmPreview(item); select(items.indexOf(item)); setOpen(true); }} />
+      )}
       <div className="playground-bottom">
         <div className="flex items-center gap-2">
-          <button type="button" className="showcase-control size-10" aria-label="Previous photograph" onClick={() => navigate(-1)}><ArrowLeft className="size-4" /></button>
-          <button type="button" className="showcase-control size-10" aria-label="Next photograph" onClick={() => navigate(1)}><ArrowRight className="size-4" /></button>
+          <button type="button" className="showcase-control size-10" aria-label={view === "grid" ? "Previous page" : "Previous photograph"} onClick={() => (view === "grid" ? turnPage(-1) : navigate(-1))}><ArrowLeft className="size-4" /></button>
+          <button type="button" className="showcase-control size-10" aria-label={view === "grid" ? "Next page" : "Next photograph"} onClick={() => (view === "grid" ? turnPage(1) : navigate(1))}><ArrowRight className="size-4" /></button>
           <button type="button" className="showcase-control size-10" aria-label="Open selected photograph preview" onClick={() => setOpen(true)}><Expand className="size-4" /></button>
         </div>
-        <div className="playground-speed" role="group" aria-label="Seconds per photograph">
-          {SPEEDS.map((value) => (
-            <button key={value} type="button" aria-pressed={speed === value} onClick={() => setSpeed(value)}>{value}s</button>
-          ))}
+        <div className="playground-speed" role="group" aria-label="View">
+          <button type="button" aria-pressed={view === "tile"} aria-label="Tile view" title="Tile view" onClick={() => setView("tile")}><Layers className="mx-auto size-4" /></button>
+          <button type="button" aria-pressed={view === "grid"} aria-label="Grid view" title="Grid view" onClick={() => setView("grid")}><LayoutGrid className="mx-auto size-4" /></button>
         </div>
+        {view === "tile" ? (
+          <div className="playground-speed" role="group" aria-label="Seconds per photograph">
+            {SPEEDS.map((value) => (
+              <button key={value} type="button" aria-pressed={speed === value} onClick={() => setSpeed(value)}>{value}s</button>
+            ))}
+          </div>
+        ) : pageCount > 1 ? (
+          <div className="playground-speed" role="group" aria-label="Pages">
+            {Array.from({ length: pageCount }, (_, i) => (
+              <button key={i} type="button" aria-label={`Page ${i + 1}`} aria-pressed={page === i} onClick={() => setPage(i)}>{i + 1}</button>
+            ))}
+          </div>
+        ) : null}
       </div>
       <Dialog.Root open={open} onOpenChange={(value) => { setOpen(value); if (!value) setHovered(false); }}>
         <Dialog.Portal>
