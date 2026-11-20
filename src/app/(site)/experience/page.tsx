@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { experienceEntries } from "@/data/experience";
 import { profile } from "@/data/profile";
 import { attendedSessions } from "@/data/participation";
-import { tourDates, tourVisits } from "@/data/educational-tour";
-import { ChevronDown } from "lucide-react";
+import { tourDates } from "@/data/educational-tour";
+import { TourList } from "@/components/experience/tour-list";
 
 export const metadata: Metadata = {
   title: "Experience",
@@ -134,27 +134,7 @@ export default function ExperiencePage() {
       </section>
       <section className="container-page section-y border-t border-border/60">
         <SectionHeading eyebrow="Educational tour" title="Companies visited" description={`Learning journal · ${tourDates}`} className="mb-10" />
-        <ul className="divide-y divide-border border-y border-border">
-          {tourVisits.map((visit) => (
-            <li key={visit.company}>
-              <details name="tour-insights" className="group">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-3 text-sm [&::-webkit-details-marker]:hidden">
-                  <span className="flex min-w-0 items-start gap-3">
-                    <visit.icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                    <span className="min-w-0">
-                      <span className="font-medium">{visit.company}</span>
-                      <span className="mt-0.5 block font-mono text-xs text-muted-foreground">{visit.place}</span>
-                    </span>
-                  </span>
-                  <span className="flex shrink-0 items-center gap-1 font-mono text-[11px] text-muted-foreground uppercase">
-                    Insights<ChevronDown className="size-3.5 transition-transform group-open:rotate-180" aria-hidden="true" />
-                  </span>
-                </summary>
-                <p className="max-w-2xl pb-4 text-sm leading-[1.9]"><span className="bg-brand px-1.5 py-0.5 text-black [box-decoration-break:clone] [-webkit-box-decoration-break:clone]">{visit.insight}</span></p>
-              </details>
-            </li>
-          ))}
-        </ul>
+        <TourList />
       </section>
 
       <section className="container-page section-y border-t border-border/60">
