@@ -14,21 +14,22 @@ export interface KeysScene {
 
 const KEYS = [
   { glyph: "H", cap: 0xf3f3ef, ink: "#1b1b1b" },
-  { glyph: "I", cap: 0x8fd400, ink: "#14260a" },
+  { glyph: "I", cap: 0x73c000, ink: "#0d2204" },
   { glyph: "!", cap: 0x131313, ink: "#ffffff" },
   { glyph: "star", cap: 0xf3f3ef, ink: "#1b1b1b" },
 ] as const;
 
+// Tipped well forward so each key's printed top faces the viewer, like a row of keys tossed on a table.
 const BASE = [
-  { x: 0.5, y: 0.22, z: -0.26, lift: 0.1 },
-  { x: 0.48, y: -0.1, z: 0.12, lift: 0.4 },
-  { x: 0.55, y: 0.14, z: -0.08, lift: -0.05 },
-  { x: 0.46, y: -0.28, z: 0.24, lift: 0.28 },
+  { x: 0.78, y: 0.36, z: -0.36, lift: 0.0 },
+  { x: 0.7, y: -0.12, z: 0.14, lift: 0.42 },
+  { x: 0.8, y: 0.2, z: -0.1, lift: 0.04 },
+  { x: 0.72, y: -0.4, z: 0.3, lift: 0.3 },
 ];
 
 const SIZE = 1.5;
 const HEIGHT = 0.95;
-const SPACING = 1.82;
+const SPACING = 1.66;
 
 function legend(glyph: string, ink: string) {
   const size = 256;
@@ -41,10 +42,10 @@ function legend(glyph: string, ink: string) {
     tiny.width = tiny.height = 24;
     const t = tiny.getContext("2d")!;
     t.strokeStyle = ink;
-    t.lineWidth = 1.6;
+    t.lineWidth = 2;
     t.beginPath();
     for (let k = 0; k < 10; k++) {
-      const radius = k % 2 ? 4.8 : 10.5;
+      const radius = k % 2 ? 5.2 : 11.5;
       const angle = -Math.PI / 2 + (k * Math.PI) / 5;
       const x = 12 + Math.cos(angle) * radius;
       const y = 13 + Math.sin(angle) * radius;
@@ -56,10 +57,10 @@ function legend(glyph: string, ink: string) {
     ctx.drawImage(tiny, 0, 0, size, size);
   } else {
     ctx.fillStyle = ink;
-    ctx.font = "800 190px 'DM Sans', Inter, system-ui, sans-serif";
+    ctx.font = "800 235px 'DM Sans', Inter, system-ui, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(glyph, size / 2, size / 2 + 14);
+    ctx.fillText(glyph, size / 2, size / 2 + 18);
   }
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -85,7 +86,7 @@ export function createKeysScene(host: HTMLDivElement, onPress: (index: number) =
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setClearColor(0x000000, 0);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.15;
+  renderer.toneMappingExposure = 1.0;
   const canvas = renderer.domElement;
   canvas.setAttribute("aria-hidden", "true");
   canvas.style.display = "block";
@@ -98,6 +99,7 @@ export function createKeysScene(host: HTMLDivElement, onPress: (index: number) =
   const pmrem = new THREE.PMREMGenerator(renderer);
   const room = new RoomEnvironment();
   scene.environment = pmrem.fromScene(room, 0.04).texture;
+  scene.environmentIntensity = 0.65;
   room.dispose();
   pmrem.dispose();
   scene.add(new THREE.HemisphereLight(0xffffff, 0x556b2f, 1.6));
@@ -124,7 +126,7 @@ export function createKeysScene(host: HTMLDivElement, onPress: (index: number) =
     const cap = new THREE.Mesh(geometry, material);
     const texture = legend(definition.glyph, definition.ink);
     const printed = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.86, 0.86),
+      new THREE.PlaneGeometry(0.98, 0.98),
       new THREE.MeshBasicMaterial({ map: texture, transparent: true, toneMapped: false }),
     );
     printed.rotation.x = -Math.PI / 2;
@@ -191,9 +193,9 @@ export function createKeysScene(host: HTMLDivElement, onPress: (index: number) =
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     const half = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-    // Frame the whole row (about 8.6 units wide, 4.3 tall, plus room for the tilt and the bounce).
-    const distance = Math.max(4.9 / (half * camera.aspect), 2.6 / half);
-    camera.position.set(0, 0.15, distance);
+    // Frame the row tightly (about 7.8 units wide, 3.6 tall, with room for the tilt and the bounce).
+    const distance = Math.max(3.95 / (half * camera.aspect), 1.9 / half);
+    camera.position.set(0, 0.2, distance);
     camera.lookAt(0, 0, 0);
     camera.updateProjectionMatrix();
   };

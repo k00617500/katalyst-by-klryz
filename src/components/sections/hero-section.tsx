@@ -98,7 +98,7 @@ export function HeroSection() {
         className="pointer-events-none absolute bottom-0 left-[-10%] size-[50vw] max-w-[600px] rounded-full bg-accent-cyan/10 blur-[150px]"
       />
 
-      <div className="container-page relative flex flex-1 flex-col items-center justify-center gap-5 py-8 text-center md:gap-6 md:py-10">
+      <div className="container-page relative flex flex-1 flex-col items-center justify-center gap-3 py-4 text-center md:gap-4 md:py-6">
         <span
           data-hero-eyebrow
           className="max-w-3xl font-mono text-xs leading-relaxed tracking-[0.2em] text-accent-cyan uppercase"
@@ -106,7 +106,7 @@ export function HeroSection() {
           {profile.headline}
         </span>
 
-        <h1 aria-label={profile.heroHeadline} className="font-hero max-w-5xl text-[clamp(2.75rem,min(8vw,9.5svh),6.25rem)] leading-[1.06] font-semibold tracking-tight">
+        <h1 aria-label={profile.heroHeadline} className="font-hero max-w-5xl text-[clamp(2.5rem,min(6.4vw,8.2svh),5.5rem)] leading-[1.06] font-semibold tracking-tight">
           <span className="block overflow-hidden pb-1">
             <span data-hero-line className="block">
               Building ideas
@@ -124,7 +124,7 @@ export function HeroSection() {
 
         <p
           data-hero-sub
-          className="max-w-2xl font-space text-balance text-lg leading-relaxed text-muted-foreground md:text-xl"
+          className="max-w-2xl font-space text-balance text-base leading-relaxed text-muted-foreground md:text-lg"
         >
           {profile.name} — {profile.roles[0]}, {profile.roles[1]}, {profile.roles[2]}.
         </p>
