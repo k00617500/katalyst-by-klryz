@@ -51,7 +51,7 @@ export function MiniPlayer({ visible }: { visible: boolean }) {
       // Collapsed, the tab may be dragged anywhere on screen (offsets from the bottom-right corner).
       setBounds({ left: -(vw - COLLAPSED_WIDTH - 16), right: 16, top: -(vh - COLLAPSED_WIDTH - 16), bottom: 16 });
       const slot = document.getElementById("mini-player-slot")?.getBoundingClientRect();
-      setHome(slot ? { x: slot.left - (vw - COLLAPSED_WIDTH - 16), y: slot.top - (vh - COLLAPSED_WIDTH - 16) } : null);
+      setHome(slot && slot.width > 0 ? { x: slot.left - (vw - COLLAPSED_WIDTH - 16), y: slot.top - (vh - COLLAPSED_WIDTH - 16) } : null);
     };
     fit();
     window.addEventListener("resize", fit);

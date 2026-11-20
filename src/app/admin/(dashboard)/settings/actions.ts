@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { verifyAdminSession } from "@/lib/auth/dal";
 import { createClient } from "@/lib/supabase/server";
+import { parseChristmasMode, setChristmasMode } from "@/lib/site-settings";
 
 export interface SettingsFormState {
   error?: string;
@@ -20,4 +21,14 @@ export async function updateProfileAction(_state: SettingsFormState, formData: F
 
   revalidatePath("/admin", "layout");
   return { success: true };
+}
+
+export async function setChristmasModeAction(mode: string): Promise<{ error?: string }> {
+  await verifyAdminSession();
+  const result = await setChristmasMode(parseChristmasMode(mode));
+  if (result.error) {
+    return { error: /site_settings/.test(result.error) ? "The site_settings table does not exist yet. Run migration 0011 first." : result.error };
+  }
+  revalidatePath("/", "layout");
+  return {};
 }

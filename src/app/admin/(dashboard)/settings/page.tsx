@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { verifyAdminSession } from "@/lib/auth/dal";
 import { SettingsForm } from "@/components/admin/settings-form";
+import { ChristmasModeControl } from "@/components/admin/christmas-mode-control";
+import { getChristmasMode } from "@/lib/site-settings";
 import { CheckCircle2, XCircle } from "lucide-react";
 
 export const metadata: Metadata = { title: "Settings — Admin", robots: { index: false } };
@@ -13,6 +15,7 @@ const INTEGRATIONS = [
 
 export default async function SettingsPage() {
   const { user, profile } = await verifyAdminSession();
+  const christmasMode = await getChristmasMode();
 
   return (
     <div className="mx-auto max-w-2xl space-y-8 p-6 lg:p-10">
@@ -25,6 +28,11 @@ export default async function SettingsPage() {
         <h2 className="text-sm font-medium text-foreground">Profile</h2>
         <p className="text-sm text-muted-foreground">Signed in as {user.email}</p>
         <SettingsForm displayName={profile.display_name} />
+      </section>
+
+      <section className="space-y-4 rounded-lg border border-border p-5">
+        <h2 className="text-sm font-medium text-foreground">Christmas mode</h2>
+        <ChristmasModeControl initialMode={christmasMode} />
       </section>
 
       <section className="space-y-3 rounded-lg border border-border p-5">

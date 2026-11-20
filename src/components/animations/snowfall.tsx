@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { isChristmasActive } from "@/lib/christmas";
+import { resolveChristmas } from "@/lib/christmas";
 
 /**
  * A few small, quiet snowflakes drift down when a visitor arrives and again after every minute they stay on the site
@@ -21,11 +21,25 @@ export function Snowfall() {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !isChristmasActive()) return;
+    if (!canvas) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
     if (reduced.matches) return;
+    let stop = () => {};
+    let cancelled = false;
+    void resolveChristmas().then((christmas) => {
+      if (!cancelled && christmas) stop = start(canvas);
+    });
+    return () => { cancelled = true; stop(); };
+  }, []);
+
+  return <canvas ref={canvasRef} aria-hidden="true" className="pointer-events-none fixed inset-0 z-40 size-full" />;
+}
+
+/** Runs the snowfall on the canvas; returns a function that stops it. */
+function start(canvas: HTMLCanvasElement): () => void {
+  {
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!ctx) return () => {};
 
     let width = 0;
     let height = 0;
@@ -166,7 +180,5 @@ export function Snowfall() {
       window.removeEventListener("resize", resize);
       window.removeEventListener("pointermove", onPointer);
     };
-  }, []);
-
-  return <canvas ref={canvasRef} aria-hidden="true" className="pointer-events-none fixed inset-0 z-40 size-full" />;
+  }
 }

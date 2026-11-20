@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import { FLIPPER, LANE_DIVIDER_TOP, LANE_DIVIDER_X, LAUNCH_X, LAUNCH_Y, TABLE_HEIGHT, TABLE_WIDTH } from "./config";
 import type { BodySnapshot, PinballEngine } from "./engine";
-import { isChristmasActive } from "@/lib/christmas";
 
 export type PinballTheme = "light" | "dark";
 type Paint = CanvasRenderingContext2D;
@@ -430,8 +429,8 @@ function createOutput(host: HTMLElement, board: HTMLCanvasElement, moving: HTMLC
   };
 }
 
-export function createPinballRenderer(host: HTMLDivElement, engine: PinballEngine, initialTheme: PinballTheme) {
-  xmas = isChristmasActive();
+export function createPinballRenderer(host: HTMLDivElement, engine: PinballEngine, initialTheme: PinballTheme, christmas = false) {
+  xmas = christmas;
   Object.assign(ink, xmas ? festiveInk : baseInk);
   const board = layer(2);
   const moving = layer(1.25);

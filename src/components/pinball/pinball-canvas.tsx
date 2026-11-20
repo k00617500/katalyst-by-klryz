@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
 import { createPinballRenderer, type PinballTheme } from "@/lib/pinball/renderer";
 import type { PinballEngine } from "@/lib/pinball/engine";
+import { resolveChristmas } from "@/lib/christmas";
 
 export function PinballCanvas({ engine, blurred = false }: { engine: PinballEngine; blurred?: boolean }) {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -14,11 +15,18 @@ export function PinballCanvas({ engine, blurred = false }: { engine: PinballEngi
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
-    const renderer = createPinballRenderer(host, engine, theme);
-    rendererRef.current = renderer;
+    let cancelled = false;
+    let renderer: ReturnType<typeof createPinballRenderer> | null = null;
+    // The table is dressed for Christmas when the admin switch (or the Dec 1 - Jan 6 calendar) says so.
+    void resolveChristmas().then((christmas) => {
+      if (cancelled) return;
+      renderer = createPinballRenderer(host, engine, theme, christmas);
+      rendererRef.current = renderer;
+    });
     return () => {
+      cancelled = true;
       rendererRef.current = null;
-      renderer.dispose();
+      renderer?.dispose();
     };
     // Theme changes are applied imperatively by the effect below instead of recreating the renderer.
     // eslint-disable-next-line react-hooks/exhaustive-deps

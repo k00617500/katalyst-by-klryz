@@ -69,7 +69,7 @@ export function Navbar() {
             </Button>
             {/* Where the collapsed music player rests. The space is always reserved, so nothing in the header shifts
                 when the player collapses into it or leaves it. */}
-            <span id="mini-player-slot" aria-hidden className="ml-4 hidden size-[60px] shrink-0 min-[500px]:block" />
+            <span id="mini-player-slot" aria-hidden className="ml-4 hidden size-[60px] shrink-0 min-[1400px]:block" />
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="xl:hidden" aria-label="Open menu">
