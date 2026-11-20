@@ -298,11 +298,13 @@ export function ChristmasTree() {
           ref={panelRef}
           onPointerMove={tilt}
           onPointerLeave={untilt}
-          className="relative overflow-hidden rounded-3xl border border-border bg-[#0a0a0a] transition-transform duration-200 ease-out will-change-transform max-lg:aspect-square lg:aspect-square"
+          className="relative overflow-hidden rounded-3xl border border-border bg-[#0a0a0a] transition-transform duration-200 ease-out will-change-transform"
         >
           <p className="pointer-events-none absolute top-4 left-5 z-10 text-xl leading-[0.95] font-medium tracking-tight text-white sm:text-2xl">
             Merry<br />Christmas<span className="text-[#d8232a]">.</span>
           </p>
+          {/* An in-flow spacer makes the panel a square in every browser (Safari ignores aspect-ratio on boxes whose contents are all absolutely positioned). */}
+          <div aria-hidden="true" className="pb-[100%]" />
           <p
             role="status"
             aria-live="polite"
