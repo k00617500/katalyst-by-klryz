@@ -1,30 +1,33 @@
+export type MoodTone = "positive" | "negative";
+
 export interface MoodOption {
   label: string;
   description: string;
+  tone: MoodTone;
 }
 
 // Visitors pick between MIN_MOODS and MAX_MOODS of these; each picked mood becomes an axis on the chart.
 export const MOOD_OPTIONS: MoodOption[] = [
-  { label: "Happy", description: "Enjoying the overall experience" },
-  { label: "Impressed", description: "Amazed by the quality of work" },
-  { label: "Inspired", description: "Motivated by the projects or achievements" },
-  { label: "Curious", description: "Interested in learning more about the creator" },
-  { label: "Excited", description: "Enthusiastic about the showcased work" },
-  { label: "Interested", description: "Actively engaged with the content" },
-  { label: "Surprised", description: "Encountering something unexpected or impressive" },
-  { label: "Amazed", description: "Experiencing a strong positive impression" },
-  { label: "Confident", description: "Feels assured about the creator's capabilities" },
-  { label: "Trusting", description: "Developing trust in the creator's credibility" },
-  { label: "Admiring", description: "Appreciating the creativity and skills displayed" },
-  { label: "Motivated", description: "Encouraged to explore or take action" },
-  { label: "Engaged", description: "Actively paying attention to the portfolio" },
-  { label: "Confused", description: "Having difficulty understanding the content" },
-  { label: "Overwhelmed", description: "Finding too much information or visual content" },
-  { label: "Bored", description: "Losing interest while browsing" },
-  { label: "Skeptical", description: "Uncertain about the credibility or claims" },
-  { label: "Disappointed", description: "Finding something below expectations" },
-  { label: "Frustrated", description: "Experiencing difficulty navigating the website" },
-  { label: "Indifferent", description: "Showing little apparent interest in the experience" },
+  { label: "Happy", description: "Enjoying the overall experience", tone: "positive" },
+  { label: "Impressed", description: "Amazed by the quality of work", tone: "positive" },
+  { label: "Inspired", description: "Motivated by the projects or achievements", tone: "positive" },
+  { label: "Curious", description: "Interested in learning more about the creator", tone: "positive" },
+  { label: "Excited", description: "Enthusiastic about the showcased work", tone: "positive" },
+  { label: "Interested", description: "Actively engaged with the content", tone: "positive" },
+  { label: "Surprised", description: "Encountering something unexpected or impressive", tone: "positive" },
+  { label: "Amazed", description: "Experiencing a strong positive impression", tone: "positive" },
+  { label: "Confident", description: "Feels assured about the creator's capabilities", tone: "positive" },
+  { label: "Trusting", description: "Developing trust in the creator's credibility", tone: "positive" },
+  { label: "Admiring", description: "Appreciating the creativity and skills displayed", tone: "positive" },
+  { label: "Motivated", description: "Encouraged to explore or take action", tone: "positive" },
+  { label: "Engaged", description: "Actively paying attention to the portfolio", tone: "positive" },
+  { label: "Confused", description: "Having difficulty understanding the content", tone: "negative" },
+  { label: "Overwhelmed", description: "Finding too much information or visual content", tone: "negative" },
+  { label: "Bored", description: "Losing interest while browsing", tone: "negative" },
+  { label: "Skeptical", description: "Uncertain about the credibility or claims", tone: "negative" },
+  { label: "Disappointed", description: "Finding something below expectations", tone: "negative" },
+  { label: "Frustrated", description: "Experiencing difficulty navigating the website", tone: "negative" },
+  { label: "Indifferent", description: "Showing little apparent interest in the experience", tone: "negative" },
 ];
 
 export const MIN_MOODS = 3;

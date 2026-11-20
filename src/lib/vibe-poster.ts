@@ -16,6 +16,8 @@ export interface PosterColors {
   muted: string;
 }
 
+import type { MoodTone } from "@/data/vibe-check";
+
 export interface PosterOptions {
   source: CanvasImageSource | null;
   sourceSize: { w: number; h: number };
@@ -23,8 +25,8 @@ export interface PosterOptions {
   labels: string[];
   /** Animated, fractional ratings (0 - 10) that drive the stretch, one per axis. */
   ratings: number[];
-  /** The ratings the viewer actually chose, used for the average. */
-  finalRatings: number[];
+  /** The qualitative overall review shown after "results :". */
+  review: string;
   username: string;
   blurb: string;
   thumb: CanvasImageSource | null;
@@ -232,7 +234,7 @@ export function drawPoster(ctx: CanvasRenderingContext2D, options: PosterOptions
   ctx.font = `700 50px ${fontFamily}`;
   ctx.fillText(name.length > 18 ? `${name.slice(0, 17)}…` : name, 56, 928);
   ctx.font = `400 28px ${fontFamily}`;
-  ctx.fillText(`results : ${averageRating(options.finalRatings).toFixed(1)} average`, 56, 972);
+  ctx.fillText(`results : ${options.review.toLowerCase()}`, 56, 972);
   ctx.font = `400 22px ${fontFamily}`;
   const lines = wrapText(ctx, options.blurb, 700);
   lines.slice(0, 3).forEach((line, i) => ctx.fillText(line, 56, 1010 + i * 28));
@@ -264,4 +266,23 @@ export function describeVibe(moods: Array<{ label: string; description: string; 
   const lead = `mostly ${first.label.toLowerCase()}: ${first.description.toLowerCase()}.`;
   if (!second) return lead;
   return second.rating === first.rating ? `${lead} also just as ${second.label.toLowerCase()}.` : `${lead} with a side of ${second.label.toLowerCase()}.`;
+}
+
+export interface OverallReview {
+  label: string;
+  /** -1 (all negative) to 1 (all positive), weighted by how strongly each mood was rated. */
+  score: number;
+}
+
+/** Qualitative overall review from the picked moods: positive moods lift it, negative moods pull it down. */
+export function overallReview(moods: Array<{ tone: MoodTone; rating: number }>): OverallReview {
+  const total = moods.reduce((sum, mood) => sum + mood.rating, 0);
+  if (!total) return { label: "Not enough to go on yet", score: 0 };
+  const score = moods.reduce((sum, mood) => sum + (mood.tone === "positive" ? mood.rating : -mood.rating), 0) / total;
+  return { label: overallReviewFromScore(score), score };
+}
+
+/** Qualitative label for a -1..1 sentiment score. */
+export function overallReviewFromScore(score: number) {
+  return score >= 0.7 ? "Overwhelmingly positive" : score >= 0.35 ? "Positive" : score > -0.35 ? "Mixed feelings" : score > -0.7 ? "Leaning negative" : "Negative";
 }

@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // The key stays on the server (GEMINI_API_KEY) and the photo is never stored.
 const MAX_BYTES = 8 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png"]);
-// Tried in order; Gemini models are sometimes busy, so each gets a short timeout and one retry.
+// Tried in order; Gemini models are sometimes busy, so each gets a short timeout. The client never waits long for this.
 const MODELS = ["gemini-3.8-flash", "gemini-flash-latest"];
 const WINDOW_MS = 60_000;
 const MAX_PER_WINDOW = 8;
@@ -47,13 +47,13 @@ export async function POST(request: NextRequest) {
   });
 
   for (const model of MODELS) {
-    for (let attempt = 0; attempt < (model === MODELS[0] ? 2 : 1); attempt++) {
+    for (let attempt = 0; attempt < 1; attempt++) {
       try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-goog-api-key": apiKey },
           body,
-          signal: AbortSignal.timeout(7_000),
+          signal: AbortSignal.timeout(model === MODELS[0] ? 4_000 : 3_000),
         });
         if (response.status === 503 || response.status === 429) continue;
         if (!response.ok) break;

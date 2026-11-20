@@ -22,8 +22,6 @@ async function callRemoveBg(apiKey: string, file: Blob, size: "auto" | "preview"
   body.append("image_file", file, "selfie");
   body.append("size", size);
   body.append("format", "png");
-  body.append("crop", "true");
-  body.append("crop_margin", "4%");
   return fetch("https://api.remove.bg/v1.0/removebg", { method: "POST", headers: { "X-Api-Key": apiKey }, body });
 }
 

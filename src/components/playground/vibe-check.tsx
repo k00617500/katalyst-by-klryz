@@ -5,8 +5,9 @@ import Image from "next/image";
 import { Dialog } from "radix-ui";
 import { ArrowLeft, ArrowRight, Download, Loader2, RotateCcw, ShieldCheck, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { VibeKpis } from "@/components/playground/vibe-kpis";
 import { DEFAULT_RATING, MAX_MOODS, MIN_MOODS, MOOD_OPTIONS, memojiSrc, vibeMemojis } from "@/data/vibe-check";
-import { POSTER_H, POSTER_W, colorsForBackground, describeVibe, drawPoster, type PosterColors } from "@/lib/vibe-poster";
+import { POSTER_H, POSTER_W, colorsForBackground, describeVibe, drawPoster, overallReview, type PosterColors } from "@/lib/vibe-poster";
 
 type Step = "name" | "face" | "moods" | "rate" | "loading" | "result";
 type Selection = { kind: "memoji"; id: string } | { kind: "upload"; file: File; previewUrl: string };
@@ -79,16 +80,16 @@ const posterFont = () => getComputedStyle(document.body).fontFamily;
 const toBlob = (canvas: HTMLCanvasElement, type: string, quality?: number) =>
   new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("encode"))), type, quality));
 
-/** Downsizes (and strips EXIF from) the photo before it leaves the browser. */
-async function toUploadBlob(file: File) {
+/** Downsizes (and strips EXIF from) the photo before it leaves the browser. Smaller uploads mean faster results. */
+async function toUploadBlob(file: Blob, maxSide = 1024, quality = 0.88) {
   const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(bitmap.width * scale);
   canvas.height = Math.round(bitmap.height * scale);
   canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close();
-  return toBlob(canvas, "image/jpeg", 0.9);
+  return toBlob(canvas, "image/jpeg", quality);
 }
 
 /** Draws the cut-out onto a transparent square so stretching never squashes the subject. */
@@ -102,11 +103,24 @@ async function cutoutToCanvas(blob: Blob) {
     canvas.width = canvas.height = side;
     const w = image.naturalWidth * scale;
     const h = image.naturalHeight * scale;
-    canvas.getContext("2d")!.drawImage(image, (side - w) / 2, (side - h) / 2, w, h);
-    return canvas;
+    const offsetX = (side - w) / 2;
+    const offsetY = (side - h) / 2;
+    canvas.getContext("2d")!.drawImage(image, offsetX, offsetY, w, h);
+    return { canvas, side, offsetX, offsetY, w, h };
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+/** Gemini's box is relative to the photo; this maps it onto the square canvas the cut-out was drawn on. */
+function boxOnCanvas(box: number[], placement: { side: number; offsetX: number; offsetY: number; w: number; h: number }) {
+  const { side, offsetX, offsetY, w, h } = placement;
+  return [
+    ((offsetY + (box[0] / 1000) * h) / side) * 1000,
+    ((offsetX + (box[1] / 1000) * w) / side) * 1000,
+    ((offsetY + (box[2] / 1000) * h) / side) * 1000,
+    ((offsetX + (box[3] / 1000) * w) / side) * 1000,
+  ];
 }
 
 /** Bounding box of the visible (non-transparent) pixels. */
@@ -158,19 +172,20 @@ function cropToHead(canvas: HTMLCanvasElement, box: number[] | null): Sized {
   return { source: result, w: out, h: out };
 }
 
-function PosterCanvas({ face, username, labels, values, blurb, placeholder, resetKey, background }: {
+function PosterCanvas({ face, username, labels, values, blurb, review, placeholder, resetKey, background }: {
   face: Sized | null;
   username: string;
   labels: string[];
   values: number[];
   blurb: string;
+  review: string;
   placeholder?: string;
   resetKey: number;
   background: string | null;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const current = useRef<number[]>([...values]);
-  const latest = useRef({ face, username, labels, values, blurb, placeholder, background });
+  const latest = useRef({ face, username, labels, values, blurb, review, placeholder, background });
   const frame = useRef(0);
   const lastReset = useRef(resetKey);
 
@@ -178,7 +193,7 @@ function PosterCanvas({ face, username, labels, values, blurb, placeholder, rese
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
-    const { face: faceNow, username: name, labels: axes, values: target, blurb: text, placeholder: hint, background: bg } = latest.current;
+    const { face: faceNow, username: name, labels: axes, blurb: text, review: verdict, placeholder: hint, background: bg } = latest.current;
     const scale = canvas.width / POSTER_W;
     ctx.setTransform(scale, 0, 0, scale, 0, 0);
     drawPoster(ctx, {
@@ -188,7 +203,7 @@ function PosterCanvas({ face, username, labels, values, blurb, placeholder, rese
       thumbSize: { w: faceNow?.w ?? 1, h: faceNow?.h ?? 1 },
       labels: axes,
       ratings: current.current,
-      finalRatings: target,
+      review: verdict,
       username: name,
       blurb: text,
       colors: readColors(bg),
@@ -218,7 +233,7 @@ function PosterCanvas({ face, username, labels, values, blurb, placeholder, rese
 
   const valuesKey = `${labels.join("|")}#${values.join()}`;
   useEffect(() => {
-    latest.current = { face, username, labels, values, blurb, placeholder, background };
+    latest.current = { face, username, labels, values, blurb, review, placeholder, background };
     if (lastReset.current !== resetKey) {
       lastReset.current = resetKey;
       current.current = values.map(() => 0.4);
@@ -249,7 +264,7 @@ function PosterCanvas({ face, username, labels, values, blurb, placeholder, rese
     step(last);
     return () => cancelAnimationFrame(frame.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [face, username, valuesKey, blurb, placeholder, resetKey, background, draw]);
+  }, [face, username, valuesKey, blurb, review, placeholder, resetKey, background, draw]);
 
   useEffect(() => {
     const observer = new MutationObserver(() => draw());
@@ -301,6 +316,8 @@ export function VibeCheck() {
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [moodHint, setMoodHint] = useState("");
   const [background, setBackground] = useState<string | null>(null);
+  const [kpiKey, setKpiKey] = useState(0);
+  const submitted = useRef(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [privacyOk, setPrivacyOk] = useState(false);
   const [removal, setRemoval] = useState<Removal>("idle");
@@ -341,6 +358,7 @@ export function VibeCheck() {
   const labels = hasAxes ? chosen.map((mood) => mood.label) : NEUTRAL_LABELS;
   const values = hasAxes ? chosen.map((mood) => mood.rating) : NEUTRAL_VALUES;
   const blurb = hasAxes ? describeVibe(chosen) : "";
+  const review = hasAxes ? overallReview(chosen).label : "waiting on your moods";
 
   const chooseFile = () => {
     if (privacyOk) fileInput.current?.click();
@@ -353,12 +371,27 @@ export function VibeCheck() {
     fileInput.current?.click();
   };
 
-  /** Cuts out the background, then finds the head (Gemini) and keeps just that. */
+  /**
+   * Cuts out the background (remove.bg) while Gemini finds the head at the same time, then keeps just the head.
+   * Gemini never holds things up: if it hasn't answered by the time the cut-out is back, a head-first crop is used.
+   */
   const startRemoval = (file: File) => {
     setRemoval("cutting");
     const job = (async () => {
       try {
-        const photo = await toUploadBlob(file);
+        const photo = await toUploadBlob(file, 1024);
+        const detectPromise: Promise<number[] | null> = (async () => {
+          try {
+            const small = await toUploadBlob(photo, 512, 0.8);
+            const detect = new FormData();
+            detect.append("image", small, "photo.jpg");
+            const reply = await fetch("/api/detect-head", { method: "POST", body: detect });
+            return reply.ok ? ((await reply.json())?.box ?? null) : null;
+          } catch {
+            return null;
+          }
+        })();
+
         const body = new FormData();
         body.append("image", photo, "photo.jpg");
         const response = await fetch("/api/remove-bg", { method: "POST", body });
@@ -366,16 +399,10 @@ export function VibeCheck() {
           const message = (await response.json().catch(() => null))?.error;
           throw new Error(message || "Couldn't cut out that photo.");
         }
-        const subject = await cutoutToCanvas(await response.blob());
+        const placement = await cutoutToCanvas(await response.blob());
         setRemoval("finding");
-        let box: number[] | null = null;
-        try {
-          const detect = new FormData();
-          detect.append("image", await toBlob(subject, "image/png"), "subject.png");
-          const reply = await fetch("/api/detect-head", { method: "POST", body: detect });
-          if (reply.ok) box = (await reply.json())?.box ?? null;
-        } catch { /* fall back to a head-first crop */ }
-        setCutout(cropToHead(subject, box));
+        const box = await Promise.race([detectPromise, new Promise<null>((resolve) => setTimeout(() => resolve(null), 900))]);
+        setCutout(cropToHead(placement.canvas, box ? boxOnCanvas(box, placement) : null));
         setRemoval("done");
         return true;
       } catch (reason) {
@@ -412,6 +439,15 @@ export function VibeCheck() {
     if (!ok || stepRef.current !== "loading") return;
     setResetKey((value) => value + 1);
     setStep("result");
+    if (!submitted.current && chosen.length >= MIN_MOODS) {
+      // Save the finished result anonymously (moods + ratings only), then refresh the KPI graphs.
+      submitted.current = true;
+      void fetch("/api/vibe-results", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ moods: chosen.map((mood) => ({ label: mood.label, rating: mood.rating })) }),
+      }).then(() => setKpiKey((value) => value + 1)).catch(() => {});
+    }
   };
 
   const restart = () => {
@@ -423,6 +459,7 @@ export function VibeCheck() {
     setPicked([]);
     setRatings({});
     setBackground(null);
+    submitted.current = false;
     setRemoval("idle");
     setError("");
     removalPromise.current = null;
@@ -443,7 +480,7 @@ export function VibeCheck() {
       thumbSize: { w: face.w, h: face.h },
       labels,
       ratings: values,
-      finalRatings: values,
+      review,
       username,
       blurb,
       colors: readColors(background),
@@ -619,7 +656,7 @@ export function VibeCheck() {
         </div>
 
         <div className="relative aspect-square overflow-hidden rounded-3xl border border-border bg-background">
-          <PosterCanvas face={face} username={username} labels={labels} values={values} blurb={blurb} placeholder={placeholder} resetKey={resetKey} background={background} />
+          <PosterCanvas face={face} username={username} labels={labels} values={values} blurb={blurb} review={review} placeholder={placeholder} resetKey={resetKey} background={background} />
           {step === "loading" && (
             <div className="absolute inset-0 grid place-items-center bg-background/80" aria-hidden="true">
               <Loader2 className="size-9 animate-spin text-brand-ink" />
@@ -627,6 +664,8 @@ export function VibeCheck() {
           )}
         </div>
       </div>
+
+      <VibeKpis refreshKey={kpiKey} />
 
       <Dialog.Root open={privacyOpen} onOpenChange={setPrivacyOpen}>
         <Dialog.Portal>

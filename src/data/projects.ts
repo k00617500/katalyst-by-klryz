@@ -143,7 +143,7 @@ const projectEntries: Project[] = [
   {
     slug: "asenxo",
     title: "ASENXO",
-    liveUrl: "http://asenxo-main.vercel.app/",
+    liveUrl: "https://asenxo-main.vercel.app/",
     shortDescription:
       "Empowering smarter enterprises — a project management system for the DOST SETUP 4.0 iFund Program, combining GIS spatial analysis with MSME financial projection.",
     categories: ["web-development", "research-innovation"],
