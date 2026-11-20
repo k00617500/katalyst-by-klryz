@@ -132,7 +132,7 @@ export function MiniPlayer({ visible }: { visible: boolean }) {
             <AnimatePresence mode="popLayout" initial={false}>
               <motion.div key={song.cover || song.id} className="absolute inset-0" initial={{ opacity: 0, scale: 1.12 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.35 }}>
                 {song.cover
-                  ? <Image src={song.cover} alt={`${song.title} cover art`} width={88} height={88} className="size-full object-cover" draggable={false} />
+                  ? <Image src={song.cover} alt={`${song.title} cover art`} width={88} height={88} unoptimized priority className="size-full object-cover" draggable={false} />
                   : <div className="grid size-full place-items-center text-muted-foreground"><Music2 className="size-5" aria-hidden="true" /></div>}
               </motion.div>
             </AnimatePresence>

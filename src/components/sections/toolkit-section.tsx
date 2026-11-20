@@ -206,6 +206,8 @@ export function ToolkitSection() {
               {song.cover ? <Image
                 key={song.cover}
                 src={song.cover}
+                unoptimized
+                priority
                 alt={`${song.title} cover art`}
                 width={64}
                 height={64}

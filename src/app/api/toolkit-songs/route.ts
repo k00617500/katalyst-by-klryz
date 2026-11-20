@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { toolkitSongs } from "@/data/toolkit-songs";
 
 // Live view of the Spotify playlist: titles/artists from the public embed page, and album art per track from
 // Spotify's oEmbed endpoint. Both are cached briefly so edits to the playlist appear within about a minute.
@@ -40,7 +41,10 @@ export async function GET() {
       return id && track.title ? [{ id, title: track.title, artist: track.subtitle ?? "" }] : [];
     });
 
-    const songs = await Promise.all(base.map(async (song) => ({ ...song, cover: await fetchCover(song.id) })));
+    // Covers we already know come straight from the built-in list; only new tracks need an oEmbed lookup, so the
+    // response is fast instead of waiting on a hundred Spotify requests.
+    const known = new Map(toolkitSongs.map((song) => [song.id, song.cover]));
+    const songs = await Promise.all(base.map(async (song) => ({ ...song, cover: known.get(song.id) || (await fetchCover(song.id)) })));
     return NextResponse.json({ songs }, { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" } });
   } catch {
     return NextResponse.json({ error: "unavailable" }, { status: 502 });
