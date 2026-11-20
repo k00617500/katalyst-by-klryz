@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
-import { Eraser, Save, Undo2 } from "lucide-react";
+import { Eraser, Music2, Save, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -51,6 +51,9 @@ export function ChristmasTree() {
   const [hint, setHint] = useState("");
   // Random Christmas instrumentals start once the visitor begins decorating, and play while the card is shown.
   const sectionRef = useRef<HTMLElement>(null);
+  // A line that appears when the first ornament goes up, announcing the music.
+  const [melodyNote, setMelodyNote] = useState(false);
+  const melodyTimer = useRef(0);
   const [inSection, setInSection] = useState(false);
   const music = useChristmasMusic(active && (cardOpen || (inSection && ornaments.length > 0)), active);
 
@@ -133,6 +136,11 @@ export function ChristmasTree() {
   const onDown = (event: PointerEvent<HTMLCanvasElement>) => {
     if (event.button !== 0 || !width) return;
     music.unlock(); // the click that hangs an ornament also lets the browser start the music
+    if (ornaments.length === 0) {
+      setMelodyNote(true);
+      window.clearTimeout(melodyTimer.current);
+      melodyTimer.current = window.setTimeout(() => setMelodyNote(false), 9000);
+    }
     const { u, v } = point(event);
     const existing = hitOrnament(ornaments, u, v, width);
     if (existing) {
@@ -294,6 +302,14 @@ export function ChristmasTree() {
         >
           <p className="pointer-events-none absolute top-4 left-5 z-10 text-xl leading-[0.95] font-medium tracking-tight text-white sm:text-2xl">
             Merry<br />Christmas<span className="text-[#d8232a]">.</span>
+          </p>
+          <p
+            role="status"
+            aria-live="polite"
+            className={`pointer-events-none absolute inset-x-4 bottom-4 z-10 flex items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 py-2.5 text-center text-sm leading-snug text-white backdrop-blur-md transition-all duration-700 ${melodyNote ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"}`}
+          >
+            <Music2 className="size-4 shrink-0" aria-hidden="true" />
+            <span>Do you hear that? Listen to December&apos;s Melody and feel the Christmas in the Air!</span>
           </p>
           <div className="absolute inset-0 flex items-center justify-center p-1.5">
             <div ref={boxRef} className="relative h-full max-w-full" style={{ aspectRatio: String(TREE_ASPECT) }}>
