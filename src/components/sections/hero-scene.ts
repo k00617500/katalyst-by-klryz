@@ -15,7 +15,7 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 60);
-  camera.position.set(0, 0, 9.2);
+  camera.position.set(0, 0, 10.6);
   const pmrem = new THREE.PMREMGenerator(renderer);
   const room = new RoomEnvironment();
   const environment = pmrem.fromScene(room, 0.04);
@@ -32,16 +32,18 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
 
   const sculpture = new THREE.Group();
   scene.add(sculpture);
-  const lime = new THREE.MeshPhysicalMaterial({ color: 0xb6f500, metalness: 0.32, roughness: 0.24, clearcoat: 1 });
-  const lilac = new THREE.MeshPhysicalMaterial({ color: 0xa98aff, metalness: 0.48, roughness: 0.18, clearcoat: 1, iridescence: 0.55 });
-  const chrome = new THREE.MeshStandardMaterial({ color: 0xe6e9e0, metalness: 1, roughness: 0.14 });
-  const dark = new THREE.MeshPhysicalMaterial({ color: 0x15171a, metalness: 0.55, roughness: 0.22, clearcoat: 1 });
-  const glass = new THREE.MeshPhysicalMaterial({ color: 0x0a1226, metalness: 0.9, roughness: 0.04, clearcoat: 1, iridescence: 0.8 });
-  const materials = [lime, lilac, chrome, dark, glass];
+  // Natural colours: graphite mouse, navy pen, ivory pawn, black-and-silver camera.
+  const graphite = new THREE.MeshPhysicalMaterial({ color: 0x24272b, metalness: 0.35, roughness: 0.32, clearcoat: 0.7, clearcoatRoughness: 0.25 });
+  const navy = new THREE.MeshPhysicalMaterial({ color: 0x1b2f6b, metalness: 0.3, roughness: 0.28, clearcoat: 1 });
+  const ivory = new THREE.MeshPhysicalMaterial({ color: 0xece2c8, metalness: 0.05, roughness: 0.38, clearcoat: 0.6 });
+  const chrome = new THREE.MeshStandardMaterial({ color: 0xdfe2e6, metalness: 1, roughness: 0.16 });
+  const dark = new THREE.MeshPhysicalMaterial({ color: 0x101214, metalness: 0.5, roughness: 0.26, clearcoat: 1 });
+  const glass = new THREE.MeshPhysicalMaterial({ color: 0x0b1424, metalness: 0.85, roughness: 0.05, clearcoat: 1 });
+  const materials = [graphite, navy, ivory, chrome, dark, glass];
 
   // ---- Computer mouse -------------------------------------------------------------------------------------------
   const mouse = new THREE.Group();
-  const mouseBody = new THREE.Mesh(new THREE.SphereGeometry(1, 56, 36), lilac);
+  const mouseBody = new THREE.Mesh(new THREE.SphereGeometry(1, 56, 36), graphite);
   mouseBody.scale.set(0.9, 0.55, 1.45);
   mouse.add(mouseBody);
   const surfaceY = (z: number) => 0.55 * Math.sqrt(Math.max(0, 1 - (z / 1.45) ** 2));
@@ -54,7 +56,7 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
   wheel.rotation.x = Math.PI / 2;
   wheel.position.set(0, surfaceY(-0.5) + 0.018, -0.5);
   mouse.add(wheel);
-  mouse.scale.setScalar(1.05);
+  mouse.scale.setScalar(0.9);
 
   // ---- Chess pawn -----------------------------------------------------------------------------------------------
   const pawn = new THREE.Group();
@@ -62,18 +64,18 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
     [0, 0], [0.6, 0], [0.64, 0.07], [0.58, 0.15], [0.42, 0.24], [0.27, 0.42], [0.2, 0.78], [0.22, 0.92],
     [0.4, 0.99], [0.42, 1.08], [0.27, 1.12], [0.22, 1.18], [0, 1.2],
   ].map(([x, y]) => new THREE.Vector2(x, y));
-  pawn.add(new THREE.Mesh(new THREE.LatheGeometry(profile, 56), lime));
-  const pawnHead = new THREE.Mesh(new THREE.SphereGeometry(0.4, 40, 28), lime);
+  pawn.add(new THREE.Mesh(new THREE.LatheGeometry(profile, 56), ivory));
+  const pawnHead = new THREE.Mesh(new THREE.SphereGeometry(0.4, 40, 28), ivory);
   pawnHead.position.y = 1.5;
   pawn.add(pawnHead);
   pawn.position.y = -0.7;
-  pawn.scale.setScalar(1.35);
+  pawn.scale.setScalar(1.1);
   const pawnHolder = new THREE.Group();
   pawnHolder.add(pawn);
 
   // ---- Pen ------------------------------------------------------------------------------------------------------
   const pen = new THREE.Group();
-  const penBody = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 2.1, 40), lime);
+  const penBody = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 2.1, 40), navy);
   pen.add(penBody);
   const penTip = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.5, 40), chrome);
   penTip.position.y = -1.3;
@@ -93,24 +95,24 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
   const penClip = new THREE.Mesh(new RoundedBoxGeometry(0.05, 0.9, 0.08, 3, 0.02), chrome);
   penClip.position.set(0.16, 1.1, 0);
   pen.add(penClip);
-  pen.scale.setScalar(1.35);
+  pen.scale.setScalar(1.1);
 
   // ---- Camera ---------------------------------------------------------------------------------------------------
   const cam = new THREE.Group();
-  cam.add(new THREE.Mesh(new RoundedBoxGeometry(2.3, 1.45, 0.95, 6, 0.14), lilac));
+  cam.add(new THREE.Mesh(new RoundedBoxGeometry(2.3, 1.45, 0.95, 6, 0.14), dark));
   const topPlate = new THREE.Mesh(new RoundedBoxGeometry(2.3, 0.32, 0.95, 6, 0.12), chrome);
   topPlate.position.y = 0.62;
   cam.add(topPlate);
   const hump = new THREE.Mesh(new RoundedBoxGeometry(0.7, 0.3, 0.6, 5, 0.1), chrome);
   hump.position.set(-0.55, 0.9, 0);
   cam.add(hump);
-  const shutter = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.1, 28), lime);
+  const shutter = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.1, 28), chrome);
   shutter.position.set(0.75, 0.82, 0);
   cam.add(shutter);
   const flash = new THREE.Mesh(new RoundedBoxGeometry(0.4, 0.26, 0.08, 3, 0.03), glass);
   flash.position.set(0.7, 0.25, 0.46);
   cam.add(flash);
-  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.64, 0.5, 56), dark);
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.64, 0.5, 56), graphite);
   barrel.rotation.x = Math.PI / 2;
   barrel.position.set(-0.1, -0.02, 0.7);
   cam.add(barrel);
@@ -121,11 +123,7 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
   lensGlass.rotation.x = Math.PI / 2;
   lensGlass.position.set(-0.1, -0.02, 0.9);
   cam.add(lensGlass);
-  cam.scale.setScalar(1.1);
-
-  const satellite = new THREE.Mesh(new THREE.SphereGeometry(0.19, 24, 18), lime);
-  const orbit = new THREE.Mesh(new THREE.TorusGeometry(2.9, 0.009, 6, 120), chrome);
-  orbit.rotation.set(1.05, 0.3, -0.35);
+  cam.scale.setScalar(0.92);
 
   // Slots the props rest in; Remix deals the props into the next slot.
   const slots = [
@@ -145,8 +143,6 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
     object.rotation.copy(rotation);
     sculpture.add(object);
   });
-  satellite.position.set(2.3, -1.9, 0.4);
-  sculpture.add(satellite, orbit);
 
   const pointer = new THREE.Vector2();
   const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -163,7 +159,7 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
   let previous = 0;
   let scrollShift = 0;
   let spinUntil = 0;
-  const propTurn = props.map(() => ({ current: 0, target: 0 }));
+  const propTurn = props.map(() => ({ current: new THREE.Vector3(), target: new THREE.Vector3() }));
 
   function render(timestamp: number) {
     const delta = previous ? Math.min((timestamp - previous) / 1000, 0.05) : 0;
@@ -180,9 +176,11 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
       object.position.x = THREE.MathUtils.lerp(object.position.x, slot.x, ease);
       object.position.z = THREE.MathUtils.lerp(object.position.z, slot.z, ease);
       object.position.y = THREE.MathUtils.lerp(object.position.y, slot.y + Math.sin(time * 0.75 + index * 1.4) * (reduced ? 0 : 0.14), ease);
-      propTurn[index].current = THREE.MathUtils.lerp(propTurn[index].current, propTurn[index].target, propEase);
-      object.rotation.y = rotation.y + Math.sin(time * 0.45 * spin + index) * 0.55 + propTurn[index].current;
-      object.rotation.x = rotation.x + Math.sin(time * 0.3 + index * 2) * 0.06;
+      propTurn[index].current.lerp(propTurn[index].target, propEase);
+      const extra = propTurn[index].current;
+      object.rotation.y = rotation.y + Math.sin(time * 0.45 * spin + index) * 0.55 + extra.y;
+      object.rotation.x = rotation.x + Math.sin(time * 0.3 + index * 2) * 0.06 + extra.x;
+      object.rotation.z = rotation.z + extra.z;
     });
     renderer.render(scene, camera);
   }
@@ -195,7 +193,7 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
     const { width, height } = host.getBoundingClientRect();
     if (!width || !height) return;
     camera.aspect = width / height;
-    camera.position.z = camera.aspect < 0.85 ? 12 : 9.2;
+    camera.position.z = camera.aspect < 0.85 ? 13.5 : 10.6;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
     render(performance.now());
@@ -220,12 +218,19 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
     canvas.setPointerCapture(event.pointerId);
   }
   function up() { dragging = false; }
-  // Double-click: the whole desk and every prop spin fast, then settle back into place.
+  // Double-click: the whole desk and every prop spin fast in random directions (and tumble on random axes), then settle.
+  const randomSign = () => (Math.random() < 0.5 ? -1 : 1);
+  const randomTurns = (min: number, max: number) => randomSign() * (min + Math.random() * (max - min)) * Math.PI;
   function spinFast() {
     if (reduced) return;
     spinUntil = time + 1.6;
-    turn += Math.PI * 4;
-    propTurn.forEach((state, index) => { state.target += Math.PI * 4 * (index % 2 ? -1 : 1); });
+    turn += randomTurns(2, 4);
+    tilt = THREE.MathUtils.clamp(tilt + (Math.random() - 0.5) * 0.8, -0.7, 0.7);
+    propTurn.forEach(state => {
+      state.target.y += randomTurns(2, 5);
+      state.target.x += Math.random() < 0.6 ? randomTurns(0, 3) : 0;
+      state.target.z += Math.random() < 0.4 ? randomTurns(0, 2) : 0;
+    });
     if (paused) render(performance.now());
   }
   function scroll() {

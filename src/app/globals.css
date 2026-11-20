@@ -355,7 +355,7 @@
 @keyframes carousel-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
 .hero-playground { position: relative; min-width: 0; width: 100%; isolation: isolate; }
-.hero-art-stage { position: relative; height: clamp(360px, 42vw, 620px); }
+.hero-art-stage { position: relative; height: clamp(300px, 33vw, 500px); }
 .hero-art-stage::before { content: ""; position: absolute; inset: 12% 0; border-radius: 50%; background: radial-gradient(ellipse, color-mix(in srgb, var(--brand) 10%, transparent), transparent 68%); pointer-events: none; }
 .hero-canvas { position: absolute; inset: 0; cursor: grab; touch-action: pan-y; }
 .hero-canvas:active { cursor: grabbing; }
@@ -373,7 +373,7 @@
 .hero-fallback-orb { position: absolute; bottom: 3%; left: 14%; width: 30%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at 30% 20%, white, #b3b6af 25%, #252b25 55%, #c0c9b5 85%); }
 @media (max-width: 1023px) and (min-width: 640px) {
   .hero-playground { max-width: 560px; align-self: center; justify-self: center; }
-  .hero-art-stage { height: 460px; }
+  .hero-art-stage { height: 380px; }
 }
 @media (max-width: 639px) {
   .hero-playground { margin-top: 12px; }
