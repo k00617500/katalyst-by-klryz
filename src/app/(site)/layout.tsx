@@ -1,4 +1,5 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { MusicProvider } from "@/components/providers/music-provider";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { ScrollProgress } from "@/components/animations/scroll-progress";
@@ -11,6 +12,7 @@ import { PageViewTracker } from "@/components/analytics/page-view-tracker";
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
     <TooltipProvider delayDuration={150}>
+      <MusicProvider>
       <PageViewTracker />
       <Preloader />
       <ScrollProgress />
@@ -20,6 +22,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
       <BackToTop />
       <CursorStamps />
       <SiteParallax />
+      </MusicProvider>
     </TooltipProvider>
   );
 }
