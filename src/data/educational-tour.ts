@@ -29,7 +29,7 @@ export const tourVisits: TourVisit[] = [
   {
     icon: Siren,
     company: "Mandaue City Command Center",
-    place: "Brgy. Centro (Poblacion), Mandaue City, Cebu, PH",
+    place: "P. Zamora St, Brgy. Centro, Mandaue City, Cebu, PH",
     insight:
       "The least “IT company” stop, and that's why it stuck. CCTV, flood sensors, and traffic data on one screen made it clear that public infrastructure is an information system too. With their solid base, adding AI and smart analytics could take it even further.",
   },
@@ -43,7 +43,7 @@ export const tourVisits: TourVisit[] = [
   {
     icon: Sparkles,
     company: "Sansan Global Development Center",
-    place: "Cebu, PH",
+    place: "Unit 1101, 11F 1 Nito Tower, Archbishop Reyes Ave, Brgy. Lahug, Cebu City, Cebu, PH",
     insight:
       "A modern workplace I could picture myself in. Their roughly 70% AI-assisted coding stood out: the skill to build is reviewing, judging, and refining what AI produces, not just writing from scratch. I'd love to work there someday.",
   },
@@ -57,7 +57,7 @@ export const tourVisits: TourVisit[] = [
   {
     icon: Rocket,
     company: "Cebu Business Incubator for IT (CeBu InIT), UP Cebu",
-    place: "UP Arts & Sciences Bldg, Gorordo Ave, Brgy. Lahug, Cebu City, Cebu, PH",
+    place: "Gorordo Ave, Brgy. Lahug, Cebu City, Cebu, PH",
     insight:
       "Seeing how a startup's survival depends on customer feedback made entrepreneurship feel much less abstract. It's a path I hadn't seriously considered, and it's the process I'd follow if my team and I build something of our own.",
   },

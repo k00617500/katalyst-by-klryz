@@ -44,37 +44,22 @@ function GalleryPhoto({ item, itemIndex, count, phase, selected, onHover, onOpen
   onOpen: () => void;
   onWarm: () => void;
 }) {
-  // Negative offsets are photos already passed (left, where they are pulled into the "black hole"); positive are arriving.
-  const offset = useTransform(phase, (value) => wrap(itemIndex - value + count / 2, count) - count / 2);
-  // Fisheye spacing: slots crowd together toward the edges, and more steeply on the exit side.
-  const x = useTransform(offset, (value) => {
-    const distance = Math.abs(value);
-    const squeeze = 1 - Math.exp(-(value < 0 ? 0.62 : 0.43) * distance);
-    return `calc(-50% + ${Math.sign(value) * squeeze * 52}cqw)`;
-  });
-  const scale = useTransform(offset, (value) => Math.exp(-(value < 0 ? 0.36 : 0.26) * Math.abs(value)) * 1.12);
-  // Photos always face the viewer. The lens curve lives in the frame: the outer edge is trimmed so the
-  // top and bottom slope away from the centre, like the reference strip.
-  const clipPath = useTransform(offset, (value) => {
-    const inset = Math.min(15, Math.abs(value) * 6.5);
-    return value >= 0
-      ? `polygon(0% 0%, 100% ${inset}%, 100% ${100 - inset}%, 0% 100%)`
-      : `polygon(0% ${inset}%, 100% 0%, 100% 100%, 0% ${100 - inset}%)`;
-  });
-  const rotateZ = useTransform(offset, (value) => Math.max(-4, Math.min(4, -value * 1.3)) - 1);
-  const opacity = useTransform(offset, (value) => {
-    const distance = Math.abs(value);
-    return clamp01(value < 0 ? (4.3 - distance) / 1.7 : (5.4 - distance) / 1.6);
-  });
-  const zIndex = useTransform(offset, (value) => 1000 - Math.round(Math.abs(value) * 100));
-  const pointerEvents = useTransform(offset, (value) => (Math.abs(value) > 3.6 ? "none" : "auto"));
+  // The photos stand in one diagonal row, like cases in a rack, receding toward the upper right. `depth` grows as a
+  // photo travels away from the viewer: it slides up the diagonal, shrinks, fades, and is pulled into the distance.
+  const depth = useTransform(phase, (value) => wrap(value - itemIndex + count / 2, count) - count / 2);
+  const x = useTransform(depth, (value) => `calc(-50% + ${(value - 3.5) * 5}cqw)`);
+  const y = useTransform(depth, (value) => `calc(-50% - ${(value - 3.5) * 3.6 + 1}cqh)`);
+  const z = useTransform(depth, (value) => -value * 16);
+  const opacity = useTransform(depth, (value) => clamp01(Math.min((value + 3.6) / 1.4, (14 - value) / 3.5)));
+  const zIndex = useTransform(depth, (value) => 1000 - Math.round(value * 10));
+  const pointerEvents = useTransform(depth, (value) => (value < -2 || value > 10 ? "none" : "auto"));
   return (
     <motion.button type="button" className="playground-photo"
       aria-label={`Preview ${item.title}`} aria-current={selected ? "true" : undefined}
       tabIndex={selected ? 0 : -1}
       onMouseEnter={() => { onHover(true); onWarm(); }} onMouseLeave={() => onHover(false)}
       onClick={onOpen}
-      style={{ x, y: "-50%", scale, rotateZ, clipPath, opacity, zIndex, pointerEvents }}>
+      style={{ x, y, z, rotateY: -52, opacity, zIndex, pointerEvents }}>
       <Image src={item.image} alt="" fill loading="eager" sizes={THUMB_SIZES} draggable={false} className="pointer-events-none object-cover" />
     </motion.button>
   );
@@ -180,7 +165,7 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
             onWarm={() => warmPreview(item)}
             onOpen={() => { warmPreview(item); select(itemIndex); setOpen(true); }} />
         ))}
-        <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 z-[300] w-[16%] bg-[radial-gradient(ellipse_90%_34%_at_0%_48%,#000_25%,transparent_75%)]" />
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-[300] bg-[radial-gradient(ellipse_22%_30%_at_88%_14%,#000_20%,transparent_75%)]" />
       </div>
       <div className="playground-bottom">
         <div className="flex items-center gap-2">

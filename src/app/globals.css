@@ -315,8 +315,8 @@
   from { background-position: 0 0, 0 0, 0 0, 40px 60px; }
   to { background-position: 0 0, 0 0, -300px -300px, -300px 400px; }
 }
-.playground-rail { position: absolute; inset: 0; perspective: 1100px; perspective-origin: 50% 48%; container-type: size; }
-.playground-photo { position: absolute; top: 48%; left: 50%; width: clamp(150px, 22cqw, 300px); aspect-ratio: 4 / 5; cursor: zoom-in; background: var(--muted); box-shadow: 0 18px 40px #0008; border: 0; padding: 0; overflow: hidden; border-radius: 3px; will-change: transform, opacity; }
+.playground-rail { position: absolute; inset: 0; perspective: 1300px; perspective-origin: 50% 50%; container-type: size; }
+.playground-photo { position: absolute; top: 50%; left: 50%; width: clamp(160px, 19cqw, 290px); aspect-ratio: 4 / 5; cursor: zoom-in; background: var(--muted); box-shadow: 0 18px 40px #0008; border: 0; padding: 0; overflow: hidden; border-radius: 3px; will-change: transform, opacity; }
 .playground-photo:focus-visible { outline: 3px solid var(--brand); outline-offset: 5px; }
 .playground-bottom { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); z-index: 400; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 20px; max-width: calc(100% - 32px); }
 @media (max-width: 640px) {
