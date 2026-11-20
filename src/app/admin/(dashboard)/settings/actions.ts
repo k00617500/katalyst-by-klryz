@@ -24,11 +24,15 @@ export async function updateProfileAction(_state: SettingsFormState, formData: F
 }
 
 export async function setChristmasModeAction(mode: string): Promise<{ error?: string }> {
-  await verifyAdminSession();
-  const result = await setChristmasMode(parseChristmasMode(mode));
-  if (result.error) {
-    return { error: /site_settings/.test(result.error) ? "The site_settings table does not exist yet. Run migration 0011 first." : result.error };
+  try {
+    await verifyAdminSession();
+    const result = await setChristmasMode(parseChristmasMode(mode));
+    if (result.error) return { error: result.error };
+    revalidatePath("/", "layout");
+    return {};
+  } catch (error) {
+    // verifyAdminSession redirects (a thrown signal Next handles) when the session is gone; let that through.
+    if (error instanceof Error && /NEXT_REDIRECT|NEXT_NOT_FOUND/.test(error.message + String((error as { digest?: string }).digest))) throw error;
+    return { error: "Could not save the setting. Reload the page and try again." };
   }
-  revalidatePath("/", "layout");
-  return {};
 }
