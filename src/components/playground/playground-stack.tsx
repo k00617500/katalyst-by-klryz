@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image, { getImageProps } from "next/image";
-import { motion, useAnimationFrame, useMotionValue, useReducedMotion, useSpring, useTransform, type MotionValue } from "motion/react";
+import { animate, motion, motionValue, useAnimationFrame, useMotionValue, useReducedMotion, useSpring, useTransform, type MotionValue } from "motion/react";
 import { Dialog } from "radix-ui";
 import { ArrowLeft, ArrowRight, Expand, LayoutGrid, Layers, Shrink, X } from "lucide-react";
 import type { PlaygroundItem } from "@/data/playground";
@@ -37,12 +37,17 @@ function PhotoPreview({ item, onNavigate }: { item: PlaygroundItem; onNavigate: 
   );
 }
 
-function GalleryPhoto({ item, itemIndex, count, phase, selected, onHover, onOpen, onWarm }: {
+const TUG_RADIUS = 120; // a pulled photo never strays further than this from its place in the queue (px)
+
+type Tug = { x: MotionValue<number>; y: MotionValue<number> };
+
+function GalleryPhoto({ item, itemIndex, count, phase, selected, tug, onHover, onOpen, onWarm }: {
   item: PlaygroundItem;
   itemIndex: number;
   count: number;
   phase: MotionValue<number>;
   selected: boolean;
+  tug: Tug;
   onHover: (hovered: boolean) => void;
   onOpen: () => void;
   onWarm: () => void;
@@ -52,15 +57,15 @@ function GalleryPhoto({ item, itemIndex, count, phase, selected, onHover, onOpen
   const depth = useTransform(phase, (value) => wrap(value - itemIndex + count / 2, count) - count / 2);
   // Hovering slides the case out of the row toward the viewer, like pulling a book off a shelf.
   const pull = useSpring(0, { stiffness: 240, damping: 24 });
-  const x = useTransform([depth, pull], ([value, out]: number[]) => `calc(-50% + ${(value - 3.5) * 5 - out * 3}cqw)`);
-  const y = useTransform([depth, pull], ([value, out]: number[]) => `calc(-50% - ${(value - 3.5) * 3.6 + 1 - out * 4.5}cqh)`);
-  const z = useTransform([depth, pull], ([value, out]: number[]) => -value * 16 + out * 190);
+  const x = useTransform([depth, pull, tug.x], ([value, out, tx]: number[]) => `calc(-50% + ${(value - 3.5) * 3.8 - out * 2.2}cqw + ${tx}px)`);
+  const y = useTransform([depth, pull, tug.y], ([value, out, ty]: number[]) => `calc(-50% - ${(value - 3.5) * 3 + 1 - out * 3.5}cqh + ${ty}px)`);
+  const z = useTransform([depth, pull, tug.x, tug.y], ([value, out, tx, ty]: number[]) => -value * 16 + out * 190 + Math.min(1, Math.hypot(tx, ty) / 20) * 60);
   const rotateY = useTransform(pull, (out) => -28 + out * 20);
   const opacity = useTransform(depth, (value) => clamp01(Math.min((value + 7) / 1, (14 - value) / 3.5)));
-  const zIndex = useTransform([depth, pull], ([value, out]: number[]) => 1000 - Math.round(value * 10) + (out > 0.02 ? 3000 : 0));
+  const zIndex = useTransform([depth, pull, tug.x, tug.y], ([value, out, tx, ty]: number[]) => 1000 - Math.round(value * 10) + (out > 0.02 || Math.hypot(tx, ty) > 1 ? 3000 : 0));
   const pointerEvents = useTransform(depth, (value) => (value < -6 || value > 10 ? "none" : "auto"));
   return (
-    <motion.button type="button" className="playground-photo"
+    <motion.button type="button" className="playground-photo" data-slot={itemIndex}
       aria-label={`Preview ${item.title}`} aria-current={selected ? "true" : undefined}
       tabIndex={selected ? 0 : -1}
       onMouseEnter={() => { pull.set(1); onHover(true); onWarm(); }} onMouseLeave={() => { pull.set(0); onHover(false); }}
@@ -167,7 +172,14 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
   const [page, setPage] = useState(0);
   const phase = useMotionValue(0);
   const indexRef = useRef(0);
-  const dragRef = useRef<{ pointerId: number; x: number; y: number; phase: number; active: boolean } | null>(null);
+  const dragRef = useRef<{ pointerId: number; x: number; y: number; phase: number; active: boolean; slot: number | null } | null>(null);
+  // One spring-driven offset per photo; a drag moves only the photo it started on.
+  const tugs = useRef(new Map<number, Tug>());
+  const tugFor = (slot: number): Tug => {
+    let tug = tugs.current.get(slot);
+    if (!tug) { tug = { x: motionValue(0), y: motionValue(0) }; tugs.current.set(slot, tug); }
+    return tug;
+  };
   const suppressClick = useRef(false);
   const previews = useRef(new Map<string, HTMLImageElement>());
   const warmPreview = useCallback((item: PlaygroundItem) => {
@@ -250,6 +262,12 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
     dragRef.current = null;
+    if (drag.slot !== null) {
+      const tug = tugFor(drag.slot);
+      const spring = { type: "spring", stiffness: 260, damping: 22 } as const;
+      animate(tug.x, 0, spring);
+      animate(tug.y, 0, spring);
+    }
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     const target = document.elementFromPoint(event.clientX, event.clientY);
     setHovered(event.pointerType === "mouse" && !!target?.closest(".playground-photo"));
@@ -272,7 +290,8 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
         onPointerDown={(event) => {
           if (event.button !== 0) return;
           suppressClick.current = false;
-          dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, phase: phase.get(), active: false };
+          const photo = (event.target as HTMLElement).closest<HTMLElement>("[data-slot]");
+          dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, phase: phase.get(), active: false, slot: photo ? Number(photo.dataset.slot) : null };
         }}
         onPointerMove={(event) => {
           const drag = dragRef.current;
@@ -284,6 +303,15 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
             drag.active = true;
             suppressClick.current = true;
             event.currentTarget.setPointerCapture(event.pointerId);
+          }
+          if (drag.slot !== null) {
+            // Pull just this photo out of the queue, with growing resistance so it stays close to home.
+            const distance = Math.hypot(dx, dy) || 1;
+            const reach = TUG_RADIUS * Math.tanh(distance / TUG_RADIUS);
+            const tug = tugFor(drag.slot);
+            tug.x.set((dx / distance) * reach);
+            tug.y.set((dy / distance) * reach);
+            return;
           }
           const step = Math.max(110, Math.min(260, event.currentTarget.clientWidth * 0.2));
           const next = wrap(drag.phase + (-dx + dy * 0.5) / step, slotCount);
@@ -300,7 +328,7 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
           const item = items[slot % items.length];
           return (
             <GalleryPhoto key={slot} item={item} itemIndex={slot} count={slotCount} phase={phase}
-              selected={index === slot % items.length} onHover={setHovered}
+              selected={index === slot % items.length} tug={tugFor(slot)} onHover={setHovered}
               onWarm={() => warmPreview(item)}
               onOpen={() => { warmPreview(item); select(slot % items.length); setOpen(true); }} />
           );

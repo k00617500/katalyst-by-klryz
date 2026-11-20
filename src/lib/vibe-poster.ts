@@ -126,7 +126,7 @@ function triangleTransform(s: number[], d: number[]) {
 
 // Rings (as a fraction of the picture's radius) the warp mesh is built from; denser toward the edge, where the stretch lives.
 const WARP_RINGS = [0.3, 0.5, 0.66, 0.8, 0.91, 1];
-const WARP_STEPS_PER_AXIS = 12;
+const WARP_STEPS_PER_AXIS = 24;
 // How strongly the stretch is held back toward the centre: the face stays natural in the middle and only the edge is pulled.
 const WARP_EDGE_POWER = 2.4;
 
@@ -136,6 +136,8 @@ const WARP_EDGE_POWER = 2.4;
  */
 function drawWarpedImage(ctx: CanvasRenderingContext2D, frame: Frame, source: CanvasImageSource, size: { w: number; h: number }, ratings: number[]) {
   const { cx, cy } = frame;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   const edges = ratings.map((rating) => radiusFor(rating, frame.face));
   const centreScale = frame.face * 0.64;
   const sourceRadius = Math.min(size.w, size.h) / 2;
@@ -154,17 +156,19 @@ function drawWarpedImage(ctx: CanvasRenderingContext2D, frame: Frame, source: Ca
   const triangle = (s: number[][], d: number[][]) => {
     const matrix = triangleTransform([s[0][0], s[0][1], s[1][0], s[1][1], s[2][0], s[2][1]], [d[0][0], d[0][1], d[1][0], d[1][1], d[2][0], d[2][1]]);
     if (!matrix) return;
-    // Grow each clip a hair from its centre so neighbouring triangles overlap and never leave seam lines.
+    // Grow each clip by about a pixel on every side (scaling by its inradius, so thin slivers grow enough too) so
+    // neighbouring triangles always overlap and anti-aliased edges never leave hairline gaps on the face.
     const mx = (d[0][0] + d[1][0] + d[2][0]) / 3;
     const my = (d[0][1] + d[1][1] + d[2][1]) / 3;
+    const side = (p: number[], q: number[]) => Math.hypot(p[0] - q[0], p[1] - q[1]);
+    const area = Math.abs((d[1][0] - d[0][0]) * (d[2][1] - d[0][1]) - (d[2][0] - d[0][0]) * (d[1][1] - d[0][1])) / 2;
+    const inradius = (2 * area) / ((side(d[0], d[1]) + side(d[1], d[2]) + side(d[2], d[0])) || 1);
+    const grow = Math.min(2.5, 1 + 1.2 / Math.max(inradius, 0.2));
     ctx.save();
     ctx.beginPath();
     d.forEach(([x, y], index) => {
-      const vx = x - mx;
-      const vy = y - my;
-      const len = Math.hypot(vx, vy) || 1;
-      const gx = x + (vx / len) * 0.8;
-      const gy = y + (vy / len) * 0.8;
+      const gx = mx + (x - mx) * grow;
+      const gy = my + (y - my) * grow;
       if (index === 0) ctx.moveTo(gx, gy); else ctx.lineTo(gx, gy);
     });
     ctx.closePath();

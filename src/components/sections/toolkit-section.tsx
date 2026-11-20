@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import Image from "next/image";
 import { Menu, Music2, Pause, Play, Repeat, Shuffle, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -8,7 +8,6 @@ import { watchToolkitTabAudio } from "@/lib/toolkit-tab-audio";
 import { ScrollReveal } from "@/components/animations/scroll-reveal";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { useSound } from "@/components/providers/sound-provider";
 import { toolkitItems } from "@/data/toolkit";
 import { type ToolkitSong } from "@/data/toolkit-songs";
@@ -30,7 +29,7 @@ function SpotifyPlaylistPicker({ api, onSelect }: { api?: SpotifyIframeApi; onSe
     let closed = false;
     let handedOff = false;
 
-    api.createController(target, { url: PLAYLIST_URL, width: "100%", height: 352 }, (embed) => {
+    api.createController(target, { url: PLAYLIST_URL, width: "100%", height: 640 }, (embed) => {
       if (closed) { embed.destroy(); return; }
       controller = embed;
       host.querySelector("iframe")?.setAttribute("title", "Viral Hits Philippines — full Spotify playlist");
@@ -56,7 +55,7 @@ function SpotifyPlaylistPicker({ api, onSelect }: { api?: SpotifyIframeApi; onSe
     };
   }, [api, onSelect]);
 
-  return <div ref={hostRef} className="h-[352px] overflow-hidden rounded-xl [&>iframe]:block [&>iframe]:border-0" />;
+  return <div ref={hostRef} className="h-[640px] max-h-[calc(94dvh-8.5rem)] overflow-hidden rounded-xl [&>iframe]:block [&>iframe]:border-0" />;
 }
 
 // Every tile sounds a note of the CURRENTLY playing song's motif, spread across a few octaves for variety.
@@ -79,12 +78,11 @@ function randomTileIndex(previous: number | null) {
 export function ToolkitSection() {
   const { enabled, toggle, playNote } = useSound();
   const {
-    songs, song, currentSongIndex, isPlaying, positionMs, durationMs, loop, shuffle, playlistApi,
-    togglePlay, skipSong, seekToRatio, toggleLoop, toggleShuffle, pickSong: playSong, pickSpotifyTrack: playSpotifyTrack,
+    song, isPlaying, positionMs, durationMs, loop, shuffle, playlistApi,
+    togglePlay, skipSong, seekToRatio, toggleLoop, toggleShuffle, pickSpotifyTrack: playSpotifyTrack,
     setPanelVisible, hooksRef, lastPlaybackRef, playingRef, playRequestedRef,
   } = useMusic();
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [query, setQuery] = useState("");
   const [beatSync, setBeatSync] = useState<"idle" | "connecting" | "ready" | "retry" | "unsupported">("idle");
 
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -177,11 +175,6 @@ export function ToolkitSection() {
     seekToRatio((event.clientX - rect.left) / rect.width);
   }, [seekToRatio]);
 
-  const pickSong = useCallback((index: number) => {
-    playSong(index);
-    setPickerOpen(false);
-  }, [playSong]);
-
   const pickSpotifyTrack = useCallback((id: string) => {
     playSpotifyTrack(id);
     setPickerOpen(false);
@@ -195,14 +188,6 @@ export function ToolkitSection() {
   }, [clearActiveTile]);
 
   const progress = durationMs ? (positionMs / durationMs) * 100 : 0;
-
-  const filteredSongs = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return songs.map((entry, index) => ({ ...entry, index }));
-    return songs
-      .map((entry, index) => ({ ...entry, index }))
-      .filter((entry) => entry.title.toLowerCase().includes(q) || entry.artist.toLowerCase().includes(q));
-  }, [query, songs]);
 
   return (
     <section id="toolkit" className="toolkit-section container-page section-y scroll-mt-24 border-t border-border/60">
@@ -332,53 +317,17 @@ export function ToolkitSection() {
       </div>
 
       <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
-        <DialogContent className="flex max-h-[85dvh] w-[calc(100%-2rem)] flex-col overflow-y-auto sm:max-w-xl md:max-w-4xl md:p-6">
+        <DialogContent className="flex max-h-[94dvh] w-[calc(100%-2rem)] flex-col overflow-y-auto sm:max-w-xl md:p-6">
           <DialogHeader className="pr-8">
             <DialogTitle>Viral Hits Philippines</DialogTitle>
-            <DialogDescription>Pick a track to play, or browse the full Spotify playlist.</DialogDescription>
+            <DialogDescription className="sr-only">Pick a track to play it on the site.</DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 md:grid-cols-2 md:gap-5">
-            <div className="flex min-w-0 flex-col gap-3 md:h-[375px]">
-              <Input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search songs or artists…"
-                aria-label="Search the playlist"
-                className="shrink-0"
-              />
-              <div className="-mx-1 min-h-0 max-h-[32dvh] flex-1 space-y-1 overflow-y-auto px-1 md:max-h-none">
-                {filteredSongs.map((entry) => (
-                  <button
-                    key={`${entry.id}-${entry.index}`}
-                    type="button"
-                    onClick={() => pickSong(entry.index)}
-                    className={cn(
-                      "flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-secondary",
-                      entry.index === currentSongIndex && "bg-secondary",
-                    )}
-                  >
-                    <div className="size-10 shrink-0 overflow-hidden rounded-md bg-muted">
-                      {entry.cover && <Image src={entry.cover} alt="" width={40} height={40} className="size-full object-cover" />}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-space text-sm text-foreground">{entry.title}</p>
-                      <p className="truncate font-mono text-[11px] text-muted-foreground">{entry.artist}</p>
-                    </div>
-                  </button>
-                ))}
-                {filteredSongs.length === 0 && (
-                  <p className="py-6 text-center font-mono text-xs text-muted-foreground">No matches.</p>
-                )}
-              </div>
-            </div>
-
-            <div className="min-w-0 space-y-2 border-t border-border pt-3 md:border-t-0 md:border-l md:pt-0 md:pl-5">
-              <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                Full playlist on Spotify
-              </p>
-              <SpotifyPlaylistPicker api={playlistApi} onSelect={pickSpotifyTrack} />
-            </div>
+          <div className="min-w-0 space-y-2">
+            <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              Full playlist on Spotify
+            </p>
+            <SpotifyPlaylistPicker api={playlistApi} onSelect={pickSpotifyTrack} />
           </div>
         </DialogContent>
       </Dialog>

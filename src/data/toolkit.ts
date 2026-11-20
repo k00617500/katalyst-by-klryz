@@ -23,7 +23,7 @@ import {
   SiLucide,
   SiShadcnui,
   SiLeaflet,
-  SiPostgresql, SiGithub, SiClaude, SiGithubcopilot, SiOllama, SiHuggingface, SiGit, SiClickup,
+  SiPostgresql, SiGithub, SiClaude, SiGithubcopilot, SiOllama, SiHuggingface, SiGit, SiClickup, SiNotion,
 } from "react-icons/si";
 
 export interface ToolkitItem {
@@ -62,6 +62,7 @@ export const toolkitItems: ToolkitItem[] = [
   { name: "Git", icon: SiGit, color: "#F05032" },
   { name: "VS Code", icon: VscVscode, color: "#007ACC" },
   { name: "ClickUp", icon: SiClickup, color: "#FF4785" },
+  { name: "Notion", icon: SiNotion, color: "adaptive" },
   { name: "Adobe Photoshop", icon: TbBrandAdobePhotoshop, color: "#31A8FF" },
   { name: "Adobe Lightroom", icon: BrandAdobeLightroom, color: "#31A8FF" },
 ];

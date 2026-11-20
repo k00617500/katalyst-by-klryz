@@ -6,7 +6,6 @@ import { AnimatePresence, motion, useDragControls, useReducedMotion } from "moti
 import { ChevronRight, Music2, Pause, Play, Repeat, Shuffle, SkipBack, SkipForward } from "lucide-react";
 import { useMusic } from "@/components/providers/music-provider";
 
-const STORAGE_KEY = "katalyst-mini-player-collapsed";
 const COLLAPSED_WIDTH = 60;
 const EXPANDED_WIDTH = 304;
 const SPRING = { type: "spring", stiffness: 380, damping: 34, mass: 0.9 } as const;
@@ -32,26 +31,32 @@ const iconButton = "inline-flex size-9 items-center justify-center rounded-full 
 
 /** A small floating "now playing" card that follows visitors around the site while a song is going. */
 export function MiniPlayer({ visible }: { visible: boolean }) {
-  const { song, isPlaying, positionMs, durationMs, loop, shuffle, togglePlay, skipSong, seekToRatio, toggleLoop, toggleShuffle } = useMusic();
+  const { song, started, miniCollapsed: collapsed, setMiniCollapsed: updateCollapsed, isPlaying, positionMs, durationMs, loop, shuffle, togglePlay, skipSong, seekToRatio, toggleLoop, toggleShuffle } = useMusic();
   const reduced = useReducedMotion();
   const dragControls = useDragControls();
   const barRef = useRef<HTMLDivElement>(null);
-  const [collapsed, setCollapsed] = useState(false);
   const [scrub, setScrub] = useState<number | null>(null);
   const [width, setWidth] = useState(EXPANDED_WIDTH);
+  const [bounds, setBounds] = useState({ left: 0, right: 0, top: 0, bottom: 0 });
+  // Where the navbar's music slot is, as an offset from the player's bottom-right resting corner.
+  const [home, setHome] = useState<{ x: number; y: number } | null>(null);
+  const dragged = useRef(false);
 
   useEffect(() => {
-    try { setCollapsed(window.localStorage.getItem(STORAGE_KEY) === "1"); } catch { /* storage can be unavailable */ }
-    const fit = () => setWidth(Math.min(EXPANDED_WIDTH, window.innerWidth - 32));
+    const fit = () => {
+      // Fixed `right`/`bottom` are measured from the visible viewport, which excludes the scrollbar.
+      const vw = document.documentElement.clientWidth;
+      const vh = window.innerHeight;
+      setWidth(Math.min(EXPANDED_WIDTH, vw - 32));
+      // Collapsed, the tab may be dragged anywhere on screen (offsets from the bottom-right corner).
+      setBounds({ left: -(vw - COLLAPSED_WIDTH - 16), right: 16, top: -(vh - COLLAPSED_WIDTH - 16), bottom: 16 });
+      const slot = document.getElementById("mini-player-slot")?.getBoundingClientRect();
+      setHome(slot ? { x: slot.left - (vw - COLLAPSED_WIDTH - 16), y: slot.top - (vh - COLLAPSED_WIDTH - 16) } : null);
+    };
     fit();
     window.addEventListener("resize", fit);
     return () => window.removeEventListener("resize", fit);
-  }, []);
-
-  const updateCollapsed = (value: boolean) => {
-    setCollapsed(value);
-    try { window.localStorage.setItem(STORAGE_KEY, value ? "1" : "0"); } catch { /* storage can be unavailable */ }
-  };
+  }, [collapsed, started]);
 
   const ratioFromPointer = (event: PointerEvent<HTMLDivElement>) => {
     const rect = barRef.current?.getBoundingClientRect();
@@ -80,30 +85,33 @@ export function MiniPlayer({ visible }: { visible: boolean }) {
       role="region"
       aria-label="Now playing"
       inert={!visible}
-      drag="x"
+      drag={collapsed ? true : "x"}
       dragListener={false}
       dragControls={dragControls}
-      dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={{ left: 0.25, right: 0.5 }}
+      dragMomentum={false}
+      dragConstraints={collapsed ? bounds : { left: 0, right: 0 }}
+      dragElastic={collapsed ? 0.08 : { left: 0.25, right: 0.5 }}
+      onDragStart={() => { dragged.current = true; }}
       onDragEnd={(_, info) => {
+        // Expanded, the card only swipes aside to collapse; it always rests in the bottom-right corner.
         if (!collapsed && (info.offset.x > 50 || info.velocity.x > 450)) updateCollapsed(true);
-        else if (collapsed && (info.offset.x < -24 || info.velocity.x < -300)) updateCollapsed(false);
       }}
       initial={false}
       animate={{
         width: collapsed ? COLLAPSED_WIDTH : width,
         height: collapsed ? COLLAPSED_WIDTH : "auto",
-        right: collapsed ? 0 : 16,
-        y: visible ? 0 : 28,
+        right: 16,
+        // Collapsed, it tucks into the navbar's music slot (and can then be dragged anywhere); expanded, it always
+        // returns to the bottom-right corner.
+        ...(collapsed ? (home ? { x: home.x, y: home.y } : {}) : { x: 0, y: visible ? 0 : 28 }),
         opacity: visible ? 1 : 0,
-        borderTopRightRadius: collapsed ? 0 : 22,
-        borderBottomRightRadius: collapsed ? 0 : 22,
-        borderTopLeftRadius: collapsed ? 16 : 22,
-        borderBottomLeftRadius: collapsed ? 16 : 22,
+        borderTopRightRadius: 12,
+        borderBottomRightRadius: 12,
+        borderTopLeftRadius: 12,
+        borderBottomLeftRadius: 12,
       }}
-      whileHover={collapsed ? { right: 6 } : undefined}
-      transition={transition}
-      className="fixed bottom-4 z-[60] overflow-hidden rounded-[1.4rem] border border-foreground/15 bg-background/40 backdrop-blur-3xl backdrop-saturate-200"
+            transition={transition}
+      className="fixed bottom-4 z-[60] overflow-hidden rounded-xl border border-white/30 bg-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl backdrop-saturate-[1.8] backdrop-brightness-110 dark:border-white/15 dark:bg-white/[0.06]"
       style={{ pointerEvents: visible ? "auto" : "none" }}
     >
       <div className="p-2" style={{ width }}>
@@ -113,13 +121,13 @@ export function MiniPlayer({ visible }: { visible: boolean }) {
             type="button"
             aria-label={collapsed ? "Open the player" : undefined}
             tabIndex={collapsed ? 0 : -1}
-            onClick={() => collapsed && updateCollapsed(false)}
+            onClick={() => { if (collapsed && !dragged.current) updateCollapsed(false); }}
             animate={collapsed && isPlaying && !reduced ? { scale: [1, 1.05, 1] } : { scale: 1 }}
             transition={collapsed && isPlaying && !reduced ? { duration: 2.4, repeat: Infinity, ease: "easeInOut" } : { duration: 0.2 }}
             whileTap={{ scale: 0.94 }}
             className="relative size-11 shrink-0 cursor-pointer overflow-hidden rounded-xl bg-muted"
             style={{ touchAction: "none" }}
-            onPointerDown={(event) => collapsed && dragControls.start(event)}
+            onPointerDown={(event) => { dragged.current = false; if (collapsed) dragControls.start(event); }}
           >
             <AnimatePresence mode="popLayout" initial={false}>
               <motion.div key={song.cover || song.id} className="absolute inset-0" initial={{ opacity: 0, scale: 1.12 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.35 }}>
@@ -130,7 +138,7 @@ export function MiniPlayer({ visible }: { visible: boolean }) {
             </AnimatePresence>
           </motion.button>
 
-          <div className="min-w-0 flex-1 cursor-grab select-none active:cursor-grabbing" onPointerDown={(event) => dragControls.start(event)} style={{ touchAction: "none" }}>
+          <div className="min-w-0 flex-1 cursor-grab select-none active:cursor-grabbing" onPointerDown={(event) => { dragged.current = false; dragControls.start(event); }} style={{ touchAction: "none" }}>
             <AnimatePresence mode="popLayout" initial={false}>
               <motion.div key={song.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }}>
                 <div className="flex items-center gap-2">

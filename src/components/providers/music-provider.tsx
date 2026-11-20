@@ -71,6 +71,9 @@ interface MusicContextValue {
   isPlaying: boolean;
   /** True once the visitor has pressed play, so the floating player knows to appear. */
   started: boolean;
+  /** Whether the floating player is tucked into its navbar tab (shared so the navbar can reserve the spot). */
+  miniCollapsed: boolean;
+  setMiniCollapsed: (collapsed: boolean) => void;
   positionMs: number;
   durationMs: number;
   loop: boolean;
@@ -118,6 +121,14 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [loop, setLoop] = useState(false);
   const [shuffle, setShuffle] = useState(false);
   const [panelVisible, setPanelVisible] = useState(false);
+  const [miniCollapsed, setMiniCollapsedState] = useState(false);
+  useEffect(() => {
+    try { setMiniCollapsedState(window.localStorage.getItem("katalyst-mini-player-collapsed") === "1"); } catch { /* storage can be unavailable */ }
+  }, []);
+  const setMiniCollapsed = useCallback((collapsed: boolean) => {
+    setMiniCollapsedState(collapsed);
+    try { window.localStorage.setItem("katalyst-mini-player-collapsed", collapsed ? "1" : "0"); } catch { /* storage can be unavailable */ }
+  }, []);
 
   const controllerRef = useRef<SpotifyEmbedController | null>(null);
   const embedContainerRef = useRef<HTMLDivElement | null>(null);
@@ -296,7 +307,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         const known = new Map(songsRef.current.map((entry) => [entry.id, entry]));
         const next = live.map((entry) => createToolkitSong({ ...entry, cover: entry.cover || known.get(entry.id)?.cover || "" }));
         const current = songsRef.current[songIndexRef.current];
-        let index = next.findIndex((entry) => entry.id === current.id);
+        // Until the visitor starts something, the display shows the playlist's current first track.
+        const untouched = !playRequestedRef.current && !playingRef.current && !lastPlaybackRef.current;
+        let index = untouched ? 0 : next.findIndex((entry) => entry.id === current.id);
         if (index === -1) { next.push(current); index = next.length - 1; }
         songsRef.current = next;
         songIndexRef.current = index;
@@ -417,10 +430,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   }, [started, song.title, song.artist, song.cover, togglePlay, skipSong]);
 
   const value = useMemo<MusicContextValue>(() => ({
-    songs, song, currentSongIndex, isPlaying, started, positionMs, durationMs, loop, shuffle, playlistApi,
+    songs, song, currentSongIndex, isPlaying, started, miniCollapsed, setMiniCollapsed, positionMs, durationMs, loop, shuffle, playlistApi,
     togglePlay, skipSong, seekToRatio, toggleLoop, toggleShuffle, pickSong, pickSpotifyTrack, setPanelVisible,
     hooksRef, lastPlaybackRef, playingRef, playRequestedRef,
-  }), [songs, song, currentSongIndex, isPlaying, started, positionMs, durationMs, loop, shuffle, playlistApi,
+  }), [songs, song, currentSongIndex, isPlaying, started, miniCollapsed, setMiniCollapsed, positionMs, durationMs, loop, shuffle, playlistApi,
     togglePlay, skipSong, seekToRatio, toggleLoop, toggleShuffle, pickSong, pickSpotifyTrack]);
 
   return (

@@ -10,7 +10,7 @@
   --font-sans: "Instagram Sans", "Geist", ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-hero: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-hero: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
   --font-space: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
   --container-page: 1400px;
   --color-sidebar-ring: var(--sidebar-ring);
@@ -321,7 +321,7 @@
 .playground-experience:fullscreen .playground-bottom, .playground-experience.is-pseudo-fullscreen .playground-bottom { bottom: calc(28px + env(safe-area-inset-bottom)); }
 .playground-experience:fullscreen .playground-grid, .playground-experience.is-pseudo-fullscreen .playground-grid { inset: calc(28px + env(safe-area-inset-top)) clamp(16px, 4vw, 64px) calc(104px + env(safe-area-inset-bottom)); }
 .playground-rail { position: absolute; inset: 0; perspective: 1300px; perspective-origin: 50% 50%; container-type: size; }
-.playground-photo { --t: clamp(12px, 1.5cqw, 24px); position: absolute; top: 50%; left: 50%; width: clamp(160px, 19cqw, 290px); aspect-ratio: 4 / 5; cursor: zoom-in; padding: 0; border: 0; background: none; transform-style: preserve-3d; will-change: transform; }
+.playground-photo { --t: clamp(9px, 1.05cqw, 17px); position: absolute; top: 50%; left: 50%; width: clamp(110px, 13cqw, 200px); aspect-ratio: 4 / 5; cursor: zoom-in; padding: 0; border: 0; background: none; transform-style: preserve-3d; will-change: transform; }
 /* A 3D jewel case: six glass faces with real thickness, a ridged spine, and a gloss over the artwork. */
 .case-face { position: absolute; display: block; opacity: var(--case-opacity, 1); backface-visibility: visible; pointer-events: none; }
 .case-front { inset: 0; transform: translateZ(calc(var(--t) / 2)); background: linear-gradient(135deg, #ffffff4d, #ffffff12 45%, #ffffff33); border: 1px solid #ffffff73; border-radius: 2px; box-shadow: inset 0 0 0 1px #ffffff26; overflow: hidden; pointer-events: auto; }
@@ -346,7 +346,7 @@
 @keyframes playground-echo-a { 0%, 100% { transform: translate(calc(-50% + (var(--dx) + var(--mx, 0px)) * var(--n)), calc(-50% + (var(--dy) + var(--my, 0px)) * var(--n))); } 30% { transform: translate(calc(-50% + (var(--dx) + var(--mx, 0px)) * var(--n)), calc(-50% + (var(--dy) + var(--my, 0px)) * var(--n) - 9px * var(--wave-amp))); } 65% { transform: translate(calc(-50% + (var(--dx) + var(--mx, 0px)) * var(--n)), calc(-50% + (var(--dy) + var(--my, 0px)) * var(--n) + 1.5px * var(--wave-amp))); } }
 @keyframes playground-echo-b { 0%, 100% { transform: translate(calc(-50% + (var(--dx) + var(--mx, 0px)) * var(--n)), calc(-50% + (var(--dy) + var(--my, 0px)) * var(--n))); } 30% { transform: translate(calc(-50% + (var(--dx) + var(--mx, 0px)) * var(--n)), calc(-50% + (var(--dy) + var(--my, 0px)) * var(--n) - 9px * var(--wave-amp))); } 65% { transform: translate(calc(-50% + (var(--dx) + var(--mx, 0px)) * var(--n)), calc(-50% + (var(--dy) + var(--my, 0px)) * var(--n) + 1.5px * var(--wave-amp))); } }
 .grid-face, .grid-echo { position: absolute; left: 50%; top: 50%; height: 88%; aspect-ratio: 1; overflow: hidden; background: var(--muted); }
-.grid-echo { transform: translate(calc(-50% + (var(--dx) + var(--mx, 0px)) * var(--n)), calc(-50% + (var(--dy) + var(--my, 0px)) * var(--n))); filter: brightness(calc(1 - var(--n) * 0.17)); opacity: calc(1 - var(--n) * 0.1); pointer-events: none; }
+.grid-echo { transform: translate(calc(-50% + (var(--dx) + var(--mx, 0px)) * var(--n)), calc(-50% + (var(--dy) + var(--my, 0px)) * var(--n))); filter: brightness(calc(1 - var(--n) * 0.17)); opacity: calc(0.5 - var(--n) * 0.1); pointer-events: none; }
 .grid-face { transform: translate(calc(-50% + var(--fx, 0px)), calc(-50% + var(--fy, 0px))); z-index: 5; padding: 0; border: 0; cursor: zoom-in; transition: transform .25s; }
 .grid-face:hover { transform: translate(calc(-50% + var(--fx, 0px)), calc(-50% + var(--fy, 0px))) scale(1.07); }
 .grid-face:focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
