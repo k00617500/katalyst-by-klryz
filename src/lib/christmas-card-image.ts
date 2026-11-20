@@ -1,6 +1,7 @@
 import { GIFEncoder, applyPalette, quantize } from "gifenc";
 import { TREE_ASPECT, drawLights, drawTree, type Ornament } from "@/lib/christmas-tree";
 import { drawSnow, makeSnow } from "@/lib/snow-field";
+import { COVER_BOX, COVER_FELT, SPECKS, coverArt } from "@/lib/christmas-cover";
 
 /**
  * The saved card as a picture. Two square panels side by side when open: a red note page on the left and the visitor's
@@ -10,7 +11,7 @@ import { drawSnow, makeSnow } from "@/lib/snow-field";
  */
 export const CARD_SNOW_PERIOD = 4;
 const FONT = "'DM Sans', system-ui, sans-serif";
-const FELT = "#173a2c";
+const FELT = COVER_FELT;
 const PAGE_BG = "#050505";
 
 export interface CardImageOptions {
@@ -118,42 +119,21 @@ function drawCover(ctx: CanvasRenderingContext2D, size: number, cover: number) {
   ctx.lineWidth = size * 0.004;
   ctx.stroke();
 
-  // The stencil, drawn in the same 140 x 130 space the page uses.
-  const scale = (size * 0.58) / 140;
+  // The stencil, from the same art the page uses, then felt-coloured specks over it for the printed grain.
+  const scale = (size * 0.58) / COVER_BOX.w;
   ctx.save();
-  ctx.translate(size * 0.09, size - size * 0.07 - 130 * scale);
+  ctx.translate(size * 0.09, size - size * 0.07 - COVER_BOX.h * scale);
   ctx.scale(scale, scale);
-  ctx.fillStyle = "#ffffff";
-  ctx.strokeStyle = "#ffffff";
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  if (cover === 0) {
-    ctx.translate(70, 65);
-    for (let k = 0; k < 6; k++) {
-      ctx.save();
-      ctx.rotate((k * Math.PI) / 3);
-      ctx.lineWidth = 9;
-      ctx.lineCap = "butt";
-      ctx.stroke(new Path2D("M0 0 L0 -54 M-15 -42 L0 -28 L15 -42"));
-      ctx.lineWidth = 7;
-      ctx.stroke(new Path2D("M-12 -62 L0 -50 L12 -62"));
-      ctx.restore();
-    }
-  } else if (cover === 1) {
-    ctx.fill(new Path2D("M26 50 H104 Q112 50 112 58 V78 H26 Z M96 52 L116 26 L130 36 L112 66 Z M112 28 L134 20 L140 34 L124 42 Z M22 52 L14 46 L22 60 Z"));
-    for (const x of [30, 50, 82, 98]) ctx.fillRect(x, 76, 10, 38);
-    ctx.lineWidth = 5;
-    ctx.stroke(new Path2D("M120 24 L112 6 M114 14 L102 10 M127 22 L136 6 M132 13 L141 14"));
-  } else if (cover === 2) {
-    ctx.translate(8, -2);
-    ctx.fill(new Path2D("M62 8 L40 40 L50 40 L30 68 L42 68 L18 102 L54 102 L54 118 L70 118 L70 102 L106 102 L82 68 L94 68 L74 40 L84 40 Z"));
-  } else {
-    ctx.fill(new Path2D("M24 56 H116 V70 H24 Z M30 72 H110 V122 H30 Z"));
-    ctx.fillStyle = FELT;
-    ctx.fillRect(62, 56, 16, 66);
-    ctx.fillStyle = "#ffffff";
-    ctx.fill(new Path2D("M70 56 C46 26 24 40 50 56 Z M70 56 C94 26 116 40 90 56 Z"));
+  for (const op of coverArt(cover)) {
+    const path = new Path2D(op.d);
+    if (op.mode === "fill") { ctx.fillStyle = "#ffffff"; ctx.fill(path); }
+    else { ctx.strokeStyle = op.mode === "cut" ? FELT : "#ffffff"; ctx.lineWidth = op.width ?? 0; ctx.stroke(path); }
   }
+  ctx.fillStyle = FELT;
+  ctx.globalAlpha = 0.85;
+  for (const [x, y, speck] of SPECKS) ctx.fillRect(x, y, speck, speck);
   ctx.restore();
 }
 

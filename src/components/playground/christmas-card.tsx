@@ -1,81 +1,51 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import { Dialog } from "radix-ui";
-import { Download, Gift, Loader2, X } from "lucide-react";
+import { Download, Gift, Loader2, Volume2, VolumeX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SnowCanvas } from "@/components/playground/snow-canvas";
 import { loadQr, saveGif, savePng } from "@/lib/christmas-card-image";
+import { COVER_BOX, COVER_COUNT, COVER_FELT, SPECKS, coverArt } from "@/lib/christmas-cover";
+import { startDeckTheHalls, type DeckTheHalls } from "@/lib/deck-the-halls";
+import { useSound } from "@/components/providers/sound-provider";
 import type { Ornament } from "@/lib/christmas-tree";
 
-const COVER_KEY = "katalyst-card-cover";
-const COVER_COUNT = 4;
+const LAST_COVER_KEY = "katalyst-card-cover-last";
 
-/** Each visitor gets one cover (snowflake, deer, tree or gift), picked at random the first time and then kept. */
+/** A different random cover (snowflake, deer, tree or gift) each time a card is saved, never the same one twice in a row. */
 export function pickCardCover(): number {
-  try {
-    const raw = window.localStorage.getItem(COVER_KEY);
-    const stored = Number(raw);
-    if (raw !== null && Number.isInteger(stored) && stored >= 0 && stored < COVER_COUNT) return stored;
-    const chosen = Math.floor(Math.random() * COVER_COUNT);
-    window.localStorage.setItem(COVER_KEY, String(chosen));
-    return chosen;
-  } catch {
-    return Math.floor(Math.random() * COVER_COUNT);
-  }
+  let last = -1;
+  try { last = Number(window.sessionStorage.getItem(LAST_COVER_KEY) ?? -1); } catch { /* storage can be unavailable */ }
+  let chosen = Math.floor(Math.random() * COVER_COUNT);
+  if (chosen === last) chosen = (chosen + 1 + Math.floor(Math.random() * (COVER_COUNT - 1))) % COVER_COUNT;
+  try { window.sessionStorage.setItem(LAST_COVER_KEY, String(chosen)); } catch { /* storage can be unavailable */ }
+  return chosen;
 }
 
-const FELT = "#173a2c";
+const FELT = COVER_FELT;
 const GRAIN = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E\")";
 
 function Stencil({ cover }: { cover: number }) {
-  const common = { fill: "#ffffff", filter: "url(#stencil)" } as const;
+  const ops = coverArt(cover);
   return (
-    <svg viewBox="0 0 140 130" className="absolute bottom-[7%] left-[9%] w-[58%]" aria-hidden="true">
-      <defs>
-        <filter id="stencil" x="-5%" y="-5%" width="110%" height="110%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" result="noise" />
-          <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.6" />
-        </filter>
-      </defs>
-      {cover === 0 && (
-        <g transform="translate(70 65)" stroke="#fff" strokeWidth="9" fill="none" filter="url(#stencil)">
-          {[0, 60, 120, 180, 240, 300].map((angle) => (
-            <g key={angle} transform={`rotate(${angle})`}>
-              <path d="M0 0 L0 -54" />
-              <path d="M-15 -42 L0 -28 L15 -42" />
-              <path d="M-12 -62 L0 -50 L12 -62" strokeWidth="7" />
-            </g>
-          ))}
-        </g>
-      )}
-      {cover === 1 && (
-        <g {...common}>
-          <path d="M26 50 H104 Q112 50 112 58 V78 H26 Z" />
-          <path d="M96 52 L116 26 L130 36 L112 66 Z" />
-          <path d="M112 28 L134 20 L140 34 L124 42 Z" />
-          <rect x="30" y="76" width="10" height="38" />
-          <rect x="50" y="76" width="10" height="38" />
-          <rect x="82" y="76" width="10" height="38" />
-          <rect x="98" y="76" width="10" height="38" />
-          <path d="M22 52 L14 46 L22 60 Z" />
-          <path d="M120 24 L112 6 M114 14 L102 10 M127 22 L136 6 M132 13 L141 14" stroke="#fff" strokeWidth="5" fill="none" strokeLinecap="round" />
-        </g>
-      )}
-      {cover === 2 && (
-        <g {...common} transform="translate(8 -2)">
-          <path d="M62 8 L40 40 L50 40 L30 68 L42 68 L18 102 L54 102 L54 118 L70 118 L70 102 L106 102 L82 68 L94 68 L74 40 L84 40 Z" />
-        </g>
-      )}
-      {cover === 3 && (
-        <g {...common}>
-          <path d="M24 56 H116 V70 H24 Z" />
-          <path d="M30 72 H110 V122 H30 Z" />
-          <rect x="62" y="56" width="16" height="66" fill={FELT} />
-          <path d="M70 56 C46 26 24 40 50 56 Z M70 56 C94 26 116 40 90 56 Z" />
-        </g>
-      )}
+    <svg viewBox={`0 0 ${COVER_BOX.w} ${COVER_BOX.h}`} className="absolute bottom-[7%] left-[9%] w-[58%]" aria-hidden="true">
+      {ops.map((op, i) => (
+        <path
+          key={i}
+          d={op.d}
+          fill={op.mode === "fill" ? "#ffffff" : "none"}
+          stroke={op.mode === "fill" ? "none" : op.mode === "cut" ? COVER_FELT : "#ffffff"}
+          strokeWidth={op.width ?? 0}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      ))}
+      {/* Felt-coloured specks printed over the stencil give it the grainy look of the reference. */}
+      <g fill={COVER_FELT}>
+        {SPECKS.map(([x, y, size], i) => <rect key={i} x={x} y={y} width={size} height={size} opacity={0.85} />)}
+      </g>
     </svg>
   );
 }
@@ -106,7 +76,25 @@ export function ChristmasCard({ open, onOpenChange, image, name, cover, ornament
   const [busy, setBusy] = useState<null | "png" | "gif">(null);
   const [progress, setProgress] = useState(0);
   const label = name.trim();
+  const { enabled: siteSound } = useSound();
+  // null means "follow the site's sound switch" until the visitor uses the button here.
+  const [musicChoice, setMusicChoice] = useState<boolean | null>(null);
+  const music = musicChoice ?? siteSound;
+  const context = useRef<AudioContext | null>(null);
+  const song = useRef<DeckTheHalls | null>(null);
   const size = { "--w": "min(340px, 40vw, 44svh)" } as CSSProperties;
+
+  // "Deck the Halls" plays while the card is open on screen (unless the site's sound is switched off or it is muted here).
+  useEffect(() => {
+    if (!open || !music) return;
+    try {
+      context.current ??= new AudioContext();
+      if (context.current.state === "suspended") void context.current.resume();
+      song.current = startDeckTheHalls(context.current);
+    } catch { /* no audio available */ }
+    return () => { song.current?.stop(); song.current = null; };
+  }, [open, music]);
+  useEffect(() => () => { if (context.current) void context.current.close(); context.current = null; }, []);
 
   const save = async (format: "png" | "gif") => {
     if (busy) return;
@@ -182,6 +170,9 @@ export function ChristmasCard({ open, onOpenChange, image, name, cover, ornament
           <div className="relative z-10 flex flex-wrap items-center justify-center gap-3">
             <Button type="button" onClick={() => setOpened((value) => !value)}>
               <Gift className="size-4" /> {opened ? "Close the card" : "Open the card"}
+            </Button>
+            <Button type="button" variant="outline" aria-pressed={music} onClick={() => setMusicChoice(!music)}>
+              {music ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />} {music ? "Music on" : "Music off"}
             </Button>
             <Button type="button" variant="outline" disabled={busy !== null} onClick={() => void save("png")}>
               {busy === "png" ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />} Save as PNG

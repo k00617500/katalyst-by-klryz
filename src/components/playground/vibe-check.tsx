@@ -586,7 +586,7 @@ export function VibeCheck() {
         Feeling a bit quirky? I won&apos;t judge. Pick a face, pick your moods, and watch it get weird.
       </p>
 
-      <div className="mt-10 grid items-stretch gap-3 lg:grid-cols-2">
+      <div className="mx-auto mt-10 grid max-w-4xl items-stretch gap-3 lg:grid-cols-2">
         <div className="flex flex-col gap-4 rounded-3xl border border-border bg-card p-5 sm:p-6 lg:aspect-square">
           <Stepper step={step} />
 
