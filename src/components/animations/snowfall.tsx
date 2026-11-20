@@ -10,7 +10,9 @@ import { resolveChristmas } from "@/lib/christmas";
  * other, near flakes fall faster than far ones, and flakes ease away from the cursor. Each shower ends on its own.
  */
 const SHOWER_EVERY_S = 60;
-const SPAWN_FOR_S = 10;
+const SPAWN_FOR_S = 5;
+// Once a shower stops, whatever is still in the air fades away within this many seconds.
+const FADE_OUT_S = 2.2;
 
 interface Flake {
   crystal: boolean;
@@ -183,6 +185,7 @@ function start(canvas: HTMLCanvasElement): () => void {
   let clock = 0;
   let spawnLeft = 0;
   let spawnDebt = 0;
+  let endedAt = -1;
 
   const spawn = () => {
     const depth = Math.random();
@@ -194,7 +197,7 @@ function start(canvas: HTMLCanvasElement): () => void {
       depth,
       x: Math.random() * (width + 100) - 50,
       y: -24,
-      speed: 20 + depth * 44 + Math.random() * 10,
+      speed: 34 + depth * 56 + Math.random() * 12,
       sway: 8 + Math.random() * 20,
       swayRate: 0.5 + Math.random() * 0.7,
       phase: Math.random() * Math.PI * 2,
@@ -214,7 +217,8 @@ function start(canvas: HTMLCanvasElement): () => void {
 
     if (spawnLeft > 0) {
       spawnLeft -= dt;
-      const density = Math.max(10, Math.min(26, width / 60)); // flakes per second
+      if (spawnLeft <= 0) endedAt = clock;
+      const density = Math.max(8, Math.min(18, width / 80)); // flakes per second
       // The shower swells in and thins out instead of switching on and off.
       const progress = 1 - spawnLeft / SPAWN_FOR_S;
       const shape = Math.sin(Math.min(1, Math.max(0, progress)) * Math.PI);
@@ -222,6 +226,9 @@ function start(canvas: HTMLCanvasElement): () => void {
       while (spawnDebt >= 1) { spawnDebt -= 1; spawn(); }
     }
 
+    // After the shower ends, everything left in the air fades out together.
+    const lingering = spawnLeft <= 0 && endedAt >= 0 ? Math.max(0, 1 - (clock - endedAt) / FADE_OUT_S) : 1;
+    if (lingering <= 0) flakes.length = 0;
     const light = document.documentElement.dataset.theme === "light";
     const color = light ? "#8aa6c6" : "#ffffff";
     const soft = softSprite(color);
@@ -249,7 +256,7 @@ function start(canvas: HTMLCanvasElement): () => void {
 
       const fadeIn = Math.min(1, age / 1.4);
       const fadeOut = Math.min(1, (height + 30 - flake.y) / 120);
-      let alpha = flake.alpha * fadeIn * fadeOut * (light ? 1.2 : 1);
+      let alpha = flake.alpha * fadeIn * fadeOut * lingering * (light ? 1.2 : 1);
       ctx.save();
       ctx.translate(x, y);
       if (flake.crystal) {
@@ -275,6 +282,7 @@ function start(canvas: HTMLCanvasElement): () => void {
   const shower = () => {
     spawnLeft = SPAWN_FOR_S;
     spawnDebt = 0;
+    endedAt = -1;
     if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); }
   };
 
