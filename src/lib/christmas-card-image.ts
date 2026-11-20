@@ -244,7 +244,7 @@ function download(blob: Blob, filename: string) {
 
 export async function savePng(options: CardImageOptions) {
   await loadFonts();
-  const size = 800;
+  const size = 1080; // each page, so the PNG is 2160 x 1080
   const canvas = document.createElement("canvas");
   canvas.width = size * 2;
   canvas.height = size;
@@ -260,7 +260,7 @@ export async function savePng(options: CardImageOptions) {
  */
 export async function saveGif(options: CardImageOptions, onProgress: (value: number) => void) {
   await loadFonts();
-  const size = 320; // each page; the GIF is 640 x 320 to keep the file small
+  const size = 440; // each page; the GIF is 880 x 440
   const fps = 10;
   const closedFrames = 9;
   const openingFrames = 10;
