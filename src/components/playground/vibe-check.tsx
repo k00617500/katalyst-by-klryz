@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Dialog } from "radix-ui";
-import { ArrowLeft, ArrowRight, Download, Loader2, RotateCcw, ShieldCheck, Upload } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Download, Loader2, RotateCcw, ShieldCheck, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VibeKpis } from "@/components/playground/vibe-kpis";
-import { DEFAULT_RATING, MAX_MOODS, MIN_MOODS, MOOD_OPTIONS, memojiSrc, vibeMemojis } from "@/data/vibe-check";
+import { DEFAULT_RATING, MAX_MOODS, MAX_RATING, MIN_MOODS, MOOD_OPTIONS, memojiSrc, vibeMemojis } from "@/data/vibe-check";
 import { DEFAULT_GLOW, POSTER_H, POSTER_W, describeVibe, drawPoster, overallReview, type PosterColors } from "@/lib/vibe-poster";
 
 type Step = "name" | "face" | "moods" | "rate" | "loading" | "result";
@@ -16,7 +16,7 @@ type Removal = "idle" | "finding" | "cutting" | "done";
 const STEP_NUMBER: Record<Step, number> = { name: 1, face: 2, moods: 3, rate: 4, loading: 4, result: 5 };
 const STEP_COUNT = 5;
 const NEUTRAL_LABELS = ["", "", "", "", ""];
-const NEUTRAL_VALUES = [5, 5, 5, 5, 5];
+const NEUTRAL_VALUES = [3, 3, 3, 3, 3];
 const LOADING_LINES = [
   "reading your aura…",
   "stretching your face (lovingly)…",
@@ -24,7 +24,7 @@ const LOADING_LINES = [
   "almost there, no peeking…",
 ];
 const MIN_LOADING_MS = 2600;
-const RATING_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const RATING_NUMBERS = Array.from({ length: MAX_RATING }, (_, i) => i + 1);
 const GLOWS = [
   { value: DEFAULT_GLOW, label: "Neon green" },
   { value: "#5ec8ff", label: "Sky" },
@@ -597,16 +597,16 @@ export function VibeCheck() {
             <div className="flex min-h-0 flex-1 flex-col items-center justify-between gap-3">
               <div>
                 <p className="text-lg font-medium tracking-tight sm:text-xl">How strongly, {name || "friend"}?</p>
-                <p className="mt-0.5 text-sm text-muted-foreground">1 is barely, 10 is very much. Watch the chart move.</p>
+                <p className="mt-0.5 text-sm text-muted-foreground">1 is barely, 5 is very much. Watch the chart move.</p>
               </div>
               <div className="flex w-full flex-col gap-2.5">
                 {chosen.map((mood) => (
                   <div key={mood.label} role="group" aria-label={mood.label} className="flex flex-col gap-1">
                     <span className="font-mono text-xs tracking-widest uppercase">{mood.label}</span>
-                    <div className="grid grid-cols-10 gap-1">
+                    <div className="grid grid-cols-5 gap-2">
                       {RATING_NUMBERS.map((number) => (
                         <button key={number} type="button" aria-pressed={mood.rating === number} onClick={() => setRatings((value) => ({ ...value, [mood.label]: number }))}
-                          className={`h-8 rounded-lg border font-mono text-xs tabular-nums transition-colors sm:h-9 sm:text-sm ${
+                          className={`h-9 rounded-xl border font-mono text-sm tabular-nums transition-colors sm:h-10 ${
                             mood.rating === number ? "border-brand bg-brand text-brand-foreground" : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
                           }`}>{number}</button>
                       ))}
@@ -669,18 +669,25 @@ export function VibeCheck() {
       <Dialog.Root open={privacyOpen} onOpenChange={setPrivacyOpen}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/70" />
-          <Dialog.Content className="fixed top-1/2 left-1/2 z-[101] w-[min(92vw,26rem)] -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-border bg-background p-7 text-center outline-none">
+          <Dialog.Content className="fixed top-1/2 left-1/2 z-[101] w-[min(92vw,27rem)] -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-border bg-background p-7 text-center outline-none">
             <span className="mx-auto grid size-11 place-items-center rounded-full bg-brand/15 text-brand-ink"><ShieldCheck className="size-5" aria-hidden="true" /></span>
             <Dialog.Title className="mt-4 text-xl font-medium tracking-tight">Data privacy, real quick</Dialog.Title>
             <Dialog.Description className="mt-2 text-sm text-muted-foreground">Are you sure you want to upload a photo?</Dialog.Description>
             <ul className="mt-5 space-y-2 text-left text-sm">
-              <li className="rounded-xl bg-muted px-4 py-2.5">Your photo goes to remove.bg to cut out the background, then to Google Gemini to find the head.</li>
-              <li className="rounded-xl bg-muted px-4 py-2.5">We don&apos;t save it. It&apos;s gone when you restart or leave.</li>
-              <li className="rounded-xl bg-muted px-4 py-2.5">Only you see the result, unless you download and share it.</li>
+              {[
+                "Sent to remove.bg and Gemini, nowhere else.",
+                "Never saved. Gone when you restart.",
+                "Only you see it, unless you share it.",
+              ].map((point) => (
+                <li key={point} className="flex items-center gap-3 rounded-xl bg-muted px-4 py-3">
+                  <Check className="size-4 shrink-0 text-brand-ink" aria-hidden="true" />
+                  <span>{point}</span>
+                </li>
+              ))}
             </ul>
-            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
-              <Button variant="outline" className="rounded-full" onClick={() => setPrivacyOpen(false)}>Use a memoji instead</Button>
-              <Button className="rounded-full" onClick={confirmPrivacy}>Yes, I&apos;m sure</Button>
+            <div className="mt-6 grid gap-2 sm:grid-cols-2">
+              <Button variant="outline" className="rounded-full whitespace-nowrap" onClick={() => setPrivacyOpen(false)}>Use a memoji</Button>
+              <Button className="rounded-full whitespace-nowrap" onClick={confirmPrivacy}>Yes, I&apos;m sure</Button>
             </div>
           </Dialog.Content>
         </Dialog.Portal>

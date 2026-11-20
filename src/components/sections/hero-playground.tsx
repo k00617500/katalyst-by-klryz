@@ -26,19 +26,16 @@ export function HeroPlayground() {
 
   return (
     <div className="hero-playground" data-ready={ready}>
-      <div className="hero-art-label" aria-hidden="true"><span /> IDEAS IN MOTION / 001</div>
       <div className="hero-art-stage">
         <div className="hero-art-fallback" aria-hidden="true">
           <div className="hero-fallback-star" />
           <div className="hero-fallback-ring" />
           <div className="hero-fallback-orb" />
         </div>
-        <div ref={host} className="hero-canvas" role="img" aria-label="Interactive sculpture: a lime starburst, lilac loop, chrome knot and wireframe orb. Drag to rotate, or use Remix to change the composition." />
-        <span className="hero-art-sticker" aria-hidden="true">MAKE<br />IT REAL. <span>↗</span></span>
-        <span className="hero-art-note" aria-hidden="true">a little curiosity goes a long way.</span>
+        <div ref={host} className="hero-canvas" role="img" aria-label="Interactive 3D desk props: a computer mouse, a pen, a chess pawn and a camera. Drag to rotate, double-click to spin them fast, or use Remix to rearrange them." />
       </div>
       <div className="hero-art-toolbar">
-        <span>{ready ? "DRAG TO EXPLORE" : "DESIGN × CODE × CURIOSITY"}</span>
+        <span>{ready ? "DRAG TO EXPLORE · DOUBLE-CLICK TO SPIN" : "DESIGN × CODE × CURIOSITY"}</span>
         {ready && <div className="flex items-center gap-2">
           <button type="button" className="hero-art-button" onClick={() => controls.current?.remix()}><Shuffle size={13} /> Remix</button>
           <button type="button" className="hero-art-button" aria-label={paused ? "Play sculpture animation" : "Pause sculpture animation"} aria-pressed={paused} onClick={() => { controls.current?.pause(!paused); setPaused(!paused); }}>{paused ? <Play size={13} /> : <Pause size={13} />}</button>

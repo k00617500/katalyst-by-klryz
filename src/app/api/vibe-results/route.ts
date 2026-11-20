@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { MAX_MOODS, MIN_MOODS, MOOD_OPTIONS } from "@/data/vibe-check";
+import { MAX_MOODS, MAX_RATING, MIN_MOODS, MOOD_OPTIONS } from "@/data/vibe-check";
 import { overallReview } from "@/lib/vibe-poster";
 
 // Consolidated, anonymous Vibe Check results. POST stores one finished check (moods + ratings only);
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
   for (const entry of submitted) {
     const option = MOOD_OPTIONS.find((mood) => mood.label === entry?.label);
     const rating = Number(entry?.rating);
-    if (!option || seen.has(option.label) || !Number.isInteger(rating) || rating < 1 || rating > 10) {
+    if (!option || seen.has(option.label) || !Number.isInteger(rating) || rating < 1 || rating > MAX_RATING) {
       return NextResponse.json({ error: "Invalid moods" }, { status: 400 });
     }
     seen.add(option.label);

@@ -16,14 +16,14 @@ export interface PosterColors {
   muted: string;
 }
 
-import type { MoodTone } from "@/data/vibe-check";
+import { MAX_RATING, type MoodTone } from "@/data/vibe-check";
 
 export interface PosterOptions {
   source: CanvasImageSource | null;
   sourceSize: { w: number; h: number };
   /** One label per axis, clockwise from the top. Empty strings draw unlabeled axes. */
   labels: string[];
-  /** Animated, fractional ratings (0 - 10) that drive the stretch, one per axis. */
+  /** Animated, fractional ratings (0 - MAX_RATING) that drive the stretch, one per axis. */
   ratings: number[];
   /** The qualitative overall review shown after "results :". */
   review: string;
@@ -40,13 +40,13 @@ export interface PosterOptions {
 }
 
 const axisAngle = (index: number, count: number) => ((-90 + (index * 360) / count) * Math.PI) / 180;
-const radiusFor = (rating: number) => MAX_FACE_R * (0.2 + 0.8 * Math.min(10, Math.max(0, rating)) / 10);
+const radiusFor = (rating: number) => MAX_FACE_R * (0.32 + 0.68 * Math.min(MAX_RATING, Math.max(0, rating)) / MAX_RATING);
 
 export function averageRating(ratings: number[]) {
   return ratings.length ? ratings.reduce((sum, value) => sum + value, 0) / ratings.length : 0;
 }
 
-/** Radius of the stretched shape at an angle: linear between axis tips, pinched in between for a star-like look. */
+/** Radius of the stretched shape at an angle: eased between axis radii so every lobe is soft and rounded, never pointy. */
 function shapeRadius(radii: number[], angle: number) {
   const count = radii.length;
   const span = 360 / count;
@@ -56,8 +56,8 @@ function shapeRadius(radii: number[], angle: number) {
   const t = (degrees - sector * span) / span;
   const from = radii[sector];
   const to = radii[(sector + 1) % count];
-  const lerp = from + (to - from) * t;
-  return lerp * (1 - 0.2 * Math.sin(Math.PI * t));
+  const eased = t * t * (3 - 2 * t);
+  return from + (to - from) * eased;
 }
 
 /** Affine map taking the source triangle onto the destination triangle. */
@@ -256,14 +256,22 @@ export function drawPoster(ctx: CanvasRenderingContext2D, options: PosterOptions
   ctx.restore();
 }
 
-/** Blurb for a result: the strongest mood in its own words, plus a nod to the runner-up. */
-export function describeVibe(moods: Array<{ label: string; description: string; rating: number }>) {
+/**
+ * Short, informative blurb for a result: the strongest mood in its own words, how the runner-up sits behind it,
+ * and a note on the overall tone. Stays around two lines on the poster.
+ */
+export function describeVibe(moods: Array<{ label: string; description: string; rating: number; tone?: MoodTone }>) {
   if (!moods.length) return "pick a few moods to see what your vibe looks like.";
   const ranked = [...moods].sort((a, b) => b.rating - a.rating);
   const [first, second] = ranked;
   const lead = `mostly ${first.label.toLowerCase()}: ${first.description.toLowerCase()}.`;
   if (!second) return lead;
-  return second.rating === first.rating ? `${lead} also just as ${second.label.toLowerCase()}.` : `${lead} with a side of ${second.label.toLowerCase()}.`;
+
+  const runnerUp = first.rating - second.rating <= 1 ? `${second.label.toLowerCase()} close behind` : `with a side of ${second.label.toLowerCase()}`;
+  const negative = ranked.find((mood) => mood.tone === "negative" && mood.rating >= 5 && mood !== first && mood !== second);
+  const allPositive = moods.every((mood) => mood.tone !== "negative");
+  const tone = negative ? `a touch of ${negative.label.toLowerCase()} in the mix` : allPositive ? "nothing but good vibes" : "";
+  return `${lead} ${runnerUp}${tone ? `, ${tone}` : ""}.`;
 }
 
 export interface OverallReview {

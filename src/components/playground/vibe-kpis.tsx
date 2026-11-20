@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { MAX_RATING } from "@/data/vibe-check";
 import { overallReviewFromScore } from "@/lib/vibe-poster";
 
 interface Summary {
@@ -83,7 +84,7 @@ export function VibeKpis({ refreshKey }: { refreshKey: number }) {
             <Kpi label="Vibe checks" value={summary.total.toLocaleString()} hint="finished by visitors" />
             <Kpi label="Overall review" value={overallReviewFromScore(summary.averageScore)} hint="across every result" />
             <Kpi label="Positive vibes" value={`${positiveShare}%`} hint="of all vibe checks" />
-            <Kpi label="Avg. intensity" value={`${summary.averageRating.toFixed(1)} / 10`} hint="how strongly moods land" />
+            <Kpi label="Avg. intensity" value={`${summary.averageRating.toFixed(1)} / ${MAX_RATING}`} hint="how strongly moods land" />
           </div>
 
           <div className="mt-3 grid gap-3 lg:grid-cols-2">
@@ -92,7 +93,7 @@ export function VibeKpis({ refreshKey }: { refreshKey: number }) {
               <p className="mt-0.5 text-sm text-muted-foreground">Most picked, with how strongly they were felt.</p>
               <ul className="mt-5 flex flex-col gap-3">
                 {topMoods.map((mood) => (
-                  <Bar key={mood.label} label={mood.label} value={mood.count} max={maxMood} display={`${mood.count}`} tone={mood.tone} note={`${mood.average.toFixed(1)}/10`} />
+                  <Bar key={mood.label} label={mood.label} value={mood.count} max={maxMood} display={`${mood.count}`} tone={mood.tone} note={`${mood.average.toFixed(1)}/${MAX_RATING}`} />
                 ))}
               </ul>
             </section>

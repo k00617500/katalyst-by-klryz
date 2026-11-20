@@ -32,7 +32,8 @@ export const MOOD_OPTIONS: MoodOption[] = [
 
 export const MIN_MOODS = 3;
 export const MAX_MOODS = 5;
-export const DEFAULT_RATING = 5;
+export const MAX_RATING = 5;
+export const DEFAULT_RATING = 3;
 
 export interface VibeMemoji {
   id: string;
