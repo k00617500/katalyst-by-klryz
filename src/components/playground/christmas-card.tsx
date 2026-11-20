@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import Image from "next/image";
 import { Dialog } from "radix-ui";
 import { Download, Gift, Loader2, Volume2, VolumeX, X } from "lucide-react";
@@ -8,8 +8,7 @@ import { Button } from "@/components/ui/button";
 import { SnowCanvas } from "@/components/playground/snow-canvas";
 import { loadQr, saveGif, savePng } from "@/lib/christmas-card-image";
 import { COVER_BOX, COVER_COUNT, COVER_FELT, SPECKS, coverArt } from "@/lib/christmas-cover";
-import { startDeckTheHalls, type DeckTheHalls } from "@/lib/deck-the-halls";
-import { useSound } from "@/components/providers/sound-provider";
+import type { ChristmasMusic } from "@/components/playground/use-christmas-music";
 import type { Ornament } from "@/lib/christmas-tree";
 
 const LAST_COVER_KEY = "katalyst-card-cover-last";
@@ -64,37 +63,20 @@ function Cover({ cover }: { cover: number }) {
   );
 }
 
-export function ChristmasCard({ open, onOpenChange, image, name, cover, ornaments }: {
+export function ChristmasCard({ open, onOpenChange, image, name, cover, ornaments, music }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   image: string;
   name: string;
   cover: number;
   ornaments: Ornament[];
+  music: ChristmasMusic;
 }) {
   const [opened, setOpened] = useState(false);
   const [busy, setBusy] = useState<null | "png" | "gif">(null);
   const [progress, setProgress] = useState(0);
   const label = name.trim();
-  const { enabled: siteSound } = useSound();
-  // null means "follow the site's sound switch" until the visitor uses the button here.
-  const [musicChoice, setMusicChoice] = useState<boolean | null>(null);
-  const music = musicChoice ?? siteSound;
-  const context = useRef<AudioContext | null>(null);
-  const song = useRef<DeckTheHalls | null>(null);
   const size = { "--w": "min(340px, 40vw, 44svh)" } as CSSProperties;
-
-  // "Deck the Halls" plays while the card is open on screen (unless the site's sound is switched off or it is muted here).
-  useEffect(() => {
-    if (!open || !music) return;
-    try {
-      context.current ??= new AudioContext();
-      if (context.current.state === "suspended") void context.current.resume();
-      song.current = startDeckTheHalls(context.current);
-    } catch { /* no audio available */ }
-    return () => { song.current?.stop(); song.current = null; };
-  }, [open, music]);
-  useEffect(() => () => { if (context.current) void context.current.close(); context.current = null; }, []);
 
   const save = async (format: "png" | "gif") => {
     if (busy) return;
@@ -171,8 +153,9 @@ export function ChristmasCard({ open, onOpenChange, image, name, cover, ornament
             <Button type="button" onClick={() => setOpened((value) => !value)}>
               <Gift className="size-4" /> {opened ? "Close the card" : "Open the card"}
             </Button>
-            <Button type="button" variant="outline" aria-pressed={music} onClick={() => setMusicChoice(!music)}>
-              {music ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />} {music ? "Music on" : "Music off"}
+            <Button type="button" variant="outline" disabled={music.siteMuted} aria-pressed={music.playing} onClick={music.toggle}>
+              {music.playing ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
+              {music.siteMuted ? "Sound is off" : music.on ? "Music on" : "Music off"}
             </Button>
             <Button type="button" variant="outline" disabled={busy !== null} onClick={() => void save("png")}>
               {busy === "png" ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />} Save as PNG
@@ -182,6 +165,9 @@ export function ChristmasCard({ open, onOpenChange, image, name, cover, ornament
               {busy === "gif" ? `Making GIF ${Math.round(progress * 100)}%` : "Save as GIF"}
             </Button>
           </div>
+          {music.playing && music.song && (
+            <p className="relative z-10 text-xs text-white/70" aria-live="polite">♪ {music.song.title} (instrumental)</p>
+          )}
           <p className="relative z-10 max-w-sm text-center text-xs text-white/60">Your card is made in this browser tab only. Nothing is saved or sent anywhere.</p>
 
           <Dialog.Close aria-label="Close" className="absolute top-5 right-5 z-10 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"><X className="size-5" /></Dialog.Close>

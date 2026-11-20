@@ -9,7 +9,7 @@ import type { PlaygroundItem } from "@/data/playground";
 
 const SPEEDS = [0.5, 1, 1.5, 2, 2.5, 3] as const; // playback multiplier: 3x is the fastest
 const BASE_PHOTO_MS = 1500; // time one photo takes to move one slot at 1x
-const DEFAULT_SPEED = 1;
+const DEFAULT_SPEED = 2;
 const GRID_ROWS = 4;
 const MIN_TILE_SLOTS = 30; // keeps the diagonal row full and connected, however few photos there are
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
@@ -167,7 +167,7 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
   const [pseudoFullscreen, setPseudoFullscreen] = useState(false);
   const expanded = fullscreen || pseudoFullscreen;
   const [speed, setSpeed] = useState<number>(DEFAULT_SPEED);
-  const [view, setView] = useState<View>("grid");
+  const [view, setView] = useState<View>("tile");
   const [cols, setCols] = useState(6);
   const [page, setPage] = useState(0);
   const phase = useMotionValue(0);

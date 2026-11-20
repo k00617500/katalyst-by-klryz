@@ -13,6 +13,7 @@ import {
   type Ornament, type OrnamentKind,
 } from "@/lib/christmas-tree";
 import { ChristmasCard, pickCardCover } from "@/components/playground/christmas-card";
+import { useChristmasMusic } from "@/components/playground/use-christmas-music";
 
 function Swatch({ kind }: { kind: OrnamentKind }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -48,6 +49,8 @@ export function ChristmasTree() {
   const [cardImage, setCardImage] = useState("");
   const [cover, setCover] = useState(0);
   const [hint, setHint] = useState("");
+  // Random Christmas instrumentals start once the visitor begins decorating, and play while the card is shown.
+  const music = useChristmasMusic(active && (ornaments.length > 0 || cardOpen));
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
@@ -318,7 +321,7 @@ export function ChristmasTree() {
         </DialogContent>
       </Dialog>
 
-      <ChristmasCard open={cardOpen} onOpenChange={setCardOpen} image={cardImage} name={hasName ? name : ""} cover={cover} ornaments={ornaments} />
+      <ChristmasCard open={cardOpen} onOpenChange={setCardOpen} image={cardImage} name={hasName ? name : ""} cover={cover} ornaments={ornaments} music={music} />
     </section>
   );
 }

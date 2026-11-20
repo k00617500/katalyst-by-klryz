@@ -216,13 +216,16 @@ function star(ctx: Ctx, x: number, y: number, r: number) {
 }
 
 function candy(ctx: Ctx, x: number, y: number, r: number) {
+  // Hung at a slant, like a cane hooked over a branch, rather than standing straight up.
   const trace = () => {
     ctx.beginPath();
-    ctx.moveTo(x + r * 0.35, y + r * 1.25);
-    ctx.lineTo(x + r * 0.35, y - r * 0.55);
-    ctx.arc(x - r * 0.1, y - r * 0.55, r * 0.45, 0, -Math.PI, true);
+    ctx.moveTo(r * 0.35, r * 1.25);
+    ctx.lineTo(r * 0.35, -r * 0.55);
+    ctx.arc(-r * 0.1, -r * 0.55, r * 0.45, 0, -Math.PI, true);
   };
   ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(0.5);
   ctx.lineCap = "round";
   ctx.lineWidth = r * 0.5;
   ctx.strokeStyle = "#fdf6f0";

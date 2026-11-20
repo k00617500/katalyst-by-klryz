@@ -68,7 +68,7 @@ export function VibeKpis({ refreshKey }: { refreshKey: number }) {
     : 0;
 
   return (
-    <div className="mt-12 text-left" aria-label="Vibe check results so far">
+    <div className="mx-auto mt-12 max-w-4xl text-left" aria-label="Vibe check results so far">
       <div className="text-center">
         <span className="font-mono text-xs tracking-[0.2em] text-brand-ink uppercase">The vibe so far</span>
         <h3 className="mx-auto mt-3 max-w-xl text-balance text-2xl font-medium tracking-tight sm:text-3xl">What everyone&apos;s feeling in here</h3>
