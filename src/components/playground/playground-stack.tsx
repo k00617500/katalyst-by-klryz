@@ -53,8 +53,15 @@ function GalleryPhoto({ item, itemIndex, count, phase, selected, onHover, onOpen
     return `calc(-50% + ${Math.sign(value) * squeeze * 52}cqw)`;
   });
   const scale = useTransform(offset, (value) => Math.exp(-(value < 0 ? 0.36 : 0.26) * Math.abs(value)) * 1.12);
-  const rotateY = useTransform(offset, (value) => Math.sign(value) * Math.min(58, Math.abs(value) * 26));
-  const rotateZ = useTransform(offset, (value) => Math.max(-7, Math.min(7, -value * 2.2)) - 1.5);
+  // Photos always face the viewer. The lens curve lives in the frame: the outer edge is trimmed so the
+  // top and bottom slope away from the centre, like the reference strip.
+  const clipPath = useTransform(offset, (value) => {
+    const inset = Math.min(15, Math.abs(value) * 6.5);
+    return value >= 0
+      ? `polygon(0% 0%, 100% ${inset}%, 100% ${100 - inset}%, 0% 100%)`
+      : `polygon(0% ${inset}%, 100% 0%, 100% 100%, 0% ${100 - inset}%)`;
+  });
+  const rotateZ = useTransform(offset, (value) => Math.max(-4, Math.min(4, -value * 1.3)) - 1);
   const opacity = useTransform(offset, (value) => {
     const distance = Math.abs(value);
     return clamp01(value < 0 ? (4.3 - distance) / 1.7 : (5.4 - distance) / 1.6);
@@ -67,7 +74,7 @@ function GalleryPhoto({ item, itemIndex, count, phase, selected, onHover, onOpen
       tabIndex={selected ? 0 : -1}
       onMouseEnter={() => { onHover(true); onWarm(); }} onMouseLeave={() => onHover(false)}
       onClick={onOpen}
-      style={{ x, y: "-50%", scale, rotateY, rotateZ, opacity, zIndex, pointerEvents }}>
+      style={{ x, y: "-50%", scale, rotateZ, clipPath, opacity, zIndex, pointerEvents }}>
       <Image src={item.image} alt="" fill loading="eager" sizes={THUMB_SIZES} draggable={false} className="pointer-events-none object-cover" />
     </motion.button>
   );
