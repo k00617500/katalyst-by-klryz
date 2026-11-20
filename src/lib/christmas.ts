@@ -36,7 +36,9 @@ let modePromise: Promise<ChristmasMode> | null = null;
 
 /** The admin's mode, fetched once per page load; falls back to "auto" if the request fails. */
 function fetchMode(): Promise<ChristmasMode> {
-  modePromise ??= fetch("/api/site-settings")
+  // Inside the admin's preview frame, skip the 30-second cache so a change shows straight away.
+  const bust = window.self !== window.top ? `?t=${Date.now()}` : "";
+  modePromise ??= fetch("/api/site-settings" + bust, bust ? { cache: "no-store" } : undefined)
     .then((response) => (response.ok ? response.json() : null))
     .then((data: { christmas?: string } | null) => (data?.christmas === "on" || data?.christmas === "off" ? data.christmas : "auto"))
     .catch(() => "auto" as const);
