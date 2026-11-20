@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { PostRow, PostStatus } from "@/types/database";
 
 export interface PostWithRelations extends PostRow {
@@ -192,12 +193,27 @@ export interface PublicPostListParams {
   search?: string;
 }
 
+// Scheduled posts go live even when the Vercel cron isn't running (e.g. CRON_SECRET not set on the project):
+// public reads publish anything that is due first. Throttled so it costs at most one cheap RPC per 30s per instance.
+let lastDueCheck = 0;
+async function publishDueScheduledPosts(): Promise<void> {
+  const now = Date.now();
+  if (now - lastDueCheck < 30_000) return;
+  lastDueCheck = now;
+  try {
+    await createAdminClient().rpc("publish_scheduled_posts");
+  } catch {
+    /* No service role here, or the database is unreachable: the cron (or a manual publish) still covers it. */
+  }
+}
+
 export async function listPublishedPosts({
   page = 1,
   pageSize = 9,
   categorySlug,
   search,
 }: PublicPostListParams = {}) {
+  await publishDueScheduledPosts();
   const supabase = await createClient();
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
@@ -232,6 +248,7 @@ export async function listPublishedPosts({
 }
 
 export async function getPublishedPostBySlug(slug: string): Promise<PostWithRelations | null> {
+  await publishDueScheduledPosts();
   const supabase = await createClient();
   const { data, error } = await supabase.from("posts").select(POST_SELECT).eq("slug", slug).maybeSingle();
   if (error) throw error;
