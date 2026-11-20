@@ -7,17 +7,19 @@ import { resolveChristmas } from "@/lib/christmas";
 const words = ["HI", "I'M", "MERYLL", "KLARYZE"];
 const colors = ["#D8FF73", "#B6F500", "#76B900", "#328339", "#174D2A"];
 
-// Christmas season: each stamp picks a random red / green / white look, solid or candy-striped.
-const stripe = (a: string, b: string) => `repeating-linear-gradient(45deg, ${a} 0 7px, ${b} 7px 14px)`;
-const festive: { background: string; color: string; shadow?: string }[] = [
-  { background: "#c8182b", color: "#ffffff" },
-  { background: "#1f7a3a", color: "#ffffff" },
-  { background: "#fdf6f0", color: "#b5121f" },
-  { background: "#0f5a32", color: "#ffffff" },
-  { background: "#e0364a", color: "#ffffff" },
-  { background: stripe("#c8182b", "#fdf6f0"), color: "#7a0f1c", shadow: "0 0 3px #fff, 0 0 3px #fff, 0 0 5px #fff" },
-  { background: stripe("#1f7a3a", "#fdf6f0"), color: "#0b3d20", shadow: "0 0 3px #fff, 0 0 3px #fff, 0 0 5px #fff" },
-  { background: stripe("#c8182b", "#1f7a3a"), color: "#ffffff", shadow: "0 1px 2px #00000099" },
+// Christmas season: each stamp picks a random red / green / white look. The candy stripes only frame the edge, so
+// the word always sits on a solid, high-contrast centre and stays easy to read.
+const stripe = (a: string, b: string) => `repeating-linear-gradient(45deg, ${a} 0 6px, ${b} 6px 12px)`;
+const festive: { fill: string; color: string; frame?: string }[] = [
+  { fill: "#c8182b", color: "#ffffff" },
+  { fill: "#1f7a3a", color: "#ffffff" },
+  { fill: "#fdf6f0", color: "#b5121f" },
+  { fill: "#0f5a32", color: "#ffffff" },
+  { fill: "#e0364a", color: "#ffffff" },
+  { fill: "#c8182b", color: "#ffffff", frame: stripe("#ffffff", "#c8182b") },
+  { fill: "#1f7a3a", color: "#ffffff", frame: stripe("#ffffff", "#1f7a3a") },
+  { fill: "#fdf6f0", color: "#b5121f", frame: stripe("#c8182b", "#1f7a3a") },
+  { fill: "#0f5a32", color: "#ffffff", frame: stripe("#c8182b", "#ffffff") },
 ];
 
 export function CursorStamps() {
@@ -53,9 +55,11 @@ export function CursorStamps() {
       mark.style.top = `${event.clientY}px`;
       if (christmas) {
         const look = festive[Math.floor(Math.random() * festive.length)];
-        mark.style.background = look.background;
         mark.style.color = look.color;
-        if (look.shadow) mark.style.textShadow = look.shadow;
+        if (look.frame) {
+          mark.style.border = "4px solid transparent";
+          mark.style.background = `linear-gradient(${look.fill}, ${look.fill}) padding-box, ${look.frame} border-box`;
+        } else mark.style.background = look.fill;
       } else {
         mark.style.background = colors[step];
         mark.style.color = step < 3 ? "#142000" : "#FFFFFF";
