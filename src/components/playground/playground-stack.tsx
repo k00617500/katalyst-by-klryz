@@ -7,9 +7,11 @@ import { Dialog } from "radix-ui";
 import { ArrowLeft, ArrowRight, Expand, X } from "lucide-react";
 import type { PlaygroundItem } from "@/data/playground";
 
-const PHOTO_DURATION_MS = 1800;
+const SPEEDS = [0.5, 1, 1.5, 2, 2.5, 3] as const; // seconds each photo takes to move one slot
+const DEFAULT_SPEED = 1.5;
+const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 const wrap = (value: number, length: number) => ((value % length) + length) % length;
-const THUMB_SIZES = "(max-width: 640px) 34vw, 220px";
+const THUMB_SIZES = "(max-width: 640px) 40vw, 300px";
 
 function previewSource(item: PlaygroundItem) {
   // A single 1200px optimized URL is shared by preloading and the lightbox.
@@ -42,24 +44,31 @@ function GalleryPhoto({ item, itemIndex, count, phase, selected, onHover, onOpen
   onOpen: () => void;
   onWarm: () => void;
 }) {
+  // Negative offsets are photos already passed (left, where they are pulled into the "black hole"); positive are arriving.
   const offset = useTransform(phase, (value) => wrap(itemIndex - value + count / 2, count) - count / 2);
-  const spread = useTransform(offset, (value) => {
+  // Fisheye spacing: slots crowd together toward the edges, and more steeply on the exit side.
+  const x = useTransform(offset, (value) => {
     const distance = Math.abs(value);
-    return Math.sign(value) * (distance <= 1 ? distance * 1.35 : 1.35 + (distance - 1) * 0.29);
+    const squeeze = 1 - Math.exp(-(value < 0 ? 0.62 : 0.43) * distance);
+    return `calc(-50% + ${Math.sign(value) * squeeze * 52}cqw)`;
   });
-  const x = useTransform(spread, (value) => `calc(-50% + ${value} * var(--photo-step))`);
-  const y = useTransform(spread, (value) => `calc(-50% - ${value} * var(--photo-rise))`);
-  const scale = useTransform(offset, (value) => 1.08 - Math.min(1, Math.abs(value)) * 0.22);
-  const zIndex = useTransform(offset, (value) => count - Math.round(Math.abs(value)));
+  const scale = useTransform(offset, (value) => Math.exp(-(value < 0 ? 0.36 : 0.26) * Math.abs(value)) * 1.12);
+  const rotateY = useTransform(offset, (value) => Math.sign(value) * Math.min(58, Math.abs(value) * 26));
+  const rotateZ = useTransform(offset, (value) => Math.max(-7, Math.min(7, -value * 2.2)) - 1.5);
+  const opacity = useTransform(offset, (value) => {
+    const distance = Math.abs(value);
+    return clamp01(value < 0 ? (4.3 - distance) / 1.7 : (5.4 - distance) / 1.6);
+  });
+  const zIndex = useTransform(offset, (value) => 1000 - Math.round(Math.abs(value) * 100));
+  const pointerEvents = useTransform(offset, (value) => (Math.abs(value) > 3.6 ? "none" : "auto"));
   return (
     <motion.button type="button" className="playground-photo"
       aria-label={`Preview ${item.title}`} aria-current={selected ? "true" : undefined}
       tabIndex={selected ? 0 : -1}
       onMouseEnter={() => { onHover(true); onWarm(); }} onMouseLeave={() => onHover(false)}
       onClick={onOpen}
-      style={{ x, y, scale, zIndex, rotateY: -32, rotateZ: 5 }}>
-      <Image src={item.image} alt={item.title} fill loading="eager" sizes={THUMB_SIZES} draggable={false} className="pointer-events-none object-cover" />
-      <span className="playground-photo-label">{String(itemIndex + 1).padStart(2, "0")} <Expand className="size-3" /></span>
+      style={{ x, y: "-50%", scale, rotateY, rotateZ, opacity, zIndex, pointerEvents }}>
+      <Image src={item.image} alt="" fill loading="eager" sizes={THUMB_SIZES} draggable={false} className="pointer-events-none object-cover" />
     </motion.button>
   );
 }
@@ -68,6 +77,7 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
   const [index, setIndex] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [open, setOpen] = useState(false);
+  const [speed, setSpeed] = useState<number>(DEFAULT_SPEED);
   const phase = useMotionValue(0);
   const indexRef = useRef(0);
   const dragRef = useRef<{ pointerId: number; x: number; y: number; phase: number; active: boolean } | null>(null);
@@ -91,7 +101,7 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
   useAnimationFrame((_, delta) => {
     if (!running || dragRef.current) return;
     // Recycle only beyond the viewport; every card keeps moving through the seam.
-    const next = wrap(phase.get() + Math.min(delta, 64) / PHOTO_DURATION_MS, items.length);
+    const next = wrap(phase.get() + Math.min(delta, 64) / (speed * 1000), items.length);
     phase.set(next);
     const nextIndex = wrap(Math.round(next), items.length);
     if (nextIndex !== indexRef.current) {
@@ -129,6 +139,7 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
     <section className="playground-experience" aria-label="Photography playground" aria-roledescription="carousel" onKeyDown={handleKeys}>
       <h2 className="sr-only">Explore the Playground collection</h2>
       <div className="playground-rail cursor-grab touch-pan-y select-none active:cursor-grabbing"
+        onMouseEnter={() => setHovered(true)} onMouseLeave={() => { if (!dragRef.current) setHovered(false); }}
         onPointerDown={(event) => {
           if (event.button !== 0) return;
           suppressClick.current = false;
@@ -145,7 +156,7 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
             suppressClick.current = true;
             event.currentTarget.setPointerCapture(event.pointerId);
           }
-          const step = Math.max(125, Math.min(270, event.currentTarget.clientWidth * 0.17));
+          const step = Math.max(110, Math.min(260, event.currentTarget.clientWidth * 0.2));
           const next = wrap(drag.phase + (-dx + dy * 0.5) / step, items.length);
           phase.set(next);
           indexRef.current = wrap(Math.round(next), items.length);
@@ -158,18 +169,22 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
         }}>
         {items.map((item, itemIndex) => (
           <GalleryPhoto key={item.id} item={item} itemIndex={itemIndex} count={items.length} phase={phase}
-            selected={index === itemIndex} onHover={setHovered}
+            selected={index === itemIndex} onHover={() => {}}
             onWarm={() => warmPreview(item)}
             onOpen={() => { warmPreview(item); select(itemIndex); setOpen(true); }} />
         ))}
+        <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 z-[300] w-[16%] bg-[radial-gradient(ellipse_90%_34%_at_0%_48%,#000_25%,transparent_75%)]" />
       </div>
       <div className="playground-bottom">
-        <div><p className="font-mono text-xs uppercase" aria-live={running ? "off" : "polite"}>{active.title}</p><p className="mt-2 text-xs text-muted-foreground">Drag to explore · Click to preview</p></div>
         <div className="flex items-center gap-2">
-          <span className="mr-3 font-mono text-xs tabular-nums">{String(index + 1).padStart(2, "0")} / {items.length}</span>
           <button type="button" className="showcase-control size-10" aria-label="Previous photograph" onClick={() => navigate(-1)}><ArrowLeft className="size-4" /></button>
           <button type="button" className="showcase-control size-10" aria-label="Next photograph" onClick={() => navigate(1)}><ArrowRight className="size-4" /></button>
-          <button type="button" className="showcase-control ml-2 size-10" aria-label="Open selected photograph preview" onClick={() => setOpen(true)}><Expand className="size-4" /></button>
+          <button type="button" className="showcase-control size-10" aria-label="Open selected photograph preview" onClick={() => setOpen(true)}><Expand className="size-4" /></button>
+        </div>
+        <div className="playground-speed" role="group" aria-label="Seconds per photograph">
+          {SPEEDS.map((value) => (
+            <button key={value} type="button" aria-pressed={speed === value} onClick={() => setSpeed(value)}>{value}s</button>
+          ))}
         </div>
       </div>
       <Dialog.Root open={open} onOpenChange={(value) => { setOpen(value); if (!value) setHovered(false); }}>
@@ -179,7 +194,6 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
             <Dialog.Title className="sr-only">{active.title}</Dialog.Title>
             <Dialog.Description className="sr-only">Full photograph preview. Drag or swipe horizontally, or use the arrow keys to browse the collection.</Dialog.Description>
             <PhotoPreview key={active.id} item={active} onNavigate={navigate} />
-            <div className="absolute bottom-7 flex max-w-[90vw] items-center gap-5 font-mono text-xs text-white/80"><span className="truncate">{active.title}</span><span className="shrink-0">{index + 1} / {items.length}</span></div>
             <button type="button" aria-label="Previous photo" className="absolute top-1/2 left-3 rounded-full bg-white/10 p-3 text-white hover:bg-white/20 sm:left-6" onClick={() => navigate(-1)}><ArrowLeft className="size-5" /></button>
             <button type="button" aria-label="Next photo" className="absolute top-1/2 right-3 rounded-full bg-white/10 p-3 text-white hover:bg-white/20 sm:right-6" onClick={() => navigate(1)}><ArrowRight className="size-5" /></button>
             <Dialog.Close aria-label="Close preview" className="absolute top-5 right-5 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"><X className="size-5" /></Dialog.Close>
