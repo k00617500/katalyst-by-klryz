@@ -7,7 +7,7 @@ import { gsap, useGSAP, registerGsap } from "@/components/providers/gsap-provide
 import { Button } from "@/components/ui/button";
 import { MagneticButton } from "@/components/animations/magnetic-button";
 import { profile } from "@/data/profile";
-import { HeroPlayground } from "@/components/sections/hero-playground";
+import { HeroKeys } from "@/components/sections/hero-keys";
 import { track } from "@/lib/analytics/track";
 
 registerGsap();
@@ -98,17 +98,15 @@ export function HeroSection() {
         className="pointer-events-none absolute bottom-0 left-[-10%] size-[50vw] max-w-[600px] rounded-full bg-accent-cyan/10 blur-[150px]"
       />
 
-      <div className="container-page relative flex flex-1 flex-col justify-center gap-5 py-8 md:gap-6 md:py-10">
+      <div className="container-page relative flex flex-1 flex-col items-center justify-center gap-5 py-8 text-center md:gap-6 md:py-10">
         <span
           data-hero-eyebrow
-          className="font-mono text-xs leading-relaxed tracking-[0.2em] text-accent-cyan uppercase"
+          className="max-w-3xl font-mono text-xs leading-relaxed tracking-[0.2em] text-accent-cyan uppercase"
         >
           {profile.headline}
         </span>
 
-        <div className="grid items-center gap-6 lg:grid-cols-[1.1fr_1fr] lg:gap-4">
-        <div className="relative z-10 flex min-w-0 flex-col gap-5 md:gap-6">
-        <h1 aria-label={profile.heroHeadline} className="font-hero max-w-4xl text-[clamp(2.5rem,min(5.5vw,8svh),5rem)] leading-[1.08] font-semibold tracking-tight">
+        <h1 aria-label={profile.heroHeadline} className="font-hero max-w-5xl text-[clamp(2.75rem,min(8vw,9.5svh),6.25rem)] leading-[1.06] font-semibold tracking-tight">
           <span className="block overflow-hidden pb-1">
             <span data-hero-line className="block">
               Building ideas
@@ -126,12 +124,12 @@ export function HeroSection() {
 
         <p
           data-hero-sub
-          className="max-w-xl font-space text-balance text-base leading-relaxed text-muted-foreground md:text-lg"
+          className="max-w-2xl font-space text-balance text-lg leading-relaxed text-muted-foreground md:text-xl"
         >
           {profile.name} — {profile.roles[0]}, {profile.roles[1]}, {profile.roles[2]}.
         </p>
 
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center justify-center gap-4">
           <div data-hero-cta>
             <MagneticButton>
               <Button asChild size="lg" className="glow-border rounded-full px-7">
@@ -150,9 +148,8 @@ export function HeroSection() {
             </Button>
           </div>
         </div>
-        </div>
-        <HeroPlayground />
-        </div>
+
+        <HeroKeys />
       </div>
 
       <div
