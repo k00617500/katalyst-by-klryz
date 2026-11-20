@@ -81,7 +81,7 @@ function note(ctx: AudioContext, out: AudioNode, when: number, pitch: number, le
   const tail = Math.max(0.45, length * (voice === "bell" ? 1.8 : voice === "bass" ? 1.1 : 1.35));
   const gain = ctx.createGain();
   gain.gain.setValueAtTime(0.0001, when);
-  gain.gain.exponentialRampToValueAtTime(level, when + (voice === "bass" ? 0.012 : 0.006));
+  gain.gain.exponentialRampToValueAtTime(level * 1.8, when + (voice === "bass" ? 0.012 : 0.006));
   gain.gain.exponentialRampToValueAtTime(0.0001, when + tail);
   gain.connect(out);
   const partials: [number, number, OscillatorType][] =
@@ -112,7 +112,7 @@ function sleighBell(ctx: AudioContext, out: AudioNode, when: number, level: numb
   filter.frequency.value = 7200;
   filter.Q.value = 1.2;
   const gain = ctx.createGain();
-  gain.gain.value = level;
+  gain.gain.value = level * 1.5;
   source.connect(filter).connect(gain).connect(out);
   source.start(when);
 }
@@ -188,7 +188,7 @@ const BARS_PER_PLAY = 16;
 export function playSong(ctx: AudioContext, song: Song, onEnd: () => void): Playing {
   const master = ctx.createGain();
   master.gain.setValueAtTime(0.0001, ctx.currentTime);
-  master.gain.exponentialRampToValueAtTime(0.9, ctx.currentTime + 0.6);
+  master.gain.exponentialRampToValueAtTime(1.0, ctx.currentTime + 0.6);
   const echo = ctx.createDelay(0.8);
   const beat = 60 / song.bpm;
   echo.delayTime.value = Math.min(0.75, beat * 0.75);

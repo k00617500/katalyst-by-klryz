@@ -121,6 +121,7 @@ export function ChristmasTree() {
 
   const onDown = (event: PointerEvent<HTMLCanvasElement>) => {
     if (event.button !== 0 || !width) return;
+    music.unlock(); // the click that hangs an ornament also lets the browser start the music
     const { u, v } = point(event);
     const existing = hitOrnament(ornaments, u, v, width);
     if (existing) {
@@ -174,6 +175,7 @@ export function ChristmasTree() {
 
   const save = () => {
     if (!canSave) return;
+    music.unlock();
     const outWidth = 900;
     const out = document.createElement("canvas");
     out.width = outWidth;

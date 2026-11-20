@@ -153,9 +153,9 @@ export function ChristmasCard({ open, onOpenChange, image, name, cover, ornament
             <Button type="button" onClick={() => setOpened((value) => !value)}>
               <Gift className="size-4" /> {opened ? "Close the card" : "Open the card"}
             </Button>
-            <Button type="button" variant="outline" disabled={music.siteMuted} aria-pressed={music.playing} onClick={music.toggle}>
+            <Button type="button" variant="outline" disabled={music.siteMuted} aria-pressed={music.playing} onClick={music.blocked ? music.unlock : music.toggle}>
               {music.playing ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
-              {music.siteMuted ? "Sound is off" : music.on ? "Music on" : "Music off"}
+              {music.siteMuted ? "Sound is off" : music.blocked ? "Tap to play music" : music.on ? "Music on" : "Music off"}
             </Button>
             <Button type="button" variant="outline" disabled={busy !== null} onClick={() => void save("png")}>
               {busy === "png" ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />} Save as PNG
