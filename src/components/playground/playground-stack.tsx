@@ -90,6 +90,9 @@ function GridView({ items, cols, page, onOpen, onWarm }: {
   const slice = items.slice(page * pageSize, (page + 1) * pageSize);
   const halfCols = (cols - 1) / 2;
   const halfRows = (GRID_ROWS - 1) / 2;
+  // Hovering a photo sends a ripple through the grid: neighbours rise and settle a beat later the farther they are.
+  const [wave, setWave] = useState<{ origin: number; id: number } | null>(null);
+  const reducedMotion = useReducedMotion();
   return (
     <div key={page} className="playground-grid" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)` }}>
       {slice.map((item, i) => {
@@ -99,8 +102,17 @@ function GridView({ items, cols, page, onOpen, onWarm }: {
         const toCenterY = halfRows - row;
         const ux = (toCenterX < 0 ? -1 : 1) * (0.35 + 0.65 * Math.abs(toCenterX) / halfCols);
         const uy = (toCenterY < 0 ? -1 : 1) * (0.35 + 0.65 * Math.abs(toCenterY) / halfRows);
+        const distance = wave ? Math.hypot(col - (wave.origin % cols), row - Math.floor(wave.origin / cols)) : 0;
+        const amplitude = wave ? Math.max(0, 1 - distance * 0.17) : 0;
+        const waving = !!wave && !reducedMotion && amplitude > 0 && i !== wave.origin;
         return (
-          <div key={item.id} className="playground-cell" style={{ "--dx": `${ux * 17}px`, "--dy": `${uy * 11}px` } as React.CSSProperties}>
+          <div key={item.id} className={`playground-cell${waving ? " is-waving" : ""}`}
+            onMouseEnter={() => { if (!reducedMotion) setWave((previous) => ({ origin: i, id: (previous?.id ?? 0) + 1 })); }}
+            style={{
+              "--dx": `${ux * 17}px`, "--dy": `${uy * 11}px`,
+              "--wave-amp": amplitude, "--wave-delay": `${Math.round(distance * 70)}ms`,
+              animationName: waving ? (wave!.id % 2 ? "playground-wave-a" : "playground-wave-b") : undefined,
+            } as React.CSSProperties}>
             {[4, 3, 2, 1].map((n) => (
               <span key={n} aria-hidden className="grid-echo" style={{ "--n": n } as React.CSSProperties}>
                 <Image src={item.image} alt="" fill sizes="(max-width: 640px) 30vw, 150px" draggable={false} className="object-cover" />

@@ -330,6 +330,9 @@
 .playground-photo-art { position: absolute; inset: 4.5% 4% 4.5% 13%; display: block; overflow: hidden; box-shadow: 0 0 0 1px #0006; }
 .playground-grid { position: absolute; inset: 28px clamp(16px, 4vw, 64px) 96px; display: grid; gap: clamp(4px, 1vw, 14px); animation: playground-grid-in .5s ease both; }
 .playground-cell { position: relative; }
+.playground-cell.is-waving { animation-duration: .75s; animation-delay: var(--wave-delay); animation-timing-function: cubic-bezier(.3, .7, .3, 1); animation-fill-mode: both; }
+@keyframes playground-wave-a { 0%, 100% { transform: translateY(0) scale(1); } 40% { transform: translateY(calc(-16px * var(--wave-amp))) scale(calc(1 + .09 * var(--wave-amp))); } 70% { transform: translateY(calc(4px * var(--wave-amp))) scale(1); } }
+@keyframes playground-wave-b { 0%, 100% { transform: translateY(0) scale(1); } 40% { transform: translateY(calc(-16px * var(--wave-amp))) scale(calc(1 + .09 * var(--wave-amp))); } 70% { transform: translateY(calc(4px * var(--wave-amp))) scale(1); } }
 .grid-face, .grid-echo { position: absolute; left: 50%; top: 50%; height: 88%; aspect-ratio: 1; overflow: hidden; background: var(--muted); }
 .grid-echo { transform: translate(calc(-50% + var(--dx) * var(--n)), calc(-50% + var(--dy) * var(--n))); filter: brightness(calc(1 - var(--n) * 0.17)); opacity: calc(1 - var(--n) * 0.1); pointer-events: none; }
 .grid-face { transform: translate(-50%, -50%); z-index: 5; padding: 0; border: 0; cursor: zoom-in; transition: transform .25s; }
