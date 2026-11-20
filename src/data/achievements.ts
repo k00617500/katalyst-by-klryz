@@ -4,7 +4,7 @@ export const achievements: Achievement[] = [
   {
     id: "college-service-awardee",
     title: "College Service Awardee",
-    dateLabel: "During BSIS studies · 2023–2027",
+    dateLabel: "During BSIS studies · 2023–2026 · present",
     category: "academic",
   },
   {
@@ -57,13 +57,14 @@ export const achievements: Achievement[] = [
     title: "Recognition in Journalism",
     organization: "School journalism",
     category: "competition",
-    dateLabel: "School journalism · exact award dates not specified",
+    dateLabel: "School journalism",
     description: "Recognition in Editorial Cartooning, Science & Technology Writing, and News Writing.",
   },
   {
     id: "nspc-2017",
     title: "2nd Place, Collaborative Desktop Publishing",
     organization: "NSPC 2017",
+    description: "Awarded as the Editorial Cartoonist.",
     category: "competition",
     year: 2017,
   },

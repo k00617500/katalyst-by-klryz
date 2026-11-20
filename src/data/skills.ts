@@ -20,6 +20,7 @@ export const skillGroups: SkillGroup[] = [
       "Leaflet",
       "Figma",
       "Adobe Photoshop",
+      "Adobe Lightroom",
       "Canva",
     ],
   },
@@ -38,7 +39,7 @@ export const skillGroups: SkillGroup[] = [
   },
 ];
 
-export const languages: string[] = ["English", "Filipino", "Hiligaynon"];
+export const languages: string[] = ["English", "Filipino", "Hiligaynon", "Kinaray-a"];
 
 export const interests: string[] = [
   "Web Development",

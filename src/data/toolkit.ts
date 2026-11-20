@@ -2,6 +2,7 @@ import type { IconType } from "react-icons";
 import { VscVscode } from "react-icons/vsc";
 import { RiOpenaiFill } from "react-icons/ri";
 import { TbBrandAdobePhotoshop } from "react-icons/tb";
+import { BrandAdobeLightroom } from "@/components/icons/lightroom";
 import {
   SiHtml5,
   SiCss,
@@ -62,4 +63,5 @@ export const toolkitItems: ToolkitItem[] = [
   { name: "VS Code", icon: VscVscode, color: "#007ACC" },
   { name: "ClickUp", icon: SiClickup, color: "#FF4785" },
   { name: "Adobe Photoshop", icon: TbBrandAdobePhotoshop, color: "#31A8FF" },
+  { name: "Adobe Lightroom", icon: BrandAdobeLightroom, color: "#31A8FF" },
 ];
