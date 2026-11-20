@@ -9,7 +9,7 @@ import { experienceEntries } from "@/data/experience";
 import { profile } from "@/data/profile";
 import { attendedSessions } from "@/data/participation";
 import { tourDates, tourVisits } from "@/data/educational-tour";
-import { ChevronDown } from "lucide-react";
+import { Bus, ChevronDown } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Experience",
@@ -118,29 +118,6 @@ export default function ExperiencePage() {
         </div>
       </section>
 
-      <section className="container-page border-t border-border/60 py-10 md:py-12">
-        <p className="font-mono text-xs tracking-[0.2em] text-muted-foreground uppercase">Educational tour · {tourDates}</p>
-        <h2 className="mt-2 text-lg font-medium tracking-tight">Companies visited</h2>
-        <ul className="mt-4 max-w-3xl divide-y divide-border border-y border-border">
-          {tourVisits.map((visit) => (
-            <li key={visit.company}>
-              <details className="group">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-3 text-sm [&::-webkit-details-marker]:hidden">
-                  <span className="min-w-0">
-                    <span className="font-medium">{visit.company}</span>
-                    <span className="ml-2 font-mono text-xs text-muted-foreground">{visit.place}</span>
-                  </span>
-                  <span className="flex shrink-0 items-center gap-1 font-mono text-[11px] text-muted-foreground uppercase">
-                    Insights<ChevronDown className="size-3.5 transition-transform group-open:rotate-180" aria-hidden="true" />
-                  </span>
-                </summary>
-                <p className="max-w-2xl pb-4 text-sm leading-relaxed text-muted-foreground">{visit.insight}</p>
-              </details>
-            </li>
-          ))}
-        </ul>
-      </section>
-
       <section className="container-page section-y border-t border-border/60">
         <SectionHeading eyebrow="Participation" title="Attended sessions" description="Conferences, roadshows, and webinars — Certificates of Participation" className="mb-10" />
         <div className="divide-y divide-border border-t border-border">
@@ -155,6 +132,32 @@ export default function ExperiencePage() {
           </article>)}
         </div>
       </section>
+      <section className="container-page border-t border-border/60 py-10 md:py-12">
+        <p className="flex items-center gap-2 font-mono text-xs tracking-[0.2em] text-muted-foreground uppercase"><Bus className="size-3.5" aria-hidden="true" />Educational tour · {tourDates}</p>
+        <h2 className="mt-2 text-lg font-medium tracking-tight">Companies visited</h2>
+        <ul className="mt-4 max-w-3xl divide-y divide-border border-y border-border">
+          {tourVisits.map((visit) => (
+            <li key={visit.company}>
+              <details className="group">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-3 text-sm [&::-webkit-details-marker]:hidden">
+                  <span className="flex min-w-0 items-start gap-3">
+                    <visit.icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                    <span className="min-w-0">
+                      <span className="font-medium">{visit.company}</span>
+                      <span className="mt-0.5 block font-mono text-xs text-muted-foreground">{visit.place}</span>
+                    </span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1 font-mono text-[11px] text-muted-foreground uppercase">
+                    Insights<ChevronDown className="size-3.5 transition-transform group-open:rotate-180" aria-hidden="true" />
+                  </span>
+                </summary>
+                <p className="max-w-2xl pb-4 text-sm leading-relaxed text-muted-foreground">{visit.insight}</p>
+              </details>
+            </li>
+          ))}
+        </ul>
+      </section>
+
       <section className="container-page section-y border-t border-border/60">
         <ScrollReveal className="flex flex-wrap items-center gap-6">
           <Button asChild size="lg" className="rounded-full px-8">
