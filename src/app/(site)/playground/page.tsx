@@ -6,6 +6,7 @@ import { getPlaygroundItems } from "@/lib/playground";
 import { TextReveal } from "@/components/animations/text-reveal";
 import { VibeCheck } from "@/components/playground/vibe-check";
 import { ScrollDown } from "@/components/playground/scroll-down";
+import { ChristmasTree } from "@/components/playground/christmas-tree";
 import { PinballExperience } from "@/components/pinball/pinball-experience-loader";
 
 export const metadata: Metadata = {
@@ -35,6 +36,7 @@ export default async function PlaygroundPage() {
       </section>
       <ScrollDown target="playground-gallery" label="Scroll down to the photo gallery" />
       <PlaygroundStack items={playgroundItems} />
+      <ChristmasTree />
       <ScrollDown target="vibe-check" label="Scroll down to the vibe check" />
       <VibeCheck />
     </>
