@@ -63,6 +63,11 @@ export function useChristmasMusic(wanted: boolean, prepare = wanted): ChristmasM
   const soundingRef = useRef(false);
   const toolkitPlayingRef = useRef(false);
   const pausedToolkit = useRef(false);
+  // The first song is loaded into the hidden player ahead of time, so the very first ornament starts it instantly.
+  const initialTrack = useRef<ChristmasTrack | null>(null);
+  const currentTrack = useRef<ChristmasTrack | null>(null);
+  const pendingPlay = useRef(false);
+  const lastPlaybackStarted = useRef(false);
   const audio = useRef<AudioContext | null>(null);
 
   // A hidden Spotify player, loaded as soon as the section is on screen so it is ready when the first ornament goes up.
@@ -78,11 +83,15 @@ export function useChristmasMusic(wanted: boolean, prepare = wanted): ChristmasM
     host.current = element;
     let cancelled = false;
     const first = randomTrack(lastId.current);
+    initialTrack.current = first;
     playlistApi.createController(target, { uri: `spotify:track:${first.id}`, width: "100%", height: 152 }, (embed) => {
       if (cancelled) { embed.destroy(); return; }
       controller.current = embed;
-      embed.addListener("ready", () => { ready.current = true; });
-      embed.addListener("playback_started", () => { setSounding(true); setBlocked(false); });
+      embed.addListener("ready", () => {
+        ready.current = true;
+        if (pendingPlay.current && wantRef.current) { pendingPlay.current = false; try { embed.play(); } catch { /* not ready */ } }
+      });
+      embed.addListener("playback_started", () => { lastPlaybackStarted.current = true; setSounding(true); setBlocked(false); });
       embed.addListener("playback_update", ({ data }) => {
         if (!wantRef.current) return;
         if (!data.isPaused && !data.isBuffering && data.position > 0) { setSounding(true); setBlocked(false); }
@@ -95,6 +104,8 @@ export function useChristmasMusic(wanted: boolean, prepare = wanted): ChristmasM
       try { controller.current?.destroy(); } catch { /* already gone */ }
       controller.current = null;
       ready.current = false;
+      initialTrack.current = null;
+      currentTrack.current = null;
       element.remove();
       host.current = null;
     };
@@ -137,20 +148,30 @@ export function useChristmasMusic(wanted: boolean, prepare = wanted): ChristmasM
       window.clearTimeout(watchdog);
       const embed = controller.current;
       if (!embed) { playSynthFallback(); return; }
-      const track = randomTrack(lastId.current);
+      // Pick up the song that is already loaded (the first one, or one paused by scrolling away) so there is no wait.
+      const resumed = currentTrack.current ?? initialTrack.current;
+      const track = resumed ?? randomTrack(lastId.current);
+      const alreadyLoaded = resumed !== null;
+      initialTrack.current = null;
+      currentTrack.current = track;
       lastId.current = track.id;
       setSong({ title: track.title, artist: track.artist });
       startedAt.current = Date.now();
       try {
-        embed.loadUri(`spotify:track:${track.id}`);
-        embed.play();
+        if (alreadyLoaded) {
+          if (ready.current) embed.play(); else pendingPlay.current = true;
+          if (ready.current && lastPlaybackStarted.current) embed.resume();
+        } else {
+          embed.loadUri(`spotify:track:${track.id}`);
+          embed.play();
+        }
         // If the browser holds the playback back, say so rather than pretending.
         window.setTimeout(() => { if (!cancelled && !soundingRef.current) setBlocked(true); }, 3500);
       } catch { setBlocked(true); }
       // Previews end on their own; this keeps the shuffle going even if no end event arrives.
       watchdog = window.setTimeout(() => { if (!cancelled) advanceRef.current(); }, PREVIEW_MS);
     };
-    advanceRef.current = () => { synth?.stop(); synth = null; setSounding(false); startNext(); };
+    advanceRef.current = () => { synth?.stop(); synth = null; currentTrack.current = null; initialTrack.current = null; setSounding(false); startNext(); };
 
     const timer = window.setTimeout(startNext, 0);
     // A click or key press anywhere releases a held-back player.
