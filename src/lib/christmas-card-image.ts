@@ -8,7 +8,7 @@ import { drawSnow, makeSnow } from "@/lib/snow-field";
  * the time `t`, so the PNG is one frame and the GIF is a seamless loop of frames. Nothing leaves the browser.
  */
 export const CARD_SNOW_PERIOD = 4;
-const FONT = "'DM Sans', Inter, system-ui, sans-serif";
+const FONT = "'DM Sans', system-ui, sans-serif";
 
 export interface CardImageOptions {
   ornaments: Ornament[];
@@ -103,6 +103,14 @@ export function loadQr(): Promise<HTMLImageElement | null> {
   });
 }
 
+/** The card is always set in DM Sans, so make sure it is loaded before anything is drawn. */
+async function loadFonts() {
+  try {
+    await Promise.all(["500", "600", "700"].map((weight) => document.fonts.load(`${weight} 40px 'DM Sans'`)));
+    await document.fonts.ready;
+  } catch { /* fall back to the system font */ }
+}
+
 function download(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -115,6 +123,7 @@ function download(blob: Blob, filename: string) {
 }
 
 export async function savePng(options: CardImageOptions) {
+  await loadFonts();
   const size = 800;
   const canvas = document.createElement("canvas");
   canvas.width = size * 2;
@@ -127,6 +136,7 @@ export async function savePng(options: CardImageOptions) {
 
 /** Renders an animated, looping GIF (snow falling, lights twinkling). Reports progress 0..1. */
 export async function saveGif(options: CardImageOptions, onProgress: (value: number) => void) {
+  await loadFonts();
   const size = 320; // each panel; the GIF is 640 x 320 to keep the file small
   const frames = 40;
   const delay = Math.round((CARD_SNOW_PERIOD * 1000) / frames);

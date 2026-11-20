@@ -126,7 +126,7 @@ export function ChristmasCard({ open, onOpenChange, image, name, cover, ornament
     <Dialog.Root open={open} onOpenChange={(value) => { onOpenChange(value); if (!value) setOpened(false); }}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-sm" />
-        <Dialog.Content onOpenAutoFocus={(event) => event.preventDefault()} className="fixed inset-0 z-[101] flex flex-col items-center justify-center gap-7 p-4 outline-none">
+        <Dialog.Content onOpenAutoFocus={(event) => event.preventDefault()} className="fixed inset-0 z-[101] flex flex-col items-center justify-center gap-7 p-4 outline-none" style={{ fontFamily: "var(--font-dm-sans), 'DM Sans', system-ui, sans-serif" }}>
           <SnowCanvas count={90} period={26} scale={1.25} seed={21} className="absolute inset-0 -z-0 size-full" />
           <Dialog.Title className="sr-only">Your Christmas card</Dialog.Title>
           <Dialog.Description className="sr-only">A two-fold greeting card with your decorated tree inside. Press the card or the Open button to open it.</Dialog.Description>
