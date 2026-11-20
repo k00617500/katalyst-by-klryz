@@ -50,16 +50,16 @@ function GalleryPhoto({ item, itemIndex, count, phase, selected, onHover, onOpen
   const x = useTransform(depth, (value) => `calc(-50% + ${(value - 3.5) * 5}cqw)`);
   const y = useTransform(depth, (value) => `calc(-50% - ${(value - 3.5) * 3.6 + 1}cqh)`);
   const z = useTransform(depth, (value) => -value * 16);
-  const opacity = useTransform(depth, (value) => clamp01(Math.min((value + 3.6) / 1.4, (14 - value) / 3.5)));
+  const opacity = useTransform(depth, (value) => clamp01(Math.min((value + 7) / 1, (14 - value) / 3.5)));
   const zIndex = useTransform(depth, (value) => 1000 - Math.round(value * 10));
-  const pointerEvents = useTransform(depth, (value) => (value < -2 || value > 10 ? "none" : "auto"));
+  const pointerEvents = useTransform(depth, (value) => (value < -6 || value > 10 ? "none" : "auto"));
   return (
     <motion.button type="button" className="playground-photo"
       aria-label={`Preview ${item.title}`} aria-current={selected ? "true" : undefined}
       tabIndex={selected ? 0 : -1}
       onMouseEnter={() => { onHover(true); onWarm(); }} onMouseLeave={() => onHover(false)}
       onClick={onOpen}
-      style={{ x, y, z, rotateY: -52, zIndex, pointerEvents, "--case-opacity": opacity } as never}>
+      style={{ x, y, z, rotateY: -38, zIndex, pointerEvents, "--case-opacity": opacity } as never}>
       <span className="case-face case-back" aria-hidden />
       <span className="case-face case-spine" aria-hidden />
       <span className="case-face case-right" aria-hidden />
