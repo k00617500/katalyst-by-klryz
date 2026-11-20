@@ -366,11 +366,6 @@
 .hero-art-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; min-width: 36px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--background); color: var(--foreground); font-size: 11px; cursor: pointer; transition: background .2s, border-color .2s; }
 .hero-art-button:hover { background: var(--secondary); border-color: var(--brand-ink); }
 .hero-art-button:focus-visible { outline: 2px solid var(--brand-ink); outline-offset: 3px; }
-.hero-art-fallback { position: absolute; inset: 8%; transition: opacity .4s; pointer-events: none; }
-.hero-playground[data-ready="true"] .hero-art-fallback { opacity: 0; }
-.hero-fallback-star { position: absolute; left: 6%; top: 6%; width: 48%; aspect-ratio: 1; background: linear-gradient(135deg, #e6ff95, #a4dd00 50%, #476000); clip-path: polygon(50% 0%, 59% 25%, 75% 7%, 75% 32%, 93% 25%, 82% 44%, 100% 50%, 78% 59%, 93% 75%, 68% 75%, 75% 93%, 56% 80%, 50% 100%, 41% 78%, 25% 93%, 25% 70%, 7% 75%, 20% 56%, 0% 50%, 22% 41%, 7% 25%, 32% 25%, 25% 7%, 44% 20%); transform: rotate(-12deg); }
-.hero-fallback-ring { position: absolute; right: 7%; top: 30%; width: 54%; aspect-ratio: 1; border: clamp(25px, 4vw, 48px) solid #a98aff; border-radius: 50%; box-shadow: inset 5px 5px 12px #604387, 8px 10px 15px #0003; transform: rotate(-25deg) scaleY(.8); }
-.hero-fallback-orb { position: absolute; bottom: 3%; left: 14%; width: 30%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at 30% 20%, white, #b3b6af 25%, #252b25 55%, #c0c9b5 85%); }
 @media (max-width: 1023px) and (min-width: 640px) {
   .hero-playground { max-width: 560px; align-self: center; justify-self: center; }
   .hero-art-stage { height: 380px; }

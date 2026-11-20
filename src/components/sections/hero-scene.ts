@@ -127,10 +127,10 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
 
   // Slots the props rest in; Remix deals the props into the next slot.
   const slots = [
-    new THREE.Vector3(-0.8, 0.7, 0),
-    new THREE.Vector3(1.4, -0.5, 0.5),
-    new THREE.Vector3(-1.95, -1.4, 0.6),
-    new THREE.Vector3(1.55, 1.5, -0.5),
+    new THREE.Vector3(-0.45, 0.55, 0),
+    new THREE.Vector3(0.95, -0.4, 0.4),
+    new THREE.Vector3(-1.3, -1.05, 0.5),
+    new THREE.Vector3(0.95, 1.15, -0.3),
   ];
   const props = [
     { object: cam, rotation: new THREE.Euler(0.2, -0.45, 0.06), spin: 0.5 },

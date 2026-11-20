@@ -103,7 +103,7 @@ export function MiniPlayer({ visible }: { visible: boolean }) {
       }}
       whileHover={collapsed ? { right: 6 } : undefined}
       transition={transition}
-      className="fixed bottom-4 z-[60] overflow-hidden rounded-[1.4rem] border border-foreground/10 bg-background/75 backdrop-blur-2xl backdrop-saturate-150"
+      className="fixed bottom-4 z-[60] overflow-hidden rounded-[1.4rem] border border-foreground/15 bg-background/40 backdrop-blur-3xl backdrop-saturate-200"
       style={{ pointerEvents: visible ? "auto" : "none" }}
     >
       <div className="p-2" style={{ width }}>

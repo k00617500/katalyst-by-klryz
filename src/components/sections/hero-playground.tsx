@@ -27,11 +27,6 @@ export function HeroPlayground() {
   return (
     <div className="hero-playground" data-ready={ready}>
       <div className="hero-art-stage">
-        <div className="hero-art-fallback" aria-hidden="true">
-          <div className="hero-fallback-star" />
-          <div className="hero-fallback-ring" />
-          <div className="hero-fallback-orb" />
-        </div>
         <div ref={host} className="hero-canvas" role="img" aria-label="Interactive 3D desk props: a computer mouse, a pen, a chess pawn and a camera. Drag to rotate, double-click to spin them fast, or use Remix to rearrange them." />
       </div>
       <div className="hero-art-toolbar">

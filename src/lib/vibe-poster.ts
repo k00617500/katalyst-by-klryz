@@ -47,7 +47,6 @@ const FRAMES: Record<PosterLayout, Frame> = {
   },
 };
 
-const STEPS_PER_SECTOR = 24;
 
 export interface PosterColors {
   fg: string;
@@ -125,43 +124,77 @@ function triangleTransform(s: number[], d: number[]) {
   return [a, b, c, dd, d[0] - a * s[0] - c * s[1], d[1] - b * s[0] - dd * s[1]] as const;
 }
 
+// Rings (as a fraction of the picture's radius) the warp mesh is built from; denser toward the edge, where the stretch lives.
+const WARP_RINGS = [0.3, 0.5, 0.66, 0.8, 0.91, 1];
+const WARP_STEPS_PER_AXIS = 12;
+// How strongly the stretch is held back toward the centre: the face stays natural in the middle and only the edge is pulled.
+const WARP_EDGE_POWER = 2.4;
+
+/**
+ * Draws the picture warped toward the chart: the middle keeps its natural size and shape, while the edge part is
+ * stretched (or pulled in) toward each mood's reach, like taffy being tugged at the rim.
+ */
 function drawWarpedImage(ctx: CanvasRenderingContext2D, frame: Frame, source: CanvasImageSource, size: { w: number; h: number }, ratings: number[]) {
   const { cx, cy } = frame;
-  const radii = ratings.map((rating) => radiusFor(rating, frame.face));
+  const edges = ratings.map((rating) => radiusFor(rating, frame.face));
+  const centreScale = frame.face * 0.64;
   const sourceRadius = Math.min(size.w, size.h) / 2;
   const sx = size.w / 2;
   const sy = size.h / 2;
-  const total = STEPS_PER_SECTOR * radii.length;
-  const points: Array<{ dx: number; dy: number; sx: number; sy: number }> = [];
-  for (let i = 0; i <= total; i++) {
-    const angle = -Math.PI / 2 + (i / total) * Math.PI * 2;
-    const r = shapeRadius(radii, angle);
-    points.push({
-      dx: cx + Math.cos(angle) * r,
-      dy: cy + Math.sin(angle) * r,
-      sx: sx + Math.cos(angle) * sourceRadius,
-      sy: sy + Math.sin(angle) * sourceRadius,
-    });
-  }
-  for (let i = 0; i < total; i++) {
-    const a = points[i];
-    const b = points[i + 1];
-    const matrix = triangleTransform([sx, sy, a.sx, a.sy, b.sx, b.sy], [cx, cy, a.dx, a.dy, b.dx, b.dy]);
-    if (!matrix) continue;
-    // Overlap neighbouring wedges along the chord so antialiased clip edges never leave seam lines.
-    const stretch = 0.2;
-    const ga = [a.dx + (a.dx - b.dx) * stretch, a.dy + (a.dy - b.dy) * stretch] as const;
-    const gb = [b.dx + (b.dx - a.dx) * stretch, b.dy + (b.dy - a.dy) * stretch] as const;
+  const steps = WARP_STEPS_PER_AXIS * edges.length;
+  const angles = Array.from({ length: steps + 1 }, (_, i) => -Math.PI / 2 + (i / steps) * Math.PI * 2);
+  const reach = angles.map((angle) => shapeRadius(edges, angle));
+
+  const source2 = (rho: number, i: number) => [sx + Math.cos(angles[i]) * rho * sourceRadius, sy + Math.sin(angles[i]) * rho * sourceRadius];
+  const dest2 = (rho: number, i: number) => {
+    const r = centreScale * rho * (1 + (reach[i] / centreScale - 1) * rho ** WARP_EDGE_POWER);
+    return [cx + Math.cos(angles[i]) * r, cy + Math.sin(angles[i]) * r];
+  };
+
+  const triangle = (s: number[][], d: number[][]) => {
+    const matrix = triangleTransform([s[0][0], s[0][1], s[1][0], s[1][1], s[2][0], s[2][1]], [d[0][0], d[0][1], d[1][0], d[1][1], d[2][0], d[2][1]]);
+    if (!matrix) return;
+    // Grow each clip a hair from its centre so neighbouring triangles overlap and never leave seam lines.
+    const mx = (d[0][0] + d[1][0] + d[2][0]) / 3;
+    const my = (d[0][1] + d[1][1] + d[2][1]) / 3;
     ctx.save();
     ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.lineTo(ga[0], ga[1]);
-    ctx.lineTo(gb[0], gb[1]);
+    d.forEach(([x, y], index) => {
+      const vx = x - mx;
+      const vy = y - my;
+      const len = Math.hypot(vx, vy) || 1;
+      const gx = x + (vx / len) * 0.8;
+      const gy = y + (vy / len) * 0.8;
+      if (index === 0) ctx.moveTo(gx, gy); else ctx.lineTo(gx, gy);
+    });
     ctx.closePath();
     ctx.clip();
     ctx.transform(matrix[0], matrix[1], matrix[2], matrix[3], matrix[4], matrix[5]);
     ctx.drawImage(source, 0, 0, size.w, size.h);
     ctx.restore();
+  };
+
+  // The middle is one smooth disc at natural proportions (no triangles meeting at a point, so no seams on the face).
+  const innerRho = WARP_RINGS[0];
+  const innerRadius = reach.reduce((sum, _, i) => sum + Math.hypot(dest2(innerRho, i)[0] - cx, dest2(innerRho, i)[1] - cy), 0) / reach.length;
+  const discScale = innerRadius / (innerRho * sourceRadius);
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, innerRadius + 1.5, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.drawImage(source, cx - sx * discScale, cy - sy * discScale, size.w * discScale, size.h * discScale);
+  ctx.restore();
+
+  for (let i = 0; i < steps; i++) {
+    // Bands out to the edge.
+    for (let ring = 0; ring < WARP_RINGS.length - 1; ring++) {
+      const inner = WARP_RINGS[ring];
+      const outer = WARP_RINGS[ring + 1];
+      const [sA, sB, sC, sD] = [source2(inner, i), source2(inner, i + 1), source2(outer, i), source2(outer, i + 1)];
+      const [dA, dB, dC, dD] = [dest2(inner, i), dest2(inner, i + 1), dest2(outer, i), dest2(outer, i + 1)];
+      triangle([sA, sB, sC], [dA, dB, dC]);
+      triangle([sB, sD, sC], [dB, dD, dC]);
+    }
   }
 }
 
