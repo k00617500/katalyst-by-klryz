@@ -688,14 +688,14 @@ export function VibeCheck() {
                 <p className="text-lg font-medium tracking-tight sm:text-xl">How strongly, {name || "friend"}?</p>
                 <p className="mt-0.5 text-sm text-muted-foreground">1 is barely, 5 is very much. Watch the chart move.</p>
               </div>
-              <div className="flex w-full flex-col gap-2.5">
+              <div className="flex w-full flex-col gap-2">
                 {chosen.map((mood) => (
-                  <div key={mood.label} role="group" aria-label={mood.label} className="flex flex-col gap-1">
-                    <span className="font-mono text-xs tracking-widest uppercase">{mood.label}</span>
-                    <div className="grid grid-cols-5 gap-2">
+                  <div key={mood.label} role="group" aria-label={mood.label} className="grid grid-cols-[5.75rem_1fr] items-center gap-2 sm:grid-cols-[6.75rem_1fr]">
+                    <span className="truncate text-left font-mono text-[11px] tracking-wider uppercase sm:text-xs">{mood.label}</span>
+                    <div className="grid grid-cols-5 gap-1.5">
                       {RATING_NUMBERS.map((number) => (
                         <button key={number} type="button" aria-pressed={mood.rating === number} onClick={() => setRatings((value) => ({ ...value, [mood.label]: number }))}
-                          className={`h-9 rounded-xl border font-mono text-sm tabular-nums transition-colors sm:h-10 ${
+                          className={`h-8 rounded-lg border font-mono text-sm tabular-nums transition-colors sm:h-9 ${
                             mood.rating === number ? "border-brand bg-brand text-brand-foreground" : "border-border bg-background text-muted-foreground hover:border-foreground hover:text-foreground"
                           }`}>{number}</button>
                       ))}
