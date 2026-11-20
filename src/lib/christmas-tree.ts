@@ -32,8 +32,8 @@ export const MAX_ORNAMENTS = 40;
 /** Width divided by height of the tree picture. */
 export const TREE_ASPECT = 0.8;
 
-const COLS = 60;
-const ROWS = 75;
+const COLS = 40;
+const ROWS = 50;
 
 function hash(a: number, b: number) {
   let h = (a * 374761393 + b * 668265263) | 0;
@@ -362,7 +362,7 @@ export function drawTree(ctx: Ctx, width: number, ornaments: Ornament[], backgro
     ctx.fillRect(0, 0, width, height);
   }
   const cell = width / COLS;
-  const side = cell * 0.6;
+  const side = cell * 0.72;
   const tiles = treeDots();
   const mix = (a: number[], b: number[], k: number) => a.map((value, i) => Math.round(value + (b[i] - value) * k));
   const DEEP = [38, 60, 16];
@@ -378,7 +378,7 @@ export function drawTree(ctx: Ctx, width: number, ornaments: Ornament[], backgro
   // of the tree down so lower blocks overlap the ones above, like a real relief.
   const ordered = [...tiles].sort((a, b) => a.y - b.y || a.x - b.x);
   for (const dot of ordered) {
-    const depth = cell * (0.1 + 0.2 * dot.z);
+    const depth = cell * (0.16 + 0.26 * dot.z);
     const x = dot.x * width - side / 2;
     const y = dot.y * height - side / 2;
     const face = colorFor(dot.shade);

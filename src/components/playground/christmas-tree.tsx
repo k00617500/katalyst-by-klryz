@@ -279,7 +279,7 @@ export function ChristmasTree() {
           <p className="pointer-events-none absolute top-4 left-5 z-10 text-xl leading-[0.95] font-medium tracking-tight text-white sm:text-2xl">
             Merry<br />Christmas<span className="text-[#d8232a]">.</span>
           </p>
-          <div className="absolute inset-0 flex items-center justify-center p-3">
+          <div className="absolute inset-0 flex items-center justify-center p-1.5">
             <div ref={boxRef} className="relative h-full max-w-full" style={{ aspectRatio: String(TREE_ASPECT) }}>
               <canvas
                 ref={canvasRef}
