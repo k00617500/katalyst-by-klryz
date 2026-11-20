@@ -40,7 +40,7 @@ const projectEntries: Project[] = [
     categories: ["web-development", "startup-entrepreneurship", "ui-ux-design"],
     year: 2026,
     featured: true,
-    technologies: ["React", "TypeScript", "Vite", "Tailwind CSS", "shadcn/ui", "Supabase", "Capacitor"],
+    technologies: ["React", "TypeScript", "Vite", "Tailwind CSS", "shadcn/ui", "Supabase", "Capacitor", "React Router", "TanStack Query", "Zustand", "Zod", "Recharts", "Vitest"],
     thumbnail: "/images/project (11).png",
     liveUrl: "https://merkaventures.vercel.app/",
     overview:
@@ -66,7 +66,7 @@ const projectEntries: Project[] = [
     categories: ["web-development", "startup-entrepreneurship", "ui-ux-design"],
     year: 2026,
     featured: true,
-    technologies: ["React", "TypeScript", "Supabase", "MapLibre GL", "Tailwind CSS", "i18next", "Capacitor"],
+    technologies: ["React", "TypeScript", "Vite", "Tailwind CSS", "shadcn/ui", "Supabase", "MapLibre GL", "Capacitor", "i18next", "TanStack Query", "Zustand", "Zod", "Recharts", "Vitest"],
     thumbnail: "/images/project (12).png",
     liveUrl: "https://dwellr-main.vercel.app/",
     overview:
@@ -92,7 +92,7 @@ const projectEntries: Project[] = [
     categories: ["web-development", "startup-entrepreneurship"],
     year: 2025,
     featured: true,
-    technologies: ["Web App", "Maps", "Analytics Dashboard"],
+    technologies: ["PHP", "Supabase", "PostgreSQL", "JavaScript", "Leaflet", "ApexCharts", "Chart.js", "Tailwind CSS", "Gemini API"],
     thumbnail: "/images/project (2).png",
     gallery: [
       "/images/project (2).png",
@@ -120,7 +120,7 @@ const projectEntries: Project[] = [
     categories: ["web-development", "research-innovation", "ui-ux-design"],
     year: 2025,
     featured: true,
-    technologies: ["GIS", "Spatial Analysis", "AI Forecasting"],
+    technologies: ["PHP", "MySQL", "Leaflet", "OpenStreetMap", "CARTO", "Bootstrap", "GIS", "K-Means Clustering"],
     thumbnail: "/images/project (3).png",
     gallery: [
       "/images/project (3).png",
@@ -149,7 +149,7 @@ const projectEntries: Project[] = [
     categories: ["web-development", "research-innovation"],
     year: 2025,
     featured: true,
-    technologies: ["Leaflet", "OpenStreetMap", "CARTO", "GIS"],
+    technologies: ["PHP", "PostgreSQL", "Supabase", "Leaflet", "MapLibre GL", "OpenStreetMap", "CARTO", "Chart.js", "Gemini API", "PaddleOCR", "FastAPI", "scikit-learn", "Streamlit", "PHPMailer", "Docker", "Vercel"],
     thumbnail: "/images/project (4).png",
     gallery: [
       "/images/project (4).png",
@@ -157,12 +157,12 @@ const projectEntries: Project[] = [
       "/images/projects/asenxo/panel-2.jpg",
     ],
     overview:
-      "ASENXO is a project management system built for the DOST SETUP 4.0 iFund Program. It digitizes the Technical Needs Assessment (TNA) workflow for MSMEs, maps enterprise locations and market access on an interactive GIS layer, and surfaces pre-TNA insights — strengths, road-network findings, and nearby competition — to support funding and assessment decisions.",
+      "ASENXO is a project management system built for the DOST SETUP 4.0 iFund Program. It digitizes the Technology Needs Assessment (TNA) workflow for MSMEs, maps enterprise locations and market access on an interactive GIS layer, and surfaces pre-TNA insights — strengths, road-network findings, and nearby competition — to support funding and assessment decisions.",
     caseStudy: {
       background:
         "Built to support the administration of the DOST SETUP 4.0 iFund Program, which tracks and manages MSME project funding, technical assessments, and completion.",
       objectives: [
-        "Digitize the TNA (Technical Needs Assessment) request and endorsement workflow",
+        "Digitize the Technology Needs Assessment (TNA) request and endorsement workflow",
         "Map MSME enterprises and funding activity with GIS spatial analysis",
         "Surface application activity trends and top business sectors",
         "Support project completion prediction and administrative reporting",
@@ -205,7 +205,7 @@ const projectEntries: Project[] = [
     categories: ["web-development", "startup-entrepreneurship"],
     year: 2025,
     featured: false,
-    technologies: ["Web App", "Task Management"],
+    technologies: ["PHP", "MySQL", "jQuery", "PHPMailer"],
     thumbnail: "/images/project (6).png",
     gallery: [
       "/images/project (6).png",

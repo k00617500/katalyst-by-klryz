@@ -1,14 +1,53 @@
+import { MAX_RATING, type MoodTone } from "@/data/vibe-check";
 
-// The poster is authored on a 1080 x 1080 square and scaled for any output size.
+// The on-screen poster is a 1080 x 1080 square. The downloaded file is an Instagram story: 1080 x 1920 (9:16).
 export const POSTER_W = 1080;
 export const POSTER_H = 1080;
+export const STORY_W = 1080;
+export const STORY_H = 1920;
 
-const CENTER_X = 540;
-const CENTER_Y = 480;
-const OUTER_R = 360;
-const MAX_FACE_R = 352;
+export type PosterLayout = "square" | "story";
+
+interface Frame {
+  w: number;
+  h: number;
+  cx: number;
+  cy: number;
+  outer: number;
+  face: number;
+  labelFont: number;
+  labelOffset: number;
+  axisExtra: number;
+  /** Footer: where the username sits and how the text + tiles are arranged. */
+  footer: "left" | "center";
+  nameY: number;
+  nameFont: number;
+  resultsY: number;
+  resultsFont: number;
+  blurbY: number;
+  blurbFont: number;
+  blurbLine: number;
+  blurbWidth: number;
+  tile: number;
+  tilesY: number;
+  glowScale: number;
+}
+
+const FRAMES: Record<PosterLayout, Frame> = {
+  square: {
+    w: POSTER_W, h: POSTER_H, cx: 540, cy: 480, outer: 360, face: 352, labelFont: 30, labelOffset: 50, axisExtra: 36,
+    footer: "left", nameY: 928, nameFont: 50, resultsY: 972, resultsFont: 28, blurbY: 1012, blurbFont: 24, blurbLine: 30, blurbWidth: 600,
+    tile: 128, tilesY: 922, glowScale: 1,
+  },
+  // Instagram keeps roughly the top and bottom 250px free of content, so everything sits inside 250 - 1670.
+  story: {
+    w: STORY_W, h: STORY_H, cx: 540, cy: 740, outer: 380, face: 372, labelFont: 34, labelOffset: 54, axisExtra: 40,
+    footer: "center", nameY: 1236, nameFont: 78, resultsY: 1300, resultsFont: 38, blurbY: 1364, blurbFont: 32, blurbLine: 42, blurbWidth: 860,
+    tile: 176, tilesY: 1470, glowScale: 1.6,
+  },
+};
+
 const STEPS_PER_SECTOR = 24;
-const AXIS_LABEL_OFFSET = 50;
 
 export interface PosterColors {
   fg: string;
@@ -16,9 +55,14 @@ export interface PosterColors {
   muted: string;
 }
 
-import { MAX_RATING, type MoodTone } from "@/data/vibe-check";
+export interface PosterImage {
+  source: CanvasImageSource;
+  w: number;
+  h: number;
+}
 
 export interface PosterOptions {
+  layout?: PosterLayout;
   source: CanvasImageSource | null;
   sourceSize: { w: number; h: number };
   /** One label per axis, clockwise from the top. Empty strings draw unlabeled axes. */
@@ -31,6 +75,8 @@ export interface PosterOptions {
   blurb: string;
   thumb: CanvasImageSource | null;
   thumbSize: { w: number; h: number };
+  /** The Katalyst QR code, drawn beside the chosen picture. */
+  qr?: PosterImage | null;
   colors: PosterColors;
   /** Hex colour of the corner gradient. */
   glow: string;
@@ -40,7 +86,7 @@ export interface PosterOptions {
 }
 
 const axisAngle = (index: number, count: number) => ((-90 + (index * 360) / count) * Math.PI) / 180;
-const radiusFor = (rating: number) => MAX_FACE_R * (0.32 + 0.68 * Math.min(MAX_RATING, Math.max(0, rating)) / MAX_RATING);
+const radiusFor = (rating: number, face: number) => face * (0.32 + 0.68 * Math.min(MAX_RATING, Math.max(0, rating)) / MAX_RATING);
 
 export function averageRating(ratings: number[]) {
   return ratings.length ? ratings.reduce((sum, value) => sum + value, 0) / ratings.length : 0;
@@ -79,8 +125,9 @@ function triangleTransform(s: number[], d: number[]) {
   return [a, b, c, dd, d[0] - a * s[0] - c * s[1], d[1] - b * s[0] - dd * s[1]] as const;
 }
 
-function drawWarpedImage(ctx: CanvasRenderingContext2D, source: CanvasImageSource, size: { w: number; h: number }, ratings: number[]) {
-  const radii = ratings.map(radiusFor);
+function drawWarpedImage(ctx: CanvasRenderingContext2D, frame: Frame, source: CanvasImageSource, size: { w: number; h: number }, ratings: number[]) {
+  const { cx, cy } = frame;
+  const radii = ratings.map((rating) => radiusFor(rating, frame.face));
   const sourceRadius = Math.min(size.w, size.h) / 2;
   const sx = size.w / 2;
   const sy = size.h / 2;
@@ -90,8 +137,8 @@ function drawWarpedImage(ctx: CanvasRenderingContext2D, source: CanvasImageSourc
     const angle = -Math.PI / 2 + (i / total) * Math.PI * 2;
     const r = shapeRadius(radii, angle);
     points.push({
-      dx: CENTER_X + Math.cos(angle) * r,
-      dy: CENTER_Y + Math.sin(angle) * r,
+      dx: cx + Math.cos(angle) * r,
+      dy: cy + Math.sin(angle) * r,
       sx: sx + Math.cos(angle) * sourceRadius,
       sy: sy + Math.sin(angle) * sourceRadius,
     });
@@ -99,7 +146,7 @@ function drawWarpedImage(ctx: CanvasRenderingContext2D, source: CanvasImageSourc
   for (let i = 0; i < total; i++) {
     const a = points[i];
     const b = points[i + 1];
-    const matrix = triangleTransform([sx, sy, a.sx, a.sy, b.sx, b.sy], [CENTER_X, CENTER_Y, a.dx, a.dy, b.dx, b.dy]);
+    const matrix = triangleTransform([sx, sy, a.sx, a.sy, b.sx, b.sy], [cx, cy, a.dx, a.dy, b.dx, b.dy]);
     if (!matrix) continue;
     // Overlap neighbouring wedges along the chord so antialiased clip edges never leave seam lines.
     const stretch = 0.2;
@@ -107,7 +154,7 @@ function drawWarpedImage(ctx: CanvasRenderingContext2D, source: CanvasImageSourc
     const gb = [b.dx + (b.dx - a.dx) * stretch, b.dy + (b.dy - a.dy) * stretch] as const;
     ctx.save();
     ctx.beginPath();
-    ctx.moveTo(CENTER_X, CENTER_Y);
+    ctx.moveTo(cx, cy);
     ctx.lineTo(ga[0], ga[1]);
     ctx.lineTo(gb[0], gb[1]);
     ctx.closePath();
@@ -135,28 +182,32 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
 // One colour, spread unevenly: each corner gets its own reach and strength so the touch of colour never looks stamped.
 // It stays tucked into the corners and never reaches the chart.
 export const DEFAULT_GLOW = "#a4dd00";
-const CORNER_GLOWS: Array<{ x: number; y: number; rx: number; ry: number; alpha: number }> = [
-  { x: 0, y: 0, rx: 300, ry: 210, alpha: 0.34 },
-  { x: POSTER_W, y: 0, rx: 170, ry: 250, alpha: 0.2 },
-  { x: 0, y: POSTER_H, rx: 210, ry: 150, alpha: 0.24 },
-  { x: POSTER_W, y: POSTER_H, rx: 270, ry: 290, alpha: 0.3 },
-];
+const CORNER_GLOWS = [
+  { corner: [0, 0], rx: 300, ry: 210, alpha: 0.34 },
+  { corner: [1, 0], rx: 170, ry: 250, alpha: 0.2 },
+  { corner: [0, 1], rx: 210, ry: 150, alpha: 0.24 },
+  { corner: [1, 1], rx: 270, ry: 290, alpha: 0.3 },
+] as const;
 
 function hexToRgb(hex: string) {
   const match = /^#([0-9a-f]{6})$/i.exec(hex) ?? /^#([0-9a-f]{6})$/i.exec(DEFAULT_GLOW)!;
   return [0, 2, 4].map((i) => parseInt(match[1].slice(i, i + 2), 16)).join(",");
 }
 
-function drawCornerGlows(ctx: CanvasRenderingContext2D, color: string) {
+function drawCornerGlows(ctx: CanvasRenderingContext2D, frame: Frame, color: string) {
   const rgb = hexToRgb(color);
   for (const glow of CORNER_GLOWS) {
+    const rx = glow.rx * frame.glowScale;
+    const ry = glow.ry * frame.glowScale;
+    const x = glow.corner[0] * frame.w;
+    const y = glow.corner[1] * frame.h;
     ctx.save();
     ctx.beginPath();
-    ctx.rect(glow.x === 0 ? 0 : glow.x - glow.rx, glow.y === 0 ? 0 : glow.y - glow.ry, glow.rx, glow.ry);
+    ctx.rect(glow.corner[0] === 0 ? 0 : x - rx, glow.corner[1] === 0 ? 0 : y - ry, rx, ry);
     ctx.clip();
     // Stretch a round gradient into an ellipse so each side spreads by a different amount.
-    ctx.translate(glow.x, glow.y);
-    ctx.scale(glow.rx, glow.ry);
+    ctx.translate(x, y);
+    ctx.scale(rx, ry);
     const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
     gradient.addColorStop(0, `rgba(${rgb},${glow.alpha})`);
     gradient.addColorStop(0.55, `rgba(${rgb},${glow.alpha * 0.36})`);
@@ -167,26 +218,41 @@ function drawCornerGlows(ctx: CanvasRenderingContext2D, color: string) {
   }
 }
 
+function drawTile(ctx: CanvasRenderingContext2D, image: CanvasImageSource, imageSize: { w: number; h: number }, x: number, y: number, size: number, fill: string, pad: number) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(x, y, size, size, size * 0.15);
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.clip();
+  const scale = Math.min((size * pad) / imageSize.w, (size * pad) / imageSize.h);
+  const w = imageSize.w * scale;
+  const h = imageSize.h * scale;
+  ctx.drawImage(image, x + (size - w) / 2, y + (size - h) / 2, w, h);
+  ctx.restore();
+}
+
 export function drawPoster(ctx: CanvasRenderingContext2D, options: PosterOptions) {
+  const frame = FRAMES[options.layout ?? "square"];
   const { colors, fontFamily } = options;
   ctx.save();
-  ctx.clearRect(0, 0, POSTER_W, POSTER_H);
+  ctx.clearRect(0, 0, frame.w, frame.h);
   ctx.fillStyle = colors.bg;
-  ctx.fillRect(0, 0, POSTER_W, POSTER_H);
-  drawCornerGlows(ctx, options.glow);
+  ctx.fillRect(0, 0, frame.w, frame.h);
+  drawCornerGlows(ctx, frame, options.glow);
   ctx.textBaseline = "alphabetic";
 
   // Chart frame: three rings, five axes.
   ctx.lineWidth = 2;
   ctx.strokeStyle = colors.fg;
   ctx.beginPath();
-  ctx.arc(CENTER_X, CENTER_Y, OUTER_R, 0, Math.PI * 2);
+  ctx.arc(frame.cx, frame.cy, frame.outer, 0, Math.PI * 2);
   ctx.stroke();
   ctx.setLineDash([3, 9]);
   ctx.strokeStyle = colors.muted;
   for (const factor of [0.78, 0.56]) {
     ctx.beginPath();
-    ctx.arc(CENTER_X, CENTER_Y, OUTER_R * factor, 0, Math.PI * 2);
+    ctx.arc(frame.cx, frame.cy, frame.outer * factor, 0, Math.PI * 2);
     ctx.stroke();
   }
   ctx.setLineDash([]);
@@ -194,84 +260,80 @@ export function drawPoster(ctx: CanvasRenderingContext2D, options: PosterOptions
   options.labels.forEach((_, i) => {
     const angle = axisAngle(i, options.labels.length);
     ctx.beginPath();
-    ctx.moveTo(CENTER_X, CENTER_Y);
-    ctx.lineTo(CENTER_X + Math.cos(angle) * (OUTER_R + 36), CENTER_Y + Math.sin(angle) * (OUTER_R + 36));
+    ctx.moveTo(frame.cx, frame.cy);
+    ctx.lineTo(frame.cx + Math.cos(angle) * (frame.outer + frame.axisExtra), frame.cy + Math.sin(angle) * (frame.outer + frame.axisExtra));
     ctx.stroke();
   });
 
-  if (options.source) drawWarpedImage(ctx, options.source, options.sourceSize, options.ratings);
+  if (options.source) drawWarpedImage(ctx, frame, options.source, options.sourceSize, options.ratings);
   else if (options.placeholder) {
     ctx.fillStyle = colors.muted;
     ctx.textAlign = "center";
-    ctx.font = `400 30px ${fontFamily}`;
-    ctx.fillText(options.placeholder, CENTER_X, CENTER_Y + 10);
+    ctx.font = `400 ${frame.labelFont}px ${fontFamily}`;
+    ctx.fillText(options.placeholder, frame.cx, frame.cy + 10);
   }
 
   ctx.fillStyle = colors.fg;
-  ctx.font = `400 30px ${fontFamily}`;
+  ctx.font = `400 ${frame.labelFont}px ${fontFamily}`;
   options.labels.forEach((axis, i) => {
     if (!axis) return;
     const angle = axisAngle(i, options.labels.length);
-    const r = OUTER_R + AXIS_LABEL_OFFSET;
-    const x = CENTER_X + Math.cos(angle) * r;
-    const y = CENTER_Y + Math.sin(angle) * r + 10;
+    const r = frame.outer + frame.labelOffset;
+    const x = frame.cx + Math.cos(angle) * r;
+    const y = frame.cy + Math.sin(angle) * r + frame.labelFont / 3;
     const text = axis.toLowerCase();
     const width = ctx.measureText(text).width;
     const align = Math.abs(Math.cos(angle)) < 0.2 ? "center" : Math.cos(angle) > 0 ? "left" : "right";
     ctx.textAlign = align;
     // Keep long mood names inside the poster.
     const margin = 28;
-    const fitted = align === "right" ? Math.max(x, margin + width) : align === "left" ? Math.min(x, POSTER_W - margin - width) : Math.min(Math.max(x, margin + width / 2), POSTER_W - margin - width / 2);
+    const fitted = align === "right" ? Math.max(x, margin + width) : align === "left" ? Math.min(x, frame.w - margin - width) : Math.min(Math.max(x, margin + width / 2), frame.w - margin - width / 2);
     ctx.fillText(text, fitted, y);
   });
 
-  // Footer: the username (the only bold text), the rating average, then the blurb.
+  // Footer: the username (the only bold text), the qualitative review, then a one-sentence narrative.
   const name = options.username.trim() || "you";
-  ctx.textAlign = "left";
+  const shown = name.length > 18 ? `${name.slice(0, 17)}…` : name;
+  const centered = frame.footer === "center";
+  const textX = centered ? frame.w / 2 : 56;
+  ctx.textAlign = centered ? "center" : "left";
   ctx.fillStyle = colors.fg;
-  ctx.font = `700 50px ${fontFamily}`;
-  ctx.fillText(name.length > 18 ? `${name.slice(0, 17)}…` : name, 56, 928);
-  ctx.font = `400 28px ${fontFamily}`;
-  ctx.fillText(`results : ${options.review.toLowerCase()}`, 56, 972);
-  ctx.font = `400 22px ${fontFamily}`;
-  const lines = wrapText(ctx, options.blurb, 700);
-  lines.slice(0, 3).forEach((line, i) => ctx.fillText(line, 56, 1010 + i * 28));
+  ctx.font = `700 ${frame.nameFont}px ${fontFamily}`;
+  ctx.fillText(shown, textX, frame.nameY);
+  ctx.font = `400 ${frame.resultsFont}px ${fontFamily}`;
+  ctx.fillText(`results : ${options.review.toLowerCase()}`, textX, frame.resultsY);
+  ctx.font = `400 ${frame.blurbFont}px ${fontFamily}`;
+  wrapText(ctx, options.blurb, frame.blurbWidth).slice(0, 3).forEach((line, i) => ctx.fillText(line, textX, frame.blurbY + i * frame.blurbLine));
 
+  // The chosen picture with The Katalyst QR code beside it.
+  const gap = frame.tile * 0.16;
+  const thumbCount = options.thumb ? 1 : 0;
+  const qrCount = options.qr ? 1 : 0;
+  const rowWidth = (thumbCount + qrCount) * frame.tile + (thumbCount && qrCount ? gap : 0);
+  let tileX = centered ? (frame.w - rowWidth) / 2 : frame.w - 56 - rowWidth;
   if (options.thumb) {
-    const size = 150;
-    const x = POSTER_W - 56 - size;
-    const y = 898;
-    ctx.save();
-    ctx.beginPath();
-    ctx.roundRect(x, y, size, size, 22);
-    ctx.fillStyle = colors.muted + "33";
-    ctx.fill();
-    ctx.clip();
-    const scale = Math.min((size * 0.88) / options.thumbSize.w, (size * 0.88) / options.thumbSize.h);
-    const w = options.thumbSize.w * scale;
-    const h = options.thumbSize.h * scale;
-    ctx.drawImage(options.thumb, x + (size - w) / 2, y + (size - h) / 2, w, h);
-    ctx.restore();
+    drawTile(ctx, options.thumb, options.thumbSize, tileX, frame.tilesY, frame.tile, colors.muted + "33", 0.88);
+    tileX += frame.tile + gap;
   }
+  if (options.qr) drawTile(ctx, options.qr.source, { w: options.qr.w, h: options.qr.h }, tileX, frame.tilesY, frame.tile, "#0b0b0c", 1);
   ctx.restore();
 }
 
 /**
- * Short, informative blurb for a result: the strongest mood in its own words, how the runner-up sits behind it,
- * and a note on the overall tone. Stays around two lines on the poster.
+ * One short narrative sentence for the result: how the visit felt overall, who sits close behind, and any rough edge.
+ * e.g. "You're mostly impressed, with engaged close behind and nothing but good vibes."
  */
-export function describeVibe(moods: Array<{ label: string; description: string; rating: number; tone?: MoodTone }>) {
+export function describeVibe(moods: Array<{ label: string; description?: string; rating: number; tone?: MoodTone }>) {
   if (!moods.length) return "pick a few moods to see what your vibe looks like.";
   const ranked = [...moods].sort((a, b) => b.rating - a.rating);
   const [first, second] = ranked;
-  const lead = `mostly ${first.label.toLowerCase()}: ${first.description.toLowerCase()}.`;
-  if (!second) return lead;
+  if (!second) return `You're mostly ${first.label.toLowerCase()}.`;
 
-  const runnerUp = first.rating - second.rating <= 1 ? `${second.label.toLowerCase()} close behind` : `with a side of ${second.label.toLowerCase()}`;
-  const negative = ranked.find((mood) => mood.tone === "negative" && mood.rating >= 5 && mood !== first && mood !== second);
+  const runnerUp = first.rating - second.rating <= 1 ? `with ${second.label.toLowerCase()} close behind` : `with a side of ${second.label.toLowerCase()}`;
+  const negative = ranked.find((mood) => mood.tone === "negative" && mood.rating >= 3 && mood !== first && mood !== second);
   const allPositive = moods.every((mood) => mood.tone !== "negative");
-  const tone = negative ? `a touch of ${negative.label.toLowerCase()} in the mix` : allPositive ? "nothing but good vibes" : "";
-  return `${lead} ${runnerUp}${tone ? `, ${tone}` : ""}.`;
+  const tail = negative ? ` and a touch of ${negative.label.toLowerCase()}` : allPositive ? " and nothing but good vibes" : "";
+  return `You're mostly ${first.label.toLowerCase()}, ${runnerUp}${tail}.`;
 }
 
 export interface OverallReview {

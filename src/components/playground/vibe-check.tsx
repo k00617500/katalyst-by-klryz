@@ -7,7 +7,7 @@ import { ArrowLeft, ArrowRight, Check, Download, Loader2, RotateCcw, ShieldCheck
 import { Button } from "@/components/ui/button";
 import { VibeKpis } from "@/components/playground/vibe-kpis";
 import { DEFAULT_RATING, MAX_MOODS, MAX_RATING, MIN_MOODS, MOOD_OPTIONS, memojiSrc, vibeMemojis } from "@/data/vibe-check";
-import { DEFAULT_GLOW, POSTER_H, POSTER_W, describeVibe, drawPoster, overallReview, type PosterColors } from "@/lib/vibe-poster";
+import { DEFAULT_GLOW, POSTER_H, POSTER_W, STORY_H, STORY_W, describeVibe, drawPoster, overallReview, type PosterColors, type PosterImage } from "@/lib/vibe-poster";
 
 type Step = "name" | "face" | "moods" | "rate" | "loading" | "result";
 type Selection = { kind: "memoji"; id: string } | { kind: "upload"; file: File; previewUrl: string };
@@ -171,7 +171,20 @@ function cropToHead(canvas: HTMLCanvasElement, box: number[] | null): Sized {
   return { source: result, w: out, h: out };
 }
 
-function PosterCanvas({ face, username, labels, values, blurb, review, placeholder, resetKey, glow }: {
+const QR_SRC = "/images/the-katalyst-back.png";
+
+/** The Katalyst QR code, loaded once and drawn beside the chosen picture. */
+function useQr() {
+  const [qr, setQr] = useState<PosterImage | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void loadImage(QR_SRC).then((image) => { if (!cancelled) setQr({ source: image, w: image.naturalWidth, h: image.naturalHeight }); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+  return qr;
+}
+
+function PosterCanvas({ face, username, labels, values, blurb, review, placeholder, resetKey, glow, qr }: {
   face: Sized | null;
   username: string;
   labels: string[];
@@ -181,10 +194,11 @@ function PosterCanvas({ face, username, labels, values, blurb, review, placehold
   placeholder?: string;
   resetKey: number;
   glow: string;
+  qr: PosterImage | null;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const current = useRef<number[]>([...values]);
-  const latest = useRef({ face, username, labels, values, blurb, review, placeholder, glow });
+  const latest = useRef({ face, username, labels, values, blurb, review, placeholder, glow, qr });
   const frame = useRef(0);
   const lastReset = useRef(resetKey);
 
@@ -192,7 +206,7 @@ function PosterCanvas({ face, username, labels, values, blurb, review, placehold
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
-    const { face: faceNow, username: name, labels: axes, blurb: text, review: verdict, placeholder: hint, glow: glowNow } = latest.current;
+    const { face: faceNow, username: name, labels: axes, blurb: text, review: verdict, placeholder: hint, glow: glowNow, qr: qrNow } = latest.current;
     const scale = canvas.width / POSTER_W;
     ctx.setTransform(scale, 0, 0, scale, 0, 0);
     drawPoster(ctx, {
@@ -207,6 +221,7 @@ function PosterCanvas({ face, username, labels, values, blurb, review, placehold
       blurb: text,
       colors: readColors(),
       glow: glowNow,
+      qr: qrNow,
       fontFamily: posterFont(),
       placeholder: hint,
     });
@@ -233,7 +248,7 @@ function PosterCanvas({ face, username, labels, values, blurb, review, placehold
 
   const valuesKey = `${labels.join("|")}#${values.join()}`;
   useEffect(() => {
-    latest.current = { face, username, labels, values, blurb, review, placeholder, glow };
+    latest.current = { face, username, labels, values, blurb, review, placeholder, glow, qr };
     if (lastReset.current !== resetKey) {
       lastReset.current = resetKey;
       current.current = values.map(() => 0.4);
@@ -264,7 +279,7 @@ function PosterCanvas({ face, username, labels, values, blurb, review, placehold
     step(last);
     return () => cancelAnimationFrame(frame.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [face, username, valuesKey, blurb, review, placeholder, resetKey, glow, draw]);
+  }, [face, username, valuesKey, blurb, review, placeholder, resetKey, glow, qr, draw]);
 
   useEffect(() => {
     const observer = new MutationObserver(() => draw());
@@ -316,6 +331,7 @@ export function VibeCheck() {
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [moodHint, setMoodHint] = useState("");
   const [glow, setGlow] = useState(DEFAULT_GLOW);
+  const qr = useQr();
   const [kpiKey, setKpiKey] = useState(0);
   const submitted = useRef(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
@@ -469,11 +485,14 @@ export function VibeCheck() {
   const download = async () => {
     if (!face) return;
     const canvas = document.createElement("canvas");
-    canvas.width = POSTER_W;
-    canvas.height = POSTER_H;
+    // Instagram story: 1080 x 1920 (9:16).
+    canvas.width = STORY_W;
+    canvas.height = STORY_H;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     drawPoster(ctx, {
+      layout: "story",
+      qr,
       source: face.source,
       sourceSize: { w: face.w, h: face.h },
       thumb: face.source,
@@ -629,7 +648,7 @@ export function VibeCheck() {
             <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4">
               <div>
                 <p className="text-2xl font-medium tracking-tight">Here&apos;s your vibe{name ? `, ${name}` : ""}.</p>
-                <p className="mx-auto mt-1.5 max-w-xs text-muted-foreground">Screenshot-worthy, if you ask me. Grab it or go again.</p>
+                <p className="mt-1.5 text-sm whitespace-nowrap text-muted-foreground sm:text-base">Screenshot-worthy, if you ask me. Grab it or go again.</p>
               </div>
               <div className="flex flex-col items-center gap-2">
                 <span className="font-mono text-xs tracking-widest text-muted-foreground uppercase">Pick a gradient color</span>
@@ -655,7 +674,7 @@ export function VibeCheck() {
         </div>
 
         <div className="relative aspect-square overflow-hidden rounded-3xl border border-border bg-background">
-          <PosterCanvas face={face} username={username} labels={labels} values={values} blurb={blurb} review={review} placeholder={placeholder} resetKey={resetKey} glow={glow} />
+          <PosterCanvas face={face} username={username} labels={labels} values={values} blurb={blurb} review={review} placeholder={placeholder} resetKey={resetKey} glow={glow} qr={qr} />
           {step === "loading" && (
             <div className="absolute inset-0 grid place-items-center bg-background/80" aria-hidden="true">
               <Loader2 className="size-9 animate-spin text-brand-ink" />
