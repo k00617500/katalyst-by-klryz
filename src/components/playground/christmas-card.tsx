@@ -165,7 +165,7 @@ export function ChristmasCard({ open, onOpenChange, image, name, cover, ornament
               {busy === "gif" ? `Making GIF ${Math.round(progress * 100)}%` : "Save as GIF"}
             </Button>
           </div>
-          <p className="relative z-10 max-w-sm text-center text-xs text-white/60">Your card is made in this browser tab only. Nothing is saved or sent anywhere.</p>
+          <p className="relative z-10 text-center whitespace-nowrap text-white/60" style={{ fontSize: "clamp(9px, 2.6vw, 12px)" }}>Your card is made in this browser tab only. Nothing is saved or sent anywhere.</p>
 
           <Dialog.Close aria-label="Close" className="absolute top-5 right-5 z-10 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"><X className="size-5" /></Dialog.Close>
         </Dialog.Content>
