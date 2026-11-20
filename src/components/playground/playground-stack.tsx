@@ -59,8 +59,13 @@ function GalleryPhoto({ item, itemIndex, count, phase, selected, onHover, onOpen
       tabIndex={selected ? 0 : -1}
       onMouseEnter={() => { onHover(true); onWarm(); }} onMouseLeave={() => onHover(false)}
       onClick={onOpen}
-      style={{ x, y, z, rotateY: -52, opacity, zIndex, pointerEvents }}>
-      <Image src={item.image} alt="" fill loading="eager" sizes={THUMB_SIZES} draggable={false} className="pointer-events-none object-cover" />
+      style={{ x, y, z, rotateY: -52, zIndex, pointerEvents, "--case-opacity": opacity } as never}>
+      <span className="case-face case-back" aria-hidden />
+      <span className="case-face case-spine" aria-hidden />
+      <span className="case-face case-right" aria-hidden />
+      <span className="case-face case-top" aria-hidden />
+      <span className="case-face case-bottom" aria-hidden />
+      <span className="case-face case-front"><span className="playground-photo-art"><Image src={item.image} alt="" fill loading="eager" sizes={THUMB_SIZES} draggable={false} className="pointer-events-none object-cover" /></span></span>
     </motion.button>
   );
 }
