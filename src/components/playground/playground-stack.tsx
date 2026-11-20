@@ -197,7 +197,7 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
   };
 
   return (
-    <section className="playground-experience" aria-label="Photography playground" aria-roledescription="carousel" onKeyDown={handleKeys}>
+    <section id="playground-gallery" className="playground-experience" aria-label="Photography playground" aria-roledescription="carousel" onKeyDown={handleKeys}>
       <h2 className="sr-only">Explore the Playground collection</h2>
       {view === "tile" && (
       <div className="playground-rail cursor-grab touch-pan-y select-none active:cursor-grabbing"
