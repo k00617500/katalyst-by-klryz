@@ -137,7 +137,7 @@ export default function ExperiencePage() {
         <ul className="divide-y divide-border border-y border-border">
           {tourVisits.map((visit) => (
             <li key={visit.company}>
-              <details className="group">
+              <details name="tour-insights" className="group">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-3 text-sm [&::-webkit-details-marker]:hidden">
                   <span className="flex min-w-0 items-start gap-3">
                     <visit.icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />

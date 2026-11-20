@@ -39,24 +39,68 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
   const chrome = new THREE.MeshStandardMaterial({ color: 0xdfe2e6, metalness: 1, roughness: 0.16 });
   const dark = new THREE.MeshPhysicalMaterial({ color: 0x101214, metalness: 0.5, roughness: 0.26, clearcoat: 1 });
   const glass = new THREE.MeshPhysicalMaterial({ color: 0x0b1424, metalness: 0.85, roughness: 0.05, clearcoat: 1 });
-  const materials = [graphite, navy, ivory, chrome, dark, glass];
+  const mouseShell = new THREE.MeshPhysicalMaterial({ color: 0xe4e6ea, metalness: 0.1, roughness: 0.34, clearcoat: 0.5, clearcoatRoughness: 0.3 });
+  const materials = [graphite, navy, ivory, chrome, dark, glass, mouseShell];
 
   // ---- Computer mouse -------------------------------------------------------------------------------------------
+  // An ergonomic shell: squarer in plan, narrower at the front, with a palm hump at the back, a flat base,
+  // a split for the two buttons, and a scroll wheel.
   const mouse = new THREE.Group();
-  const mouseBody = new THREE.Mesh(new THREE.SphereGeometry(1, 56, 36), graphite);
-  mouseBody.scale.set(0.9, 0.55, 1.45);
-  mouse.add(mouseBody);
-  const surfaceY = (z: number) => 0.55 * Math.sqrt(Math.max(0, 1 - (z / 1.45) ** 2));
-  const splitPoints = Array.from({ length: 14 }, (_, i) => {
-    const z = -0.12 - i * 0.075;
-    return new THREE.Vector3(0, surfaceY(z) + 0.006, z);
-  });
-  mouse.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(splitPoints), 30, 0.014, 6), dark));
-  const wheel = new THREE.Mesh(new THREE.CapsuleGeometry(0.07, 0.2, 8, 16), chrome);
-  wheel.rotation.x = Math.PI / 2;
-  wheel.position.set(0, surfaceY(-0.5) + 0.018, -0.5);
+  const warpMouse = (x: number, y: number, z: number) => {
+    let px = x;
+    let pz = z;
+    const radius = Math.hypot(x, z);
+    if (radius > 1e-6) {
+      const dx = x / radius;
+      const dz = z / radius;
+      const k = 1 / Math.pow(Math.pow(Math.abs(dx), 3) + Math.pow(Math.abs(dz), 3), 1 / 3);
+      px = dx * radius * k;
+      pz = dz * radius * k;
+    }
+    const back = (z + 1) / 2; // 0 at the front (buttons), 1 at the back (palm)
+    const widthFactor = 0.8 + 0.2 * back;
+    const heightFactor = 0.5 + 0.26 * back + 0.12 * Math.exp(-((z - 0.3) ** 2) / 0.2);
+    return new THREE.Vector3(px * 0.95 * widthFactor, y * heightFactor, pz * 1.55);
+  };
+  const shellGeometry = new THREE.SphereGeometry(1, 72, 44, 0, Math.PI * 2, 0, Math.PI / 2);
+  const shellPositions = shellGeometry.attributes.position;
+  for (let i = 0; i < shellPositions.count; i++) {
+    const point = warpMouse(shellPositions.getX(i), shellPositions.getY(i), shellPositions.getZ(i));
+    shellPositions.setXYZ(i, point.x, point.y, point.z);
+  }
+  shellGeometry.computeVertexNormals();
+  mouse.add(new THREE.Mesh(shellGeometry, mouseShell));
+  const baseGeometry = new THREE.CircleGeometry(1, 72);
+  baseGeometry.rotateX(Math.PI / 2);
+  const basePositions = baseGeometry.attributes.position;
+  for (let i = 0; i < basePositions.count; i++) {
+    const point = warpMouse(basePositions.getX(i), 0, basePositions.getZ(i));
+    basePositions.setXYZ(i, point.x, 0, point.z);
+  }
+  baseGeometry.computeVertexNormals();
+  mouse.add(new THREE.Mesh(baseGeometry, dark));
+  const lift = 0.012;
+  const surface = (x: number, z: number) => {
+    const point = warpMouse(x, Math.sqrt(Math.max(0, 1 - x * x - z * z)), z);
+    point.y += lift;
+    return point;
+  };
+  // Seam between the left and right buttons, and the line separating the buttons from the palm rest.
+  const seamFront = Array.from({ length: 16 }, (_, i) => surface(0, -0.2 - i * 0.05));
+  mouse.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(seamFront), 40, 0.011, 6), dark));
+  const seamAcross = Array.from({ length: 21 }, (_, i) => surface(-0.78 + i * 0.078, -0.2));
+  mouse.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(seamAcross), 50, 0.009, 6), dark));
+  // Scroll wheel: a ridged rubber roller sitting in the seam.
+  const wheelBase = surface(0, -0.52);
+  const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.085, 0.17, 28), dark);
+  wheel.rotation.z = Math.PI / 2;
+  wheel.position.copy(wheelBase).add(new THREE.Vector3(0, 0.02, 0));
   mouse.add(wheel);
-  mouse.scale.setScalar(0.9);
+  const wheelTrim = new THREE.Mesh(new THREE.TorusGeometry(0.087, 0.012, 8, 28), chrome);
+  wheelTrim.rotation.y = Math.PI / 2;
+  wheelTrim.position.copy(wheel.position);
+  mouse.add(wheelTrim);
+  mouse.scale.setScalar(0.8);
 
   // ---- Chess pawn -----------------------------------------------------------------------------------------------
   const pawn = new THREE.Group();
@@ -128,7 +172,7 @@ export function createHeroScene(host: HTMLDivElement, onContextLost: () => void)
   // Slots the props rest in; Remix deals the props into the next slot.
   const slots = [
     new THREE.Vector3(-0.45, 0.55, 0),
-    new THREE.Vector3(0.95, -0.4, 0.4),
+    new THREE.Vector3(0.8, -0.4, 0.4),
     new THREE.Vector3(-1.3, -1.05, 0.5),
     new THREE.Vector3(0.95, 1.15, -0.3),
   ];
