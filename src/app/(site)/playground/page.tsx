@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
+import { ArrowDown } from "lucide-react";
 import { PlaygroundStack } from "@/components/playground/playground-stack";
 import { getPlaygroundItems } from "@/lib/playground";
 import { TextReveal } from "@/components/animations/text-reveal";
+import { VibeCheck } from "@/components/playground/vibe-check";
 import { PinballExperience } from "@/components/pinball/pinball-experience-loader";
 
 export const metadata: Metadata = {
@@ -20,13 +22,18 @@ export default async function PlaygroundPage() {
         <TextReveal text="A space for things I make for fun." as="h1"
           className="mt-4 max-w-3xl text-balance text-4xl font-medium tracking-tight md:text-6xl" />
         <p className="mt-6 max-w-xl font-space text-balance text-base leading-relaxed text-muted-foreground md:text-lg">
-          Photography, graphic design, technical experiments, and UI/UX explorations that don&apos;t fit neatly into a case study.
+          Photography, graphic design, technical experiments, and UI/UX explorations, all made for the joy of making.
         </p>
+        <a href="#pinball" className="group mt-10 inline-flex items-center gap-3 font-mono text-xs tracking-[0.18em] text-muted-foreground uppercase transition-colors hover:text-foreground">
+          Scroll down for more giggles &amp; wiggles
+          <ArrowDown className="size-4 motion-safe:animate-bounce" aria-hidden="true" />
+        </a>
       </section>
       <section id="pinball" className="container-page scroll-mt-24 pb-16">
         <PinballExperience />
       </section>
       <PlaygroundStack items={playgroundItems} />
+      <VibeCheck />
     </>
   );
 }

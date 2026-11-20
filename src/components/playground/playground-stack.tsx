@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image, { getImageProps } from "next/image";
-import { motion, useAnimationFrame, useMotionValue, useReducedMotion, useTransform, type MotionValue } from "motion/react";
+import { motion, useAnimationFrame, useMotionValue, useReducedMotion, useSpring, useTransform, type MotionValue } from "motion/react";
 import { Dialog } from "radix-ui";
 import { ArrowLeft, ArrowRight, Expand, LayoutGrid, Layers, X } from "lucide-react";
 import type { PlaygroundItem } from "@/data/playground";
 
-const SPEEDS = [0.5, 1, 1.5, 2, 2.5, 3] as const; // seconds each photo takes to move one slot
-const DEFAULT_SPEED = 1.5;
+const SPEEDS = [0.5, 1, 1.5, 2, 2.5, 3] as const; // playback multiplier: 3x is the fastest
+const BASE_PHOTO_MS = 1500; // time one photo takes to move one slot at 1x
+const DEFAULT_SPEED = 1;
 const GRID_ROWS = 4;
 const MIN_TILE_SLOTS = 30; // keeps the diagonal row full and connected, however few photos there are
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
@@ -49,19 +50,22 @@ function GalleryPhoto({ item, itemIndex, count, phase, selected, onHover, onOpen
   // The photos stand in one diagonal row, like cases in a rack, receding toward the upper right. `depth` grows as a
   // photo travels away from the viewer: it slides up the diagonal, shrinks, fades, and is pulled into the distance.
   const depth = useTransform(phase, (value) => wrap(value - itemIndex + count / 2, count) - count / 2);
-  const x = useTransform(depth, (value) => `calc(-50% + ${(value - 3.5) * 5}cqw)`);
-  const y = useTransform(depth, (value) => `calc(-50% - ${(value - 3.5) * 3.6 + 1}cqh)`);
-  const z = useTransform(depth, (value) => -value * 16);
+  // Hovering slides the case out of the row toward the viewer, like pulling a book off a shelf.
+  const pull = useSpring(0, { stiffness: 240, damping: 24 });
+  const x = useTransform([depth, pull], ([value, out]: number[]) => `calc(-50% + ${(value - 3.5) * 5 - out * 3}cqw)`);
+  const y = useTransform([depth, pull], ([value, out]: number[]) => `calc(-50% - ${(value - 3.5) * 3.6 + 1 - out * 4.5}cqh)`);
+  const z = useTransform([depth, pull], ([value, out]: number[]) => -value * 16 + out * 190);
+  const rotateY = useTransform(pull, (out) => -28 + out * 20);
   const opacity = useTransform(depth, (value) => clamp01(Math.min((value + 7) / 1, (14 - value) / 3.5)));
-  const zIndex = useTransform(depth, (value) => 1000 - Math.round(value * 10));
+  const zIndex = useTransform([depth, pull], ([value, out]: number[]) => 1000 - Math.round(value * 10) + (out > 0.02 ? 3000 : 0));
   const pointerEvents = useTransform(depth, (value) => (value < -6 || value > 10 ? "none" : "auto"));
   return (
     <motion.button type="button" className="playground-photo"
       aria-label={`Preview ${item.title}`} aria-current={selected ? "true" : undefined}
       tabIndex={selected ? 0 : -1}
-      onMouseEnter={() => { onHover(true); onWarm(); }} onMouseLeave={() => onHover(false)}
+      onMouseEnter={() => { pull.set(1); onHover(true); onWarm(); }} onMouseLeave={() => { pull.set(0); onHover(false); }}
       onClick={onOpen}
-      style={{ x, y, z, rotateY: -28, zIndex, pointerEvents, "--case-opacity": opacity } as never}>
+      style={{ x, y, z, rotateY, zIndex, pointerEvents, "--case-opacity": opacity } as never}>
       <span className="case-face case-back" aria-hidden />
       <span className="case-face case-spine" aria-hidden />
       <span className="case-face case-right" aria-hidden />
@@ -155,7 +159,7 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
   useAnimationFrame((_, delta) => {
     if (!running || dragRef.current) return;
     // Recycle only beyond the viewport; every card keeps moving through the seam.
-    const next = wrap(phase.get() + Math.min(delta, 64) / (speed * 1000), slotCount);
+    const next = wrap(phase.get() - Math.min(delta, 64) * speed / BASE_PHOTO_MS, slotCount);
     phase.set(next);
     const nextIndex = wrap(Math.round(next), slotCount) % items.length;
     if (nextIndex !== indexRef.current) {
@@ -197,7 +201,6 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
       <h2 className="sr-only">Explore the Playground collection</h2>
       {view === "tile" && (
       <div className="playground-rail cursor-grab touch-pan-y select-none active:cursor-grabbing"
-        onMouseEnter={() => setHovered(true)} onMouseLeave={() => { if (!dragRef.current) setHovered(false); }}
         onPointerDown={(event) => {
           if (event.button !== 0) return;
           suppressClick.current = false;
@@ -229,7 +232,7 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
           const item = items[slot % items.length];
           return (
             <GalleryPhoto key={slot} item={item} itemIndex={slot} count={slotCount} phase={phase}
-              selected={index === slot % items.length} onHover={() => {}}
+              selected={index === slot % items.length} onHover={setHovered}
               onWarm={() => warmPreview(item)}
               onOpen={() => { warmPreview(item); select(slot % items.length); setOpen(true); }} />
           );
@@ -248,13 +251,13 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
           <button type="button" className="showcase-control size-10" aria-label="Open selected photograph preview" onClick={() => setOpen(true)}><Expand className="size-4" /></button>
         </div>
         <div className="playground-speed" role="group" aria-label="View">
-          <button type="button" aria-pressed={view === "tile"} aria-label="Tile view" title="Tile view" onClick={() => setView("tile")}><Layers className="mx-auto size-4" /></button>
-          <button type="button" aria-pressed={view === "grid"} aria-label="Grid view" title="Grid view" onClick={() => setView("grid")}><LayoutGrid className="mx-auto size-4" /></button>
+          <button type="button" aria-pressed={view === "tile"} aria-label="Tile view" title="Tile view" onClick={() => { setHovered(false); setView("tile"); }}><Layers className="mx-auto size-4" /></button>
+          <button type="button" aria-pressed={view === "grid"} aria-label="Grid view" title="Grid view" onClick={() => { setHovered(false); setView("grid"); }}><LayoutGrid className="mx-auto size-4" /></button>
         </div>
         {view === "tile" ? (
-          <div className="playground-speed" role="group" aria-label="Seconds per photograph">
+          <div className="playground-speed" role="group" aria-label="Playback speed">
             {SPEEDS.map((value) => (
-              <button key={value} type="button" aria-pressed={speed === value} onClick={() => setSpeed(value)}>{value}s</button>
+              <button key={value} type="button" aria-pressed={speed === value} onClick={() => setSpeed(value)}>{value}x</button>
             ))}
           </div>
         ) : pageCount > 1 ? (
