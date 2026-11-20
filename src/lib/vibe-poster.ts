@@ -31,6 +31,8 @@ interface Frame {
   tile: number;
   tilesY: number;
   glowScale: number;
+  /** The saved story carries the section's title and question above the chart. */
+  header?: { titleY: number; titleFont: number; subY: number; subFont: number };
 }
 
 const FRAMES: Record<PosterLayout, Frame> = {
@@ -44,6 +46,7 @@ const FRAMES: Record<PosterLayout, Frame> = {
     w: STORY_W, h: STORY_H, cx: 540, cy: 800, outer: 330, face: 322, labelFont: 32, labelOffset: 30, axisExtra: 14,
     footer: "center", nameY: 1310, nameFont: 76, resultsY: 1372, resultsFont: 36, blurbY: 1436, blurbFont: 31, blurbLine: 42, blurbWidth: 860,
     tile: 150, tilesY: 1540, glowScale: 1.6,
+    header: { titleY: 316, titleFont: 76, subY: 376, subFont: 36 },
   },
 };
 
@@ -278,6 +281,16 @@ export function drawPoster(ctx: CanvasRenderingContext2D, options: PosterOptions
   ctx.fillRect(0, 0, frame.w, frame.h);
   drawCornerGlows(ctx, frame, options.glow);
   ctx.textBaseline = "alphabetic";
+
+  if (frame.header) {
+    ctx.textAlign = "center";
+    ctx.fillStyle = colors.fg;
+    ctx.font = `700 ${frame.header.titleFont}px ${fontFamily}`;
+    ctx.fillText("Vibe check", frame.w / 2, frame.header.titleY);
+    ctx.fillStyle = colors.muted;
+    ctx.font = `400 ${frame.header.subFont}px ${fontFamily}`;
+    ctx.fillText("How are you feeling in here?", frame.w / 2, frame.header.subY);
+  }
 
   // Chart frame: three rings, five axes.
   ctx.lineWidth = 2;

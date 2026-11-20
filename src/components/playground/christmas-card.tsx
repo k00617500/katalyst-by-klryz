@@ -1,9 +1,13 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
+import Image from "next/image";
 import { Dialog } from "radix-ui";
-import { Download, Gift, X } from "lucide-react";
+import { Download, Gift, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SnowCanvas } from "@/components/playground/snow-canvas";
+import { loadQr, saveGif, savePng } from "@/lib/christmas-card-image";
+import type { Ornament } from "@/lib/christmas-tree";
 
 const COVER_KEY = "katalyst-card-cover";
 const COVER_COUNT = 4;
@@ -11,8 +15,9 @@ const COVER_COUNT = 4;
 /** Each visitor gets one cover (snowflake, deer, tree or gift), picked at random the first time and then kept. */
 export function pickCardCover(): number {
   try {
-    const stored = Number(window.localStorage.getItem(COVER_KEY));
-    if (Number.isInteger(stored) && stored >= 0 && stored < COVER_COUNT && window.localStorage.getItem(COVER_KEY) !== null) return stored;
+    const raw = window.localStorage.getItem(COVER_KEY);
+    const stored = Number(raw);
+    if (raw !== null && Number.isInteger(stored) && stored >= 0 && stored < COVER_COUNT) return stored;
     const chosen = Math.floor(Math.random() * COVER_COUNT);
     window.localStorage.setItem(COVER_KEY, String(chosen));
     return chosen;
@@ -80,12 +85,8 @@ function Cover({ cover }: { cover: number }) {
     <div className="absolute inset-0 overflow-hidden rounded-r-[0.5em] rounded-l-[0.15em]" style={{ background: FELT }}>
       <div className="absolute inset-0" style={{ backgroundImage: GRAIN }} />
       <div className="absolute top-[7%] left-[9%] text-white">
-        <p className="text-[0.75em] leading-tight font-medium tracking-wide">HAPPY CHRISTMAS</p>
-        <p className="text-[0.75em] leading-tight font-medium tracking-wide">2026</p>
-        <p className="mt-[0.9em] flex items-center gap-[0.5em] text-[0.5em] leading-tight tracking-wide">
-          <span className="grid size-[2.3em] place-items-center rounded-full border border-white/80 text-[1.1em] font-semibold">K</span>
-          <span>The Katalyst<br />by Klaryze</span>
-        </p>
+        <p className="text-[0.8em] leading-tight font-medium tracking-wide">HAPPY CHRISTMAS</p>
+        <p className="text-[0.8em] leading-tight font-medium tracking-wide">2026</p>
       </div>
       <span className="absolute top-[3.5%] right-[6%] size-[1.1em] rounded-full bg-[#0b1f17] shadow-[inset_0_1px_3px_#000,0_0_0_1.5px_#c9a85a]" aria-hidden="true" />
       <Stencil cover={cover} />
@@ -93,46 +94,64 @@ function Cover({ cover }: { cover: number }) {
   );
 }
 
-export function ChristmasCard({ open, onOpenChange, image, name, cover }: {
+export function ChristmasCard({ open, onOpenChange, image, name, cover, ornaments }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   image: string;
   name: string;
   cover: number;
+  ornaments: Ornament[];
 }) {
   const [opened, setOpened] = useState(false);
+  const [busy, setBusy] = useState<null | "png" | "gif">(null);
+  const [progress, setProgress] = useState(0);
   const label = name.trim();
-  const size = { "--w": "min(300px, 41vw)" } as CSSProperties;
+  const size = { "--w": "min(250px, 38vw)" } as CSSProperties;
+
+  const save = async (format: "png" | "gif") => {
+    if (busy) return;
+    setBusy(format);
+    setProgress(0);
+    try {
+      const qr = await loadQr();
+      const options = { ornaments, name: label, qr };
+      if (format === "png") await savePng(options);
+      else await saveGif(options, setProgress);
+    } finally {
+      setBusy(null);
+    }
+  };
 
   return (
     <Dialog.Root open={open} onOpenChange={(value) => { onOpenChange(value); if (!value) setOpened(false); }}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-sm" />
-        <Dialog.Content onOpenAutoFocus={(event) => event.preventDefault()} className="fixed inset-0 z-[101] flex flex-col items-center justify-center gap-8 p-4 outline-none">
+        <Dialog.Content onOpenAutoFocus={(event) => event.preventDefault()} className="fixed inset-0 z-[101] flex flex-col items-center justify-center gap-7 p-4 outline-none">
+          <SnowCanvas count={90} period={26} scale={1.25} seed={21} className="absolute inset-0 -z-0 size-full" />
           <Dialog.Title className="sr-only">Your Christmas card</Dialog.Title>
           <Dialog.Description className="sr-only">A two-fold greeting card with your decorated tree inside. Press the card or the Open button to open it.</Dialog.Description>
 
-          <div className="[perspective:2200px]" style={size}>
+          <div className="relative z-10 [perspective:2200px]" style={size}>
             <div
               className="relative transition-transform duration-[900ms] ease-[cubic-bezier(.5,0,.2,1)]"
               style={{
                 width: "var(--w)",
-                height: "calc(var(--w) * 1.4)",
-                fontSize: "calc(var(--w) / 17)",
+                height: "calc(var(--w) * 1.25)",
+                fontSize: "calc(var(--w) / 16)",
                 transform: opened ? "translateX(calc(var(--w) / 2))" : "none",
                 filter: "drop-shadow(0 24px 40px rgba(0,0,0,0.55))",
               }}
             >
               {/* Right-hand inside page: the visitor's tree. */}
-              <div className="absolute inset-0 flex flex-col overflow-hidden rounded-r-[0.5em] bg-[#0b0b0b] p-[0.9em]">
+              <div className="absolute inset-0 flex flex-col overflow-hidden rounded-r-[0.5em] bg-[#0a0a0a] p-[0.8em]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={image} alt="Your decorated Christmas tree" className="min-h-0 flex-1 object-contain" draggable={false} />
-                <p className="mt-[0.5em] text-[1.5em] leading-[0.95] font-medium tracking-tight text-white">
+                <p className="mt-[0.4em] text-[1.45em] leading-[0.95] font-medium tracking-tight text-white">
                   Merry<br />Christmas<span className="text-[#d8232a]">.</span>
                 </p>
               </div>
 
-              {/* The cover swings open on the left edge; its back is the left-hand note page. */}
+              {/* The cover swings open on the left edge; its back is the red note page. */}
               <button
                 type="button"
                 aria-label={opened ? "Close the card" : "Open the card"}
@@ -143,32 +162,38 @@ export function ChristmasCard({ open, onOpenChange, image, name, cover }: {
                 <div className="absolute inset-0 [backface-visibility:hidden]">
                   <Cover cover={cover} />
                 </div>
-                <div className="absolute inset-0 flex [transform:rotateY(180deg)] flex-col justify-between overflow-hidden rounded-l-[0.5em] bg-[#f7f0e2] p-[1.3em] text-left [backface-visibility:hidden]">
-                  <p className="text-[0.55em] tracking-[0.2em] text-[#1f7a3a] uppercase">The Katalyst by Klaryze</p>
-                  <div className="space-y-[0.9em]">
-                    <p className="text-[1.45em] leading-[1.15] font-medium tracking-tight break-words text-[#7a0f1c]">
+                <div className="absolute inset-0 flex [transform:rotateY(180deg)] flex-col justify-between overflow-hidden rounded-l-[0.5em] bg-gradient-to-br from-[#d1202f] to-[#8f0d1b] p-[1.3em] text-left text-[#fff7ee] [backface-visibility:hidden]">
+                  <div className="space-y-[0.8em] pt-[1.6em]">
+                    <p className="text-[1.5em] leading-[1.12] font-semibold tracking-tight break-words">
                       Have A Happy Christmas{label ? `, ${label}` : ""}
                     </p>
-                    <p className="text-[0.85em] leading-snug text-[#1f3d2b]">From The Katalyst by Klaryze!</p>
+                    <p className="text-[0.85em] leading-snug text-[#ffd9d4]">From The Katalyst by Klaryze!</p>
                   </div>
-                  <span className="text-[0.55em] tracking-[0.2em] text-[#b5121f] uppercase">2026</span>
-                  <span className="pointer-events-none absolute inset-y-0 right-0 w-[2.2em] bg-gradient-to-l from-black/15 to-transparent" aria-hidden="true" />
+                  <div className="flex items-end justify-between">
+                    <span className="text-[0.6em] tracking-[0.2em] text-white/70">2026</span>
+                    <Image src="/images/the-katalyst-back.png" alt="QR code for the website" width={96} height={96} className="size-[3.6em] rounded-[0.5em] bg-[#111] p-[0.25em]" />
+                  </div>
+                  <span className="pointer-events-none absolute inset-y-0 right-0 w-[2.2em] bg-gradient-to-l from-black/25 to-transparent" aria-hidden="true" />
                 </div>
               </button>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-3">
+          <div className="relative z-10 flex flex-wrap items-center justify-center gap-3">
             <Button type="button" onClick={() => setOpened((value) => !value)}>
               <Gift className="size-4" /> {opened ? "Close the card" : "Open the card"}
             </Button>
-            <Button asChild variant="outline">
-              <a href={image} download="my-christmas-tree.png"><Download className="size-4" /> Download my tree</a>
+            <Button type="button" variant="outline" disabled={busy !== null} onClick={() => void save("png")}>
+              {busy === "png" ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />} Save as PNG
+            </Button>
+            <Button type="button" variant="outline" disabled={busy !== null} onClick={() => void save("gif")}>
+              {busy === "gif" ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+              {busy === "gif" ? `Making GIF ${Math.round(progress * 100)}%` : "Save as GIF"}
             </Button>
           </div>
-          <p className="max-w-sm text-center text-xs text-white/60">Your card lives only in this browser tab. Nothing is saved or sent anywhere.</p>
+          <p className="relative z-10 max-w-sm text-center text-xs text-white/60">Your card is made in this browser tab only. Nothing is saved or sent anywhere.</p>
 
-          <Dialog.Close aria-label="Close" className="absolute top-5 right-5 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"><X className="size-5" /></Dialog.Close>
+          <Dialog.Close aria-label="Close" className="absolute top-5 right-5 z-10 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"><X className="size-5" /></Dialog.Close>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

@@ -4,12 +4,12 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent } from "rea
 import { Eraser, Save, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { resolveChristmas } from "@/lib/christmas";
+import { drawSnow, makeSnow } from "@/lib/snow-field";
 import {
-  MAX_ORNAMENTS, ORNAMENT_LIST, TREE_ASPECT, drawOrnament, drawTree, hitOrnament, nearTree,
+  MAX_ORNAMENTS, ORNAMENT_LIST, TREE_ASPECT, drawLights, drawOrnament, drawTree, hitOrnament, nearTree,
   type Ornament, type OrnamentKind,
 } from "@/lib/christmas-tree";
 import { ChristmasCard, pickCardCover } from "@/components/playground/christmas-card";
@@ -21,18 +21,21 @@ function Swatch({ kind }: { kind: OrnamentKind }) {
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = 48 * dpr;
-    canvas.height = 48 * dpr;
+    canvas.width = 44 * dpr;
+    canvas.height = 44 * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, 48, 48);
-    drawOrnament(ctx, kind, 24, kind === "candy" || kind === "ginger" ? 26 : 28, 13);
+    ctx.clearRect(0, 0, 44, 44);
+    drawOrnament(ctx, kind, 22, kind === "candy" || kind === "ginger" ? 24 : 26, 12);
   }, [kind]);
-  return <canvas ref={ref} aria-hidden="true" className="size-12" />;
+  return <canvas ref={ref} aria-hidden="true" className="size-11" />;
 }
 
+const SNOW_PERIOD = 20;
+
 /**
- * Christmas season only: decorate a dot-matrix tree, then turn it into a two-fold greeting card. The name is optional
- * and, like the tree, is never stored or sent anywhere (a short privacy notice says so).
+ * Christmas season only: decorate a dot-matrix tree (twinkling lights, falling snow), then turn it into a two-fold
+ * greeting card that can be saved as a PNG or an animated GIF. The name is optional and, like the tree, is never
+ * stored or sent anywhere (a short privacy notice says so).
  */
 export function ChristmasTree() {
   const [active, setActive] = useState(false);
@@ -47,7 +50,9 @@ export function ChristmasTree() {
   const [hint, setHint] = useState("");
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayRef = useRef<HTMLCanvasElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const nextId = useRef(1);
   const drag = useRef<{ id: number; pointerId: number } | null>(null);
   const [width, setWidth] = useState(0);
@@ -81,6 +86,31 @@ export function ChristmasTree() {
     drawTree(ctx, width, ornaments);
   }, [active, width, ornaments]);
 
+  // Twinkling lights and falling snow, on a layer above the tree that never takes clicks.
+  useEffect(() => {
+    const canvas = overlayRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!active || !canvas || !ctx || !width) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const height = width / TREE_ASPECT;
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const flakes = makeSnow(34, 3);
+    let raf = 0;
+    const start = performance.now();
+    const frame = (now: number) => {
+      const t = reduced ? 2 : (now - start) / 1000;
+      ctx.clearRect(0, 0, width, height);
+      drawLights(ctx, width, t);
+      drawSnow(ctx, width, height, t, flakes, SNOW_PERIOD, width / 340);
+      if (!reduced) raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  }, [active, width]);
+
   const point = useCallback((event: PointerEvent<HTMLCanvasElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     return { u: (event.clientX - rect.left) / rect.width, v: (event.clientY - rect.top) / rect.height };
@@ -91,7 +121,6 @@ export function ChristmasTree() {
     const { u, v } = point(event);
     const existing = hitOrnament(ornaments, u, v, width);
     if (existing) {
-      // Grab it: move it to the top of the pile and start dragging.
       setOrnaments((list) => [...list.filter((o) => o.id !== existing.id), existing]);
       drag.current = { id: existing.id, pointerId: event.pointerId };
       event.currentTarget.setPointerCapture(event.pointerId);
@@ -99,7 +128,7 @@ export function ChristmasTree() {
       return;
     }
     if (!nearTree(u, v)) { setHint("Hang ornaments on the tree."); return; }
-    if (ornaments.length >= MAX_ORNAMENTS) { setHint(`That's a full tree (${MAX_ORNAMENTS} ornaments). Undo one to add another.`); return; }
+    if (ornaments.length >= MAX_ORNAMENTS) { setHint(`That's a full tree (${MAX_ORNAMENTS}). Undo one to add another.`); return; }
     const id = nextId.current++;
     setOrnaments((list) => [...list, { id, kind, x: u, y: v }]);
     drag.current = { id, pointerId: event.pointerId };
@@ -120,11 +149,21 @@ export function ChristmasTree() {
     drag.current = null;
     const { u, v } = point(event);
     if (!nearTree(u, v)) {
-      // Dropped off the tree: it comes back off.
       setOrnaments((list) => list.filter((o) => o.id !== current.id));
-      setHint("Ornament removed. Drop them on the tree to keep them.");
+      setHint("Ornament removed. Drop it on the tree to keep it.");
     }
   };
+
+  // A gentle 3D tilt of the whole tree panel toward the pointer.
+  const tilt = (event: PointerEvent<HTMLDivElement>) => {
+    const panel = panelRef.current;
+    if (!panel || event.pointerType === "touch" || drag.current) return;
+    const rect = panel.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width - 0.5;
+    const y = (event.clientY - rect.top) / rect.height - 0.5;
+    panel.style.transform = `perspective(1000px) rotateY(${x * 7}deg) rotateX(${-y * 7}deg)`;
+  };
+  const untilt = () => { if (panelRef.current) panelRef.current.style.transform = ""; };
 
   const hasName = name.trim().length > 0;
   const blocked = hasName && !agreed;
@@ -139,6 +178,7 @@ export function ChristmasTree() {
     const ctx = out.getContext("2d");
     if (!ctx) return;
     drawTree(ctx, outWidth, ornaments, "#0a0a0a");
+    drawLights(ctx, outWidth, 1.2);
     setCardImage(out.toDataURL("image/png"));
     setCover(pickCardCover());
     setCardOpen(true);
@@ -147,40 +187,19 @@ export function ChristmasTree() {
   if (!active) return null;
 
   return (
-    <section id="christmas-tree" className="container-page section-y scroll-mt-24 border-t border-border/60">
+    <section id="christmas-tree" className="container-page section-y scroll-mt-24 border-t border-border/60 text-center">
       <SectionHeading
+        align="center"
         eyebrow="Christmas"
         title="Decorate your own tree"
-        description="Pick your ornaments, hang them on the tree, then save it as a two-fold Christmas card."
+        description="Hang your ornaments, then save the tree as a two-fold Christmas card."
       />
 
-      <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)] lg:gap-12">
-        <div className="mx-auto w-full max-w-[560px] overflow-hidden rounded-2xl border border-border bg-[#0a0a0a] p-4 sm:p-6">
-          <div ref={boxRef} className="relative w-full" style={{ aspectRatio: String(TREE_ASPECT) }}>
-            <canvas
-              ref={canvasRef}
-              aria-label="Your Christmas tree. Click to hang the selected ornament, drag to move it, drag it off the tree to remove it."
-              role="img"
-              onPointerDown={onDown}
-              onPointerMove={onMove}
-              onPointerUp={onUp}
-              onPointerCancel={onUp}
-              className="absolute inset-0 size-full cursor-crosshair touch-none select-none"
-            />
-          </div>
-          <div className="mt-4 flex items-end justify-between gap-6 text-white">
-            <p className="text-4xl leading-[0.95] font-medium tracking-tight sm:text-6xl">
-              Merry<br />Christmas<span className="text-[#d8232a]">.</span>
-            </p>
-            <p className="max-w-[12rem] pb-1 text-[11px] leading-snug text-white/70">
-              Wishing you clarity and joy this season. Merry Christmas from The Katalyst by Klaryze.
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div className="space-y-3">
-            <Label>Ornaments</Label>
+      <div className="mx-auto mt-10 grid max-w-4xl items-stretch gap-3 text-left lg:grid-cols-2">
+        {/* Left square: the ornaments. */}
+        <div className="flex flex-col justify-between gap-4 rounded-3xl border border-border bg-card p-5 sm:p-6 lg:aspect-square">
+          <div className="space-y-2.5">
+            <p className="text-lg font-medium tracking-tight">Pick an ornament</p>
             <div role="radiogroup" aria-label="Ornament" className="grid grid-cols-5 gap-2">
               {ORNAMENT_LIST.map((item) => (
                 <button
@@ -191,21 +210,21 @@ export function ChristmasTree() {
                   aria-label={item.label}
                   title={item.label}
                   onClick={() => setKind(item.kind)}
-                  className="grid place-items-center rounded-xl border border-border bg-secondary/40 p-1.5 transition-colors hover:bg-secondary aria-checked:border-foreground aria-checked:bg-secondary"
+                  className="grid place-items-center rounded-xl border border-border bg-secondary/40 p-1 transition-colors hover:bg-secondary aria-checked:border-foreground aria-checked:bg-secondary"
                 >
                   <Swatch kind={item.kind} />
                 </button>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Click the tree to hang the selected ornament. Drag to move it, or drag it off the tree to remove it.
+            <p className="text-xs leading-snug text-muted-foreground">
+              Click the tree to hang it. Drag to move, or drag it off to remove.
               <span className="ml-1 font-mono">{ornaments.length}/{MAX_ORNAMENTS}</span>
             </p>
             {hint && <p role="status" className="text-xs text-brand-ink">{hint}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="tree-name">Your name <span className="text-muted-foreground">(optional)</span></Label>
+            <label htmlFor="tree-name" className="text-sm font-medium">Your name <span className="font-normal text-muted-foreground">(optional)</span></label>
             <Input
               id="tree-name"
               value={name}
@@ -233,19 +252,48 @@ export function ChristmasTree() {
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <Button type="button" onClick={save} disabled={!canSave}>
-              <Save className="size-4" /> Save my card
-            </Button>
-            <Button type="button" variant="outline" disabled={!ornaments.length} onClick={() => setOrnaments((list) => list.slice(0, -1))}>
-              <Undo2 className="size-4" /> Undo
-            </Button>
-            <Button type="button" variant="outline" disabled={!ornaments.length} onClick={() => setOrnaments([])}>
-              <Eraser className="size-4" /> Clear
-            </Button>
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="button" onClick={save} disabled={!canSave}>
+                <Save className="size-4" /> Save my card
+              </Button>
+              <Button type="button" variant="outline" disabled={!ornaments.length} onClick={() => setOrnaments((list) => list.slice(0, -1))}>
+                <Undo2 className="size-4" /> Undo
+              </Button>
+              <Button type="button" variant="outline" disabled={!ornaments.length} onClick={() => setOrnaments([])}>
+                <Eraser className="size-4" /> Clear
+              </Button>
+            </div>
+            {!ornaments.length && <p className="text-xs text-muted-foreground">Hang at least one ornament to save.</p>}
+            {blocked && <p className="text-xs text-muted-foreground">Tick the Data Privacy box to add your name, or clear the name.</p>}
           </div>
-          {!ornaments.length && <p className="text-xs text-muted-foreground">Hang at least one ornament to save your card.</p>}
-          {blocked && <p className="text-xs text-muted-foreground">Tick the Data Privacy box to put your name on the card, or clear the name.</p>}
+        </div>
+
+        {/* Right square: the tree. */}
+        <div
+          ref={panelRef}
+          onPointerMove={tilt}
+          onPointerLeave={untilt}
+          className="relative overflow-hidden rounded-3xl border border-border bg-[#0a0a0a] transition-transform duration-200 ease-out will-change-transform max-lg:aspect-square lg:aspect-square"
+        >
+          <p className="pointer-events-none absolute top-4 left-5 z-10 text-xl leading-[0.95] font-medium tracking-tight text-white sm:text-2xl">
+            Merry<br />Christmas<span className="text-[#d8232a]">.</span>
+          </p>
+          <div className="absolute inset-0 flex items-center justify-center p-3">
+            <div ref={boxRef} className="relative h-full max-w-full" style={{ aspectRatio: String(TREE_ASPECT) }}>
+              <canvas
+                ref={canvasRef}
+                role="img"
+                aria-label="Your Christmas tree. Click to hang the selected ornament, drag to move it, drag it off the tree to remove it."
+                onPointerDown={onDown}
+                onPointerMove={onMove}
+                onPointerUp={onUp}
+                onPointerCancel={onUp}
+                className="absolute inset-0 size-full cursor-crosshair touch-none select-none"
+              />
+              <canvas ref={overlayRef} aria-hidden="true" className="pointer-events-none absolute inset-0 size-full" />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -259,7 +307,8 @@ export function ChristmasTree() {
             <p>The name you type is used only to personalise the greeting card on your screen.</p>
             <p>
               It is <strong className="text-foreground">not saved</strong> to any database, not sent to a server and not shared.
-              Your decorated tree works the same way: it exists only in your browser while this page is open.
+              Your decorated tree works the same way: it exists only in your browser while this page is open, and the card
+              you save as a PNG or GIF is made on your own device.
             </p>
             <p>Close or refresh the page and both are gone. You can also leave the name empty and still save your card.</p>
           </div>
@@ -269,7 +318,7 @@ export function ChristmasTree() {
         </DialogContent>
       </Dialog>
 
-      <ChristmasCard open={cardOpen} onOpenChange={setCardOpen} image={cardImage} name={hasName ? name : ""} cover={cover} />
+      <ChristmasCard open={cardOpen} onOpenChange={setCardOpen} image={cardImage} name={hasName ? name : ""} cover={cover} ornaments={ornaments} />
     </section>
   );
 }
