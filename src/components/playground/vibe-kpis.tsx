@@ -17,9 +17,9 @@ const TOP_MOODS = 8;
 
 function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 text-left sm:p-5">
+    <div className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card p-4 text-left sm:p-5">
       <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">{label}</p>
-      <p className="mt-2 text-2xl font-medium tracking-tight sm:text-3xl">{value}</p>
+      <p className="mt-2 text-xl leading-tight font-medium tracking-tight text-balance break-words sm:text-2xl">{value}</p>
       {hint && <p className="mt-1 text-sm text-muted-foreground">{hint}</p>}
     </div>
   );
