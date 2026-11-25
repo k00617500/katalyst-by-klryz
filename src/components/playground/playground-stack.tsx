@@ -167,7 +167,7 @@ export function PlaygroundStack({ items }: { items: PlaygroundItem[] }) {
   const [pseudoFullscreen, setPseudoFullscreen] = useState(false);
   const expanded = fullscreen || pseudoFullscreen;
   const [speed, setSpeed] = useState<number>(DEFAULT_SPEED);
-  const [view, setView] = useState<View>("tile");
+  const [view, setView] = useState<View>("grid");
   const [cols, setCols] = useState(6);
   const [page, setPage] = useState(0);
   const phase = useMotionValue(0);
