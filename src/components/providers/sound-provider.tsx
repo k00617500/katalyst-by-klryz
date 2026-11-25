@@ -3,7 +3,11 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useSyncExternalStore } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 
-const SoundContext = createContext({ enabled: true, toggle: () => {} });
+const SoundContext = createContext<{ enabled: boolean; toggle: () => void; playNote: (frequency: number, click: boolean) => void }>({
+  enabled: true,
+  toggle: () => {},
+  playNote: () => {},
+});
 const SOUND_KEY = "katalyst-sound";
 const SOUND_EVENT = "katalyst-sound-change";
 let memoryPreference = true;
@@ -63,6 +67,36 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
     } catch { /* Sound is optional on browsers without Web Audio. */ }
   }, []);
 
+  const playNote = useCallback((frequency: number, click: boolean) => {
+    if (!enabledRef.current) return;
+    try {
+      const context = !audio.current || audio.current.state === "closed"
+        ? (click ? (audio.current = new AudioContext()) : null)
+        : audio.current;
+      if (!context) return;
+      if (context.state === "suspended" && click) void context.resume();
+      if (!enabledRef.current || context.state !== "running") return;
+      const now = context.currentTime;
+      const gain = context.createGain();
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(click ? 0.16 : 0.07, now + 0.008);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + (click ? 0.55 : 0.35));
+      gain.connect(context.destination);
+      [1, 2, 3].forEach((partial, index) => {
+        const oscillator = context.createOscillator();
+        const partialGain = context.createGain();
+        partialGain.gain.value = 1 / (index + 1.6);
+        oscillator.type = "triangle";
+        oscillator.frequency.setValueAtTime(frequency * partial, now);
+        oscillator.connect(partialGain);
+        partialGain.connect(gain);
+        oscillator.start(now);
+        oscillator.stop(now + (click ? 0.6 : 0.4));
+        oscillator.onended = () => { oscillator.disconnect(); partialGain.disconnect(); };
+      });
+    } catch { /* Sound is optional on browsers without Web Audio. */ }
+  }, []);
+
   const toggle = useCallback(() => {
     const next = !enabledRef.current;
     enabledRef.current = next;
@@ -105,7 +139,11 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
   }, [enabled]);
 
   useEffect(() => () => { void audio.current?.close().catch(() => {}); }, []);
-  return <SoundContext.Provider value={{ enabled, toggle }}>{children}</SoundContext.Provider>;
+  return <SoundContext.Provider value={{ enabled, toggle, playNote }}>{children}</SoundContext.Provider>;
+}
+
+export function useSound() {
+  return useContext(SoundContext);
 }
 
 export function SoundToggle() {

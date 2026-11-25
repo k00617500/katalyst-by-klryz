@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
     maximumResponseBody: 100_000_000,
     remotePatterns: [
       { protocol: "https", hostname: "vemxhbrbdkojmuhatymo.supabase.co" },
+      { protocol: "https", hostname: "i.scdn.co" },
     ],
     dangerouslyAllowSVG: true,
     contentDispositionType: "attachment",
