@@ -10,12 +10,13 @@ import { projects } from "@/data/projects";
 
 registerGsap();
 
+const logoSlide = { slug: "logo", title: "The Katalyst by Klaryze", thumbnail: "/images/katalyst-logo.png", href: "" };
 const introSlide = { slug: "intro", title: "Hello, I'm Meryll Klaryze", thumbnail: "/images/project (1).png", href: "" };
 const projectSlides = projects.map((project) => ({ ...project, href: `/projects/${project.slug}` }));
 type Mode = "scroll" | "paused" | "autoplay";
 
 export function ProjectCarousel({ showIntro = true, ariaLabel = "Project showcase", compact = false }: { showIntro?: boolean; ariaLabel?: string; compact?: boolean }) {
-  const slides = showIntro ? [introSlide, ...projectSlides] : projectSlides;
+  const slides = showIntro ? [logoSlide, introSlide, ...projectSlides] : projectSlides;
   // Matching end cards let the track cross either boundary before resetting invisibly.
   const loopSlides = [slides[slides.length - 1], ...slides, slides[0]];
   const sectionRef = useRef<HTMLElement>(null);
@@ -106,7 +107,7 @@ export function ProjectCarousel({ showIntro = true, ariaLabel = "Project showcas
             {loopSlides.map((slide, slidePosition) => {
               const active = slidePosition === position;
               const image = (
-                <motion.div className="absolute inset-0" initial={false}
+                <motion.div className={`absolute inset-0 ${slide.slug === "intro" ? "p-10 sm:p-16 md:p-20" : slide.slug === "logo" ? "p-16 sm:p-24 md:p-32" : ""}`} initial={false}
                   animate={{ x: reduced ? 0 : Math.max(-1, Math.min(1, slidePosition - position)) * 24 }}
                   transition={{ duration: instant || reduced ? 0 : 1, ease: [0.22, 1, 0.36, 1] }}>
                   <Image src={slide.thumbnail} alt={slide.title} fill sizes="(min-width: 1440px) 1200px, 86vw" className="object-contain" />

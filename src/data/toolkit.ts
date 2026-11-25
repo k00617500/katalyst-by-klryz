@@ -21,7 +21,7 @@ import {
   SiFramer,
   SiLucide,
   SiShadcnui,
-  SiPostgresql, SiGithub, SiClaude, SiGithubcopilot, SiOllama, SiHuggingface, SiGit, SiClickup,
+  SiPostgresql, SiLeaflet, SiGithub, SiClaude, SiGithubcopilot, SiOllama, SiHuggingface, SiGit, SiClickup,
 } from "react-icons/si";
 
 export interface ToolkitItem {
@@ -50,7 +50,7 @@ export const toolkitItems: ToolkitItem[] = [
   { name: "Dart", icon: SiDart, color: "#0175C2" },
   { name: "Flutter", icon: SiFlutter, color: "#02569B" },
   { name: "PostgreSQL", icon: SiPostgresql, color: "#4169E1" },
-  { name: "PostGIS", icon: SiPostgresql, color: "#4E9A36" },
+  { name: "Leaflet", icon: SiLeaflet, color: "#199900" },
   { name: "GitHub", icon: SiGithub, color: "adaptive" },
   { name: "Claude", icon: SiClaude, color: "#D97757" },
   { name: "Codex", icon: RiOpenaiFill, color: "#10A37F" },
