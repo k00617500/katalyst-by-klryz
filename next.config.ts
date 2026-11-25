@@ -16,6 +16,7 @@ const nextConfig: NextConfig = {
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   turbopack: {
+    root: "C:/xampp/htdocs/the-katalyst",
     rules: {
       "*.css": {
         loaders: ["@tailwindcss/turbopack"],
