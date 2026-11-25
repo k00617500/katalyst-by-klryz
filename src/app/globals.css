@@ -381,7 +381,7 @@
   border-radius: calc(var(--vkey-size) * 0.26);
   background: var(--vkey-bg);
   color: var(--vkey-color);
-  font-family: var(--font-mono), ui-monospace, monospace;
+  font-family: var(--font-sans);
   font-weight: 500;
   font-size: calc(var(--vkey-size) * 0.4);
   text-transform: lowercase;
@@ -393,19 +393,14 @@
   padding: 0 1rem;
   border: none;
   cursor: pointer;
-  background: var(--brand-gradient);
-  color: var(--brand-foreground);
+  background: color-mix(in srgb, var(--vkey-bg), var(--foreground) 12%);
+  color: var(--foreground);
   font-weight: 700;
   letter-spacing: 0.02em;
-  box-shadow: 0 0 0 0 transparent;
   outline-offset: 4px;
-  transition: filter 0.15s ease;
-}
-.vkey-enter:hover {
-  filter: brightness(1.08);
 }
 .vkey-enter:focus-visible {
-  outline: 2px solid var(--brand);
+  outline: 2px solid var(--foreground);
 }
 
 .vkey-space {

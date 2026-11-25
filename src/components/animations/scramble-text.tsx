@@ -1,107 +1,63 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { gsap } from "@/components/providers/gsap-provider";
+import { Fragment, useRef } from "react";
+import { gsap, useGSAP } from "@/components/providers/gsap-provider";
 
-const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ!<>-_\\/[]{}—=+*^?#01";
+const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ!<>-_[]{}=+*^?#01";
+const START_DELAY = 0.12;
+const REVEAL_SPAN = 1.2;
+const SCRAMBLE_DURATION = 0.08;
 
-interface ScrambleTextOptions {
-  /** Characters locked in per frame, left to right — lower is slower. */
-  speed?: number;
-  /** Frames of full-string noise before the reveal begins (builds suspense). */
-  holdFrames?: number;
+function scrambleWord(word: string) {
+  return word.replace(/[a-z]/gi, () => GLYPHS[Math.floor(Math.random() * GLYPHS.length)]);
 }
 
-/**
- * Matrix-style decrypt effect: the whole string flickers as random glyphs,
- * then characters lock into place left to right, slowly, so the reveal
- * reads as deliberate rather than a glitch.
- */
-export function runScrambleText(
-  el: HTMLElement,
-  text: string,
-  { speed = 0.45, holdFrames = 18 }: ScrambleTextOptions = {},
-  onComplete?: () => void,
-) {
-  const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (prefersReduced) {
-    el.textContent = text;
-    onComplete?.();
-    return () => {};
-  }
+export function ScrambleText({ text, animate }: { text: string; animate: boolean }) {
+  const ref = useRef<HTMLParagraphElement>(null);
+  const announcementRef = useRef<HTMLSpanElement>(null);
 
-  const chars = text.split("");
-  let frame = 0;
-  let raf = 0;
-
-  const tick = () => {
-    frame += 1;
-    const revealCount =
-      frame <= holdFrames ? 0 : Math.min(chars.length, Math.floor((frame - holdFrames) * speed));
-    let out = "";
-    for (let i = 0; i < chars.length; i++) {
-      const char = chars[i];
-      if (char === " ") {
-        out += " ";
-      } else if (i < revealCount) {
-        out += char;
-      } else {
-        out += GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
-      }
-    }
-    el.textContent = out;
-
-    if (revealCount >= chars.length) {
-      el.textContent = text;
-      onComplete?.();
+  useGSAP(() => {
+    const announcement = announcementRef.current;
+    if (!announcement || !ref.current) return;
+    if (!animate || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      announcement.textContent = text;
       return;
     }
-    raf = requestAnimationFrame(tick);
-  };
 
-  raf = requestAnimationFrame(tick);
-  return () => cancelAnimationFrame(raf);
-}
+    announcement.textContent = "";
+    const words = ref.current.querySelectorAll<HTMLElement>("[data-scramble-word]");
+    const wordInterval = REVEAL_SPAN / Math.max(1, words.length - 1);
+    const reveal = gsap.timeline({ onComplete: () => { announcement.textContent = text; } });
 
-interface ScrambleTextProps {
-  text: string;
-  as?: "span" | "p" | "h3" | "h4";
-  className?: string;
-  trigger: number;
-  speed?: number;
-  holdFrames?: number;
-  onStart?: () => void;
-  onDone?: () => void;
-}
+    words.forEach((word, index) => {
+      const letters = word.querySelector<HTMLElement>("[data-letters]")!;
+      const glyphs = word.querySelector<HTMLElement>("[data-glyphs]")!;
+      const original = letters.textContent ?? "";
+      const start = START_DELAY + index * wordInterval;
 
-/** Declarative wrapper: re-runs the scramble reveal whenever `trigger` changes. */
-export function ScrambleText({
-  text,
-  as = "span",
-  className,
-  trigger,
-  speed,
-  holdFrames,
-  onStart,
-  onDone,
-}: ScrambleTextProps) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const cleanupRef = useRef<() => void>(() => {});
+      gsap.set([letters, glyphs], { visibility: "hidden" });
+      reveal.call(() => { glyphs.textContent = scrambleWord(original); }, [], start)
+        .set(glyphs, { visibility: "visible" }, start)
+        .call(() => { glyphs.textContent = scrambleWord(original); }, [], start + SCRAMBLE_DURATION / 2)
+        .set(glyphs, { visibility: "hidden" }, start + SCRAMBLE_DURATION)
+        .set(letters, { visibility: "visible" }, start + SCRAMBLE_DURATION);
+    });
+  }, { scope: ref, dependencies: [text, animate], revertOnUpdate: true });
 
-  useEffect(() => {
-    if (!ref.current || trigger === 0) return;
-    cleanupRef.current();
-    onStart?.();
-    gsap.fromTo(ref.current, { opacity: 0.4 }, { opacity: 1, duration: 0.3 });
-    cleanupRef.current = runScrambleText(ref.current, text, { speed, holdFrames }, onDone) ?? (() => {});
-    return () => cleanupRef.current();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trigger, text]);
-
-  const Comp = as;
   return (
-    <Comp ref={ref as never} className={className}>
-      {trigger === 0 ? "" : text}
-    </Comp>
+    <p ref={ref} className="font-sans text-balance text-xl leading-relaxed text-muted-foreground md:text-2xl">
+      <span aria-hidden="true">
+        {text.split(" ").map((word, index) => (
+          <Fragment key={index}>
+            {index > 0 && " "}
+            <span data-scramble-word className="relative inline-block">
+              <span data-letters>{word}</span>
+              <span data-glyphs className="invisible absolute inset-0 overflow-hidden whitespace-nowrap opacity-50" />
+            </span>
+          </Fragment>
+        ))}
+      </span>
+      <span ref={announcementRef} role="status" className="sr-only" />
+    </p>
   );
 }

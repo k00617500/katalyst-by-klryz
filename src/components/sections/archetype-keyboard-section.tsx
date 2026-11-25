@@ -7,7 +7,7 @@ import { archetypes } from "@/data/archetypes";
 
 registerGsap();
 
-const DEFAULT_TEXT = "why 'the katalyst?'";
+const DEFAULT_TEXT = "press enter to know why i'm the katalyst";
 
 const ROW_1 = ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"];
 const ROW_2 = ["a", "s", "d", "f", "g", "h", "j", "k", "l"];
@@ -27,7 +27,6 @@ export function ArchetypeKeyboardSection() {
   const pressedKeys = useRef<Set<string>>(new Set());
 
   const [index, setIndex] = useState<number | null>(null);
-  const [trigger, setTrigger] = useState(0);
 
   const pressEnterVisual = useCallback((el: HTMLElement | null, pressed: boolean) => {
     if (!el) return;
@@ -41,21 +40,12 @@ export function ArchetypeKeyboardSection() {
 
   const generate = useCallback(() => {
     setIndex((prev) => pickArchetype(prev));
-    setTrigger((t) => t + 1);
   }, []);
 
   useGSAP(
     () => {
       const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       if (prefersReduced) return;
-
-      gsap.to("[data-enter-key]", {
-        boxShadow: "0 6px 0 0 var(--brand-ink), 0 0 20px 4px color-mix(in oklch, var(--brand), transparent 40%)",
-        duration: 1.3,
-        ease: "sine.inOut",
-        yoyo: true,
-        repeat: -1,
-      });
 
       gsap.from("[data-vkey]", {
         opacity: 0,
@@ -91,7 +81,7 @@ export function ArchetypeKeyboardSection() {
       if (!sectionRef.current) return;
       const rect = sectionRef.current.getBoundingClientRect();
       const inView = rect.top < window.innerHeight * 0.85 && rect.bottom > window.innerHeight * 0.15;
-      if (!inView || event.key !== "Enter") return;
+      if (!inView || event.key !== "Enter" || event.repeat) return;
 
       event.preventDefault();
       if (!pressedKeys.current.has("Enter")) {
@@ -129,20 +119,9 @@ export function ArchetypeKeyboardSection() {
         <h2 className="font-heading text-3xl font-medium tracking-tight md:text-4xl">
           Why &apos;The Katalyst?&apos;
         </h2>
-        <p className="mt-3 max-w-md text-balance text-sm text-muted-foreground md:text-base">
-          Fifty-one answers to one question — press enter for mine.
-        </p>
 
-        <div className="archetype-display mt-8" aria-live="polite">
-          <ScrambleText
-            key={index ?? "default"}
-            text={displayText}
-            trigger={trigger || 1}
-            speed={0.4}
-            holdFrames={20}
-            as="p"
-            className="font-mono text-balance text-xl leading-relaxed text-muted-foreground md:text-2xl"
-          />
+        <div className="archetype-display mt-8">
+          <ScrambleText text={displayText} animate={archetype !== null} />
         </div>
 
         <div
