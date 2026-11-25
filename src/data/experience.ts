@@ -65,7 +65,8 @@ export const experienceEntries: ExperienceEntry[] = [
     position: "Junior Photojournalist | Senior Photojournalist | Art Director",
     location: "La Paz, Iloilo City, PH",
     startDate: "2023",
-    current: true,
+    endDate: "2025",
+    current: false,
     responsibilities: [
       "Directing publication layouts and graphic design while managing tight deadlines across simultaneous editorial projects.",
       "Directing layouts and visual identity for multiple publication issues.",
